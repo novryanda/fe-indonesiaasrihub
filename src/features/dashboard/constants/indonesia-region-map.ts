@@ -1,0 +1,65 @@
+import type { RegionId } from "@/components/shadcnmaps/maps/indonesia";
+
+export const INDONESIA_REGION_MAP: Array<{ regionId: RegionId; label: string; wilayahKode: string }> = [
+  { regionId: "AC", label: "Aceh", wilayahKode: "ID-AC" },
+  { regionId: "KI", label: "Kalimantan Timur", wilayahKode: "ID-KI" },
+  { regionId: "JT", label: "Jawa Tengah", wilayahKode: "ID-JT" },
+  { regionId: "BE", label: "Bengkulu", wilayahKode: "ID-BE" },
+  { regionId: "BT", label: "Banten", wilayahKode: "ID-BT" },
+  { regionId: "KB", label: "Kalimantan Barat", wilayahKode: "ID-KB" },
+  { regionId: "BB", label: "Kepulauan Bangka Belitung", wilayahKode: "ID-BB" },
+  { regionId: "BA", label: "Bali", wilayahKode: "ID-BA" },
+  { regionId: "JI", label: "Jawa Timur", wilayahKode: "ID-JI" },
+  { regionId: "KS", label: "Kalimantan Selatan", wilayahKode: "ID-KS" },
+  { regionId: "NT", label: "Nusa Tenggara Timur", wilayahKode: "ID-NT" },
+  { regionId: "SE", label: "Sulawesi Selatan", wilayahKode: "ID-SS" },
+  { regionId: "KR", label: "Kepulauan Riau", wilayahKode: "ID-KR" },
+  { regionId: "IB", label: "Papua Barat", wilayahKode: "ID-PB" },
+  { regionId: "SU", label: "Sumatera Utara", wilayahKode: "ID-SU" },
+  { regionId: "RI", label: "Riau", wilayahKode: "ID-RI" },
+  { regionId: "SW", label: "Sulawesi Utara", wilayahKode: "ID-SA" },
+  { regionId: "LA", label: "Maluku Utara", wilayahKode: "ID-MU" },
+  { regionId: "SB", label: "Sumatera Barat", wilayahKode: "ID-SB" },
+  { regionId: "MA", label: "Maluku", wilayahKode: "ID-MA" },
+  { regionId: "NB", label: "Nusa Tenggara Barat", wilayahKode: "ID-NB" },
+  { regionId: "SG", label: "Sulawesi Tenggara", wilayahKode: "ID-SG" },
+  { regionId: "ST", label: "Sulawesi Tengah", wilayahKode: "ID-ST" },
+  { regionId: "PA", label: "Papua", wilayahKode: "ID-PA" },
+  { regionId: "JR", label: "Jawa Barat", wilayahKode: "ID-JB" },
+  { regionId: "LA-2", label: "Lampung", wilayahKode: "ID-LA" },
+  { regionId: "JK", label: "DKI Jakarta", wilayahKode: "ID-JK" },
+  { regionId: "GO", label: "Gorontalo", wilayahKode: "ID-GO" },
+  { regionId: "YO", label: "DI Yogyakarta", wilayahKode: "ID-YO" },
+  { regionId: "KT", label: "Kalimantan Tengah", wilayahKode: "ID-KT" },
+  { regionId: "SL", label: "Sumatera Selatan", wilayahKode: "ID-SL" },
+  { regionId: "SR", label: "Sulawesi Barat", wilayahKode: "ID-SR" },
+  { regionId: "JA", label: "Jambi", wilayahKode: "ID-JA" },
+];
+
+export const INDONESIA_CHOROPLETH_BUCKETS = [
+  {
+    label: "Tidak ada akun",
+    className: "fill-slate-100 stroke-slate-300 hover:fill-slate-200",
+    swatchClassName: "bg-slate-200",
+  },
+  {
+    label: "Rendah",
+    className: "fill-emerald-200 stroke-emerald-300 hover:fill-emerald-300",
+    swatchClassName: "bg-emerald-200",
+  },
+  {
+    label: "Menengah",
+    className: "fill-emerald-400 stroke-emerald-500 hover:fill-emerald-500",
+    swatchClassName: "bg-emerald-400",
+  },
+  {
+    label: "Tinggi",
+    className: "fill-teal-600 stroke-teal-700 hover:fill-teal-700",
+    swatchClassName: "bg-teal-600",
+  },
+  {
+    label: "Sangat tinggi",
+    className: "fill-sky-800 stroke-sky-900 hover:fill-sky-900",
+    swatchClassName: "bg-sky-800",
+  },
+] as const;

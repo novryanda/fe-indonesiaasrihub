@@ -1,0 +1,237 @@
+import {
+  Bell,
+  BookOpen,
+  ChartColumnIncreasingIcon,
+  CheckCircle,
+  FolderOpen,
+  LayoutDashboard,
+  type LucideIcon,
+  MessageSquare,
+  MonitorPlay,
+  MonitorPlayIcon,
+  SquareCheck,
+  SquarePlus,
+  UserRound,
+  Users,
+} from "lucide-react";
+
+import type { UserRole } from "@/app/(auth)/auth/types/auth.types";
+
+export interface NavSubItem {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  comingSoon?: boolean;
+  newTab?: boolean;
+  isNew?: boolean;
+  roles?: UserRole[];
+}
+
+export interface NavMainItem {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  subItems?: NavSubItem[];
+  comingSoon?: boolean;
+  newTab?: boolean;
+  isNew?: boolean;
+  roles?: UserRole[];
+}
+
+export interface NavGroup {
+  id: number;
+  label?: string;
+  items: NavMainItem[];
+  roles?: UserRole[];
+}
+
+const CONTENT_CREATOR_ROLES: UserRole[] = ["wcc"];
+const SOCIAL_PIC_ROLES: UserRole[] = ["pic_sosmed"];
+const FIELD_TEAM_ROLES: UserRole[] = ["wcc", "pic_sosmed"];
+const REFERENCE_ROLES: UserRole[] = ["qcc_wcc", "wcc", "pic_sosmed"];
+
+export const sidebarItems: NavGroup[] = [
+  {
+    id: 1,
+    label: "Utama",
+    items: [
+      {
+        title: "Dashboard Nasional",
+        url: "/dashboard/nasional",
+        icon: LayoutDashboard,
+        roles: ["superadmin"],
+      },
+      {
+        title: "Dashboard Regional",
+        url: "/dashboard/regional",
+        icon: LayoutDashboard,
+        roles: ["qcc_wcc"],
+      },
+      {
+        title: "Final Approval",
+        url: "/dashboard/approval",
+        icon: CheckCircle,
+        roles: ["superadmin"],
+      },
+      {
+        title: "Validasi Postingan",
+        url: "/dashboard/validasi-posting",
+        icon: CheckCircle,
+        roles: ["qcc_wcc"],
+      },
+      {
+        title: "Konten Saya",
+        url: "/dashboard/konten-saya",
+        icon: SquareCheck,
+        roles: ["wcc"],
+      },
+      {
+        title: "Postingan Saya",
+        url: "/dashboard/postingan-saya",
+        icon: MonitorPlayIcon,
+        roles: ["pic_sosmed"],
+      },
+    ],
+  },
+  {
+    id: 2,
+    label: "Konten",
+    items: [
+      {
+        title: "Bank Konten",
+        url: "/konten/bank-konten",
+        icon: FolderOpen,
+        roles: ["superadmin", "qcc_wcc"],
+      },
+      {
+        title: "Bank Materi",
+        url: "/konten/bank-materi",
+        icon: BookOpen,
+        roles: ["superadmin"],
+      },
+    ],
+  },
+  {
+    id: 5,
+    label: "Tim",
+    roles: ["qcc_wcc"],
+    items: [
+      {
+        title: "Monitor PIC Sosmed",
+        url: "/tim/pic-sosmed",
+        icon: UserRound,
+        roles: ["qcc_wcc"],
+      },
+    ],
+  },
+  {
+    id: 3,
+    label: "Analitik",
+    roles: ["superadmin", "qcc_wcc"],
+    items: [
+      {
+        title: "Monitoring Sosmed",
+        url: "/analitik/monitoring-sosmed",
+        icon: MonitorPlay,
+        roles: ["superadmin", "qcc_wcc"],
+      },
+      {
+        title: "Laporan Regional",
+        url: "/analitik/laporan-regional",
+        icon: ChartColumnIncreasingIcon,
+        roles: ["qcc_wcc"],
+      },
+      {
+        title: "Laporan & Analitik",
+        url: "/analitik/laporan-analitik",
+        icon: ChartColumnIncreasingIcon,
+        roles: ["superadmin"],
+      },
+    ],
+  },
+  {
+    id: 4,
+    label: "Admin",
+    roles: ["superadmin"],
+    items: [
+      {
+        title: "Manajemen User",
+        url: "/pengaturan/manajemen-user",
+        icon: Users,
+        roles: ["superadmin"],
+      },
+    ],
+  },
+  {
+    id: 6,
+    label: "Aksi",
+    items: [
+      {
+        title: "Submit Konten Baru",
+        url: "/aksi/submit-konten",
+        icon: SquarePlus,
+        roles: CONTENT_CREATOR_ROLES,
+      },
+      {
+        title: "Submit Postingan Baru",
+        url: "/aksi/submit-posting",
+        icon: MessageSquare,
+        roles: SOCIAL_PIC_ROLES,
+      },
+    ],
+  },
+  {
+    id: 7,
+    label: "Referensi",
+    items: [
+      {
+        title: "Bank Konten",
+        url: "/konten/bank-konten",
+        icon: FolderOpen,
+        roles: FIELD_TEAM_ROLES,
+      },
+      {
+        title: "Bank Materi",
+        url: "/konten/bank-materi",
+        icon: BookOpen,
+        roles: FIELD_TEAM_ROLES,
+        comingSoon: true,
+      },
+    ],
+  },
+  {
+    id: 8,
+    label: "Akun",
+    items: [
+      {
+        title: "Akun Sosmed Delegasi",
+        url: "/akun/akun-sosmed",
+        icon: MonitorPlayIcon,
+        roles: ["pic_sosmed", "superadmin"],
+      },
+      {
+        title: "Daftar Akun Sosmed",
+        url: "/akun/daftar-akun",
+        roles: ["superadmin"],
+        icon: CheckCircle,
+      },
+      {
+        title: "Notifikasi",
+        url: "/akun/notifikasi",
+        icon: Bell,
+        roles: FIELD_TEAM_ROLES,
+      },
+    ],
+  },
+];
+
+/** Filter sidebar items based on user role */
+export function filterSidebarByRole(groups: NavGroup[], userRole: UserRole): NavGroup[] {
+  return groups
+    .filter((group) => !group.roles || group.roles.includes(userRole))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || item.roles.includes(userRole)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
