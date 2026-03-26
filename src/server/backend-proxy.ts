@@ -105,9 +105,15 @@ export async function forwardRequestToBackend(
   });
 
   const responseBody = await response.arrayBuffer();
+  const responseHeaders = new Headers(response.headers);
+  
+  // Clean up problematic headers that fetch node might have decompressed
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("transfer-encoding");
 
-  return new Response(responseBody.byteLength > 0 ? responseBody : undefined, {
+  return new Response(responseBody.byteLength > 0 ? responseBody : undefined, { 
     status: response.status,
-    headers: new Headers(response.headers),
+    headers: responseHeaders,
   });
 }
