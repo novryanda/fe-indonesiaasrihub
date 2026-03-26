@@ -108,6 +108,7 @@ export const sidebarItems: NavGroup[] = [
         url: "/konten/bank-materi",
         icon: BookOpen,
         roles: ["superadmin"],
+        comingSoon: true,
       },
     ],
   },
