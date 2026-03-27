@@ -52,23 +52,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton size="lg" asChild>
               <Link prefetch={false} href="/dashboard/nasional">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0">
                   <Image
                     src="/logo-klhk.png"
                     alt="Logo KLHK"
-                    width={20}
-                    height={20}
-                    className="size-5 rounded-sm object-contain"
+                    width={32}
+                    height={32}
+                    className="size-8 rounded-sm object-contain"
                   />
                   <Image
                     src="/logo-indonesiaasrihub.png"
                     alt={APP_CONFIG.name}
-                    width={150}
-                    height={32}
+                    width={180}
+                    height={40}
                     priority
-                    className="w-[140px] h-auto object-contain hidden group-data-[collapsible=icon]:hidden sm:block"
+                    className="w-[180px] h-auto object-contain hidden group-data-[collapsible=icon]:hidden sm:block"
                   />
                 </div>
               </Link>
