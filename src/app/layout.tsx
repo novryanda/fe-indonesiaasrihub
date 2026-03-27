@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: APP_CONFIG.meta.title,
   description: APP_CONFIG.meta.description,
   icons: {
-    icon: "/logo-klhk.png",
-    shortcut: "/logo-klhk.png",
-    apple: "/logo-klhk.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
 

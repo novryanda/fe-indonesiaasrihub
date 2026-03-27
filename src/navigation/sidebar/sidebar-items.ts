@@ -151,19 +151,6 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 4,
-    label: "Admin",
-    roles: ["superadmin"],
-    items: [
-      {
-        title: "Manajemen User",
-        url: "/pengaturan/manajemen-user",
-        icon: Users,
-        roles: ["superadmin"],
-      },
-    ],
-  },
-  {
     id: 6,
     label: "Aksi",
     items: [
@@ -221,6 +208,19 @@ export const sidebarItems: NavGroup[] = [
         url: "/akun/notifikasi",
         icon: Bell,
         roles: FIELD_TEAM_ROLES,
+      },
+    ],
+  },
+  {
+    id: 4,
+    label: "Admin",
+    roles: ["superadmin"],
+    items: [
+      {
+        title: "Manajemen User",
+        url: "/pengaturan/manajemen-user",
+        icon: Users,
+        roles: ["superadmin"],
       },
     ],
   },

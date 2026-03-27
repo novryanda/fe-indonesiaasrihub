@@ -62,7 +62,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     height={20}
                     className="size-5 rounded-sm object-contain"
                   />
-                  <span className="font-semibold text-base">{APP_CONFIG.name}</span>
+                  <Image
+                    src="/logo-indonesiaasrihub.png"
+                    alt={APP_CONFIG.name}
+                    width={150}
+                    height={32}
+                    priority
+                    className="w-[140px] h-auto object-contain hidden group-data-[collapsible=icon]:hidden sm:block"
+                  />
                 </div>
               </Link>
             </SidebarMenuButton>
