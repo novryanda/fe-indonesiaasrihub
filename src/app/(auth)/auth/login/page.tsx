@@ -10,6 +10,7 @@ import { GoogleButton } from "../_components/social-auth/google-button";
 import { LoginForm } from "../_components/login-form";
 import { cn } from "@/lib/utils";
 import { authClient, signIn, signOut } from "@/lib/auth-client";
+import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import type { LoginRole, UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
 
 const ROLE_META: Record<
@@ -135,6 +136,10 @@ function LoginPageContent() {
       }
 
       const userRole = authUser?.role ?? "wcc";
+      
+      // Jeda buatan untuk memberi waktu loading screen terlihat (sesuai permintaan user)
+      await new Promise(r => setTimeout(r, 1500));
+      
       router.push(safeCallbackUrl ?? getDashboardByRole(userRole));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan jaringan. Silakan coba lagi.";
@@ -159,8 +164,10 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-white">
-      {/* Left Decoration Panel */}
+    <>
+      <FullScreenLoader isLoading={isLoading} text="Sedang masuk ke sistem..." />
+      <div className="flex h-dvh overflow-hidden bg-white">
+        {/* Left Decoration Panel */}
       <div className="hidden bg-primary lg:block lg:w-1/3">
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -266,6 +273,7 @@ function LoginPageContent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -276,3 +284,4 @@ export default function LoginV1() {
     </Suspense>
   );
 }
+

@@ -123,7 +123,7 @@ export function LoginForm({
         Masuk Aplikasi
       </Button>
 
-      {/* <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+      <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
         <div className="flex items-start gap-3">
           <div className="shrink-0 rounded-full bg-amber-100 p-1.5">
             <Key className="h-4 w-4 text-amber-700" />
@@ -156,7 +156,7 @@ export function LoginForm({
             </button>
           </div>
         </div>
-      </div> */}
+      </div>
     </form>
   );
 }

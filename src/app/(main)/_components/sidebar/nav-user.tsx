@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleUser, CreditCard, EllipsisVertical, LogOut, MessageSquareDot } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/lib/utils";
 
@@ -28,14 +30,22 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await signOut();
+    
+    // Memberikan jeda waktu agar animasi loading terlihat (sesuai permintaan)
+    await new Promise(r => setTimeout(r, 1500));
+    
     router.push("/auth/login");
   };
 
   return (
-    <SidebarMenu>
+    <>
+      <FullScreenLoader isLoading={isLoggingOut} text="Sedang keluar dari sistem..." />
+      <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -88,5 +98,6 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, Bell, CreditCard, LogOut } from "lucide-react";
 
@@ -13,24 +14,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import { signOut, useSession } from "@/lib/auth-client";
 import { cn, getInitials } from "@/lib/utils";
 
 export function AccountSwitcher() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const user = session?.user
     ? {
         name: session.user.name,
         email: session.user.email,
         avatar: (session.user as { image?: string }).image ?? "",
-        role: ((session.user as { role?: string }).role ?? "wcc") as string,
+        role: ((session.user as { role?: string }).role ?? "wcc") as string,    
       }
     : { name: "", email: "", avatar: "", role: "" };
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await signOut();
+    
+    // Memberikan jeda waktu agar animasi loading terlihat (sesuai permintaan)
+    await new Promise(r => setTimeout(r, 1500));
+    
     router.push("/auth/login");
   };
 
@@ -39,8 +47,10 @@ export function AccountSwitcher() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <>
+      <FullScreenLoader isLoading={isLoggingOut} text="Sedang keluar dari sistem..." />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
         <Avatar className="size-9 rounded-lg cursor-pointer">
           <AvatarImage src={user.avatar || undefined} alt={user.name} />
           <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
@@ -73,5 +83,6 @@ export function AccountSwitcher() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 }
