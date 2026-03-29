@@ -493,27 +493,16 @@ export function SocialAccountDirectoryView() {
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label>Followers Awal</Label>
-              <Input
-                type="number"
-                min={0}
-                value={String(form.followers)}
-                onChange={(event) =>
-                  setForm((previous) => ({
-                    ...previous,
-                    followers: Number(event.target.value || 0),
-                  }))
-                }
-              />
-            </div>
-
             <div className="grid gap-2 md:col-span-2">
               <Label>Deskripsi</Label>
               <Textarea
                 value={form.deskripsi ?? ""}
                 onChange={(event) => setForm((previous) => ({ ...previous, deskripsi: event.target.value }))}
               />
+            </div>
+
+            <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sky-800 text-sm md:col-span-2">
+              Jumlah followers akan diperbarui otomatis oleh sistem setelah akun berhasil disimpan.
             </div>
 
             {!editingAccount && (

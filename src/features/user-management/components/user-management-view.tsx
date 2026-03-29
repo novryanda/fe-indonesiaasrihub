@@ -34,9 +34,10 @@ import { UsersTable } from "./users-table";
 
 interface UserManagementContentProps {
   accessToken?: string;
+  actorRole: "superadmin" | "sysadmin";
 }
 
-function UserManagementContent({ accessToken }: UserManagementContentProps) {
+function UserManagementContent({ accessToken, actorRole }: UserManagementContentProps) {
   const router = useRouter();
   const { users, stats, meta, isLoading, error, filters, setFilters, refetch } = useUsers(accessToken);
   const { create, isSubmitting: isCreating } = useCreateUser(accessToken);
@@ -58,6 +59,14 @@ function UserManagementContent({ accessToken }: UserManagementContentProps) {
 
     return Math.max(1, Math.ceil(meta.total / meta.limit));
   }, [meta]);
+
+  const allowedRoles = useMemo(
+    () =>
+      actorRole === "superadmin"
+        ? (["superadmin", "qcc_wcc", "wcc", "pic_sosmed"] as const)
+        : (["superadmin", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed"] as const),
+    [actorRole],
+  );
 
   const updateFilters = (updater: (previous: UsersFilterState) => UsersFilterState) => {
     setFilters((previous) => updater(previous));
@@ -169,10 +178,12 @@ function UserManagementContent({ accessToken }: UserManagementContentProps) {
 
   return (
     <div className="space-y-4">
-      <UsersStatsCards stats={stats} />
+      <UsersStatsCards stats={stats} actorRole={actorRole} />
 
       <UsersFilterToolbar
         filters={filters}
+        allowedRoles={[...allowedRoles]}
+        canImport={true}
         isLoading={isLoading}
         onSearchChange={(value) =>
           updateFilters((previous) => ({
@@ -266,6 +277,7 @@ function UserManagementContent({ accessToken }: UserManagementContentProps) {
         mode="create"
         open={isCreateDialogOpen}
         onOpenChange={setCreateDialogOpen}
+        allowedRoles={[...allowedRoles]}
         isSubmitting={isCreating}
         onSubmit={async (value) => {
           try {
@@ -290,6 +302,7 @@ function UserManagementContent({ accessToken }: UserManagementContentProps) {
           }
         }}
         defaultValue={editingUser}
+        allowedRoles={[...allowedRoles]}
         isSubmitting={isUpdating}
         onSubmit={async (value) => {
           try {
@@ -448,11 +461,12 @@ export function UserManagementView() {
 
   const role = ((session?.user as { role?: string } | undefined)?.role ?? "wcc") as
     | "superadmin"
+    | "sysadmin"
     | "qcc_wcc"
     | "wcc"
     | "pic_sosmed";
 
-  const isAuthorized = role === "superadmin";
+  const isAuthorized = role === "superadmin" || role === "sysadmin";
 
   useEffect(() => {
     if (!isPending && session && !isAuthorized) {
@@ -475,5 +489,5 @@ export function UserManagementView() {
     return null;
   }
 
-  return <UserManagementContent accessToken={accessToken} />;
+  return <UserManagementContent accessToken={accessToken} actorRole={role} />;
 }

@@ -1,4 +1,4 @@
-export type UserRole = "superadmin" | "qcc_wcc" | "wcc" | "pic_sosmed";
+export type UserRole = "superadmin" | "sysadmin" | "qcc_wcc" | "wcc" | "pic_sosmed";
 
 export type UserStatus = "aktif" | "nonaktif";
 
@@ -21,6 +21,7 @@ export interface UsersStats {
   total: number;
   wcc: number;
   pic_sosmed: number;
+  sysadmin: number;
   qcc_wcc: number;
   nonaktif: number;
 }

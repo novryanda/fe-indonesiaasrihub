@@ -242,11 +242,12 @@ export function UserImportView() {
 
   const role = ((session?.user as { role?: string } | undefined)?.role ?? "wcc") as
     | "superadmin"
+    | "sysadmin"
     | "qcc_wcc"
     | "wcc"
     | "pic_sosmed";
 
-  const isAuthorized = role === "superadmin";
+  const isAuthorized = role === "superadmin" || role === "sysadmin";
 
   useEffect(() => {
     if (!isPending && session && !isAuthorized) {

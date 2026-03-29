@@ -24,6 +24,8 @@ function toRoleLabel(role: UserItem["role"]) {
   switch (role) {
     case "superadmin":
       return "Superadmin";
+    case "sysadmin":
+      return "Sysadmin";
     case "qcc_wcc":
       return "QCC/WCC";
     case "wcc":

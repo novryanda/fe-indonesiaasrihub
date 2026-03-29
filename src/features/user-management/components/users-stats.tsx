@@ -1,22 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import type { UsersStats } from "../types/user-management.type";
+import type { UserRole } from "../types/user-management.type";
 
 interface UsersStatsProps {
   stats?: UsersStats;
+  actorRole: UserRole;
 }
 
 const FALLBACK_STATS: UsersStats = {
   total: 0,
   wcc: 0,
   pic_sosmed: 0,
+  sysadmin: 0,
   qcc_wcc: 0,
   nonaktif: 0,
 };
 
-export function UsersStatsCards({ stats = FALLBACK_STATS }: UsersStatsProps) {
+export function UsersStatsCards({ stats = FALLBACK_STATS, actorRole }: UsersStatsProps) {
+  const showSysadmin = actorRole !== "superadmin";
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <div className={`grid gap-3 sm:grid-cols-2 ${showSysadmin ? "xl:grid-cols-6" : "xl:grid-cols-5"}`}>
       <Card size="sm">
         <CardHeader>
           <CardTitle>Total User</CardTitle>
@@ -43,6 +48,17 @@ export function UsersStatsCards({ stats = FALLBACK_STATS }: UsersStatsProps) {
           <p className="font-semibold text-2xl">{stats.pic_sosmed}</p>
         </CardContent>
       </Card>
+
+      {showSysadmin ? (
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>Sysadmin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold text-2xl">{stats.sysadmin}</p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card size="sm">
         <CardHeader>

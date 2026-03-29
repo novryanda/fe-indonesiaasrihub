@@ -32,6 +32,7 @@ interface UserFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultValue?: UserItem | null;
+  allowedRoles: UserItem["role"][];
   isSubmitting: boolean;
   onSubmit: (value: CreateUserFormValues | UpdateUserFormValues) => Promise<void>;
 }
@@ -48,7 +49,7 @@ type FormDraft = {
 
 type FormErrorState = Partial<Record<keyof FormDraft, string>>;
 
-function createInitialDraft(mode: FormMode, user?: UserItem | null): FormDraft {
+function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], user?: UserItem | null): FormDraft {
   if (mode === "edit" && user) {
     return {
       name: user.name,
@@ -65,7 +66,7 @@ function createInitialDraft(mode: FormMode, user?: UserItem | null): FormDraft {
     name: "",
     email: "",
     phone_number: "",
-    role: "wcc",
+    role: allowedRoles[0] ?? "wcc",
     wilayah_id: "",
     password: "",
     status: "aktif",
@@ -94,10 +95,11 @@ export function UserFormDialog({
   open,
   onOpenChange,
   defaultValue,
+  allowedRoles,
   isSubmitting,
   onSubmit,
 }: UserFormDialogProps) {
-  const [draft, setDraft] = useState<FormDraft>(createInitialDraft(mode, defaultValue));
+  const [draft, setDraft] = useState<FormDraft>(createInitialDraft(mode, allowedRoles, defaultValue));
   const [errors, setErrors] = useState<FormErrorState>({});
   const [wilayahOptions, setWilayahOptions] = useState<WilayahOption[]>([]);
   const [isLoadingWilayah, setIsLoadingWilayah] = useState(false);
@@ -107,9 +109,9 @@ export function UserFormDialog({
       return;
     }
 
-    setDraft(createInitialDraft(mode, defaultValue));
+    setDraft(createInitialDraft(mode, allowedRoles, defaultValue));
     setErrors({});
-  }, [open, mode, defaultValue]);
+  }, [open, mode, defaultValue, allowedRoles]);
 
   useEffect(() => {
     if (!open) {
@@ -252,10 +254,11 @@ export function UserFormDialog({
                 <SelectValue placeholder="Pilih role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="superadmin">Superadmin</SelectItem>
-                <SelectItem value="qcc_wcc">QCC/WCC</SelectItem>
-                <SelectItem value="wcc">WCC</SelectItem>
-                <SelectItem value="pic_sosmed">PIC Sosmed</SelectItem>
+                {allowedRoles.includes("superadmin") ? <SelectItem value="superadmin">Superadmin</SelectItem> : null}
+                {allowedRoles.includes("sysadmin") ? <SelectItem value="sysadmin">Sysadmin</SelectItem> : null}
+                {allowedRoles.includes("qcc_wcc") ? <SelectItem value="qcc_wcc">QCC/WCC</SelectItem> : null}
+                {allowedRoles.includes("wcc") ? <SelectItem value="wcc">WCC</SelectItem> : null}
+                {allowedRoles.includes("pic_sosmed") ? <SelectItem value="pic_sosmed">PIC Sosmed</SelectItem> : null}
               </SelectContent>
             </Select>
             {errors.role && <p className="text-destructive text-xs">{errors.role}</p>}

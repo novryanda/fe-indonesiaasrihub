@@ -15,7 +15,7 @@ export function ManajemenUserPageView() {
               <div className="space-y-2">
                 <h1 className="font-semibold text-3xl tracking-tight">Manajemen User</h1>
                 <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                  Kelola data user berbasis kontrak backend endpoint users. Akses terbatas untuk role superadmin.
+                  Kelola data user berbasis kontrak backend endpoint users dengan kontrol akses berbasis role.
                 </p>
               </div>
             </div>

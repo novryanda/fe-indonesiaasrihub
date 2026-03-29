@@ -28,6 +28,7 @@ export interface PostingProofLinkItem {
     comments: number | null;
     reposts: number | null;
     share_posts: number | null;
+    auto_updated_at?: string | null;
   };
 }
 

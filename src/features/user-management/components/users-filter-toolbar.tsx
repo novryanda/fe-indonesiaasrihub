@@ -10,6 +10,8 @@ import type { UserRole, UserStatus } from "../types/user-management.type";
 
 interface UsersFilterToolbarProps {
   filters: UsersFilterState;
+  allowedRoles: UserRole[];
+  canImport: boolean;
   isLoading: boolean;
   onSearchChange: (value: string) => void;
   onRoleChange: (value: "all" | UserRole) => void;
@@ -21,6 +23,8 @@ interface UsersFilterToolbarProps {
 
 export function UsersFilterToolbar({
   filters,
+  allowedRoles,
+  canImport,
   isLoading,
   onSearchChange,
   onRoleChange,
@@ -45,10 +49,11 @@ export function UsersFilterToolbar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua role</SelectItem>
-              <SelectItem value="superadmin">Superadmin</SelectItem>
-              <SelectItem value="qcc_wcc">QCC/WCC</SelectItem>
-              <SelectItem value="wcc">WCC</SelectItem>
-              <SelectItem value="pic_sosmed">PIC Sosmed</SelectItem>
+              {allowedRoles.includes("superadmin") ? <SelectItem value="superadmin">Superadmin</SelectItem> : null}
+              {allowedRoles.includes("sysadmin") ? <SelectItem value="sysadmin">Sysadmin</SelectItem> : null}
+              {allowedRoles.includes("qcc_wcc") ? <SelectItem value="qcc_wcc">QCC/WCC</SelectItem> : null}
+              {allowedRoles.includes("wcc") ? <SelectItem value="wcc">WCC</SelectItem> : null}
+              {allowedRoles.includes("pic_sosmed") ? <SelectItem value="pic_sosmed">PIC Sosmed</SelectItem> : null}
             </SelectContent>
           </Select>
 
@@ -68,9 +73,11 @@ export function UsersFilterToolbar({
           <Button variant="outline" onClick={onReset} disabled={isLoading}>
             Reset
           </Button>
-          <Button variant="outline" onClick={onImportClick}>
-            Import CSV
-          </Button>
+          {canImport ? (
+            <Button variant="outline" onClick={onImportClick}>
+              Import CSV
+            </Button>
+          ) : null}
           <Button onClick={onCreateClick}>Tambah User</Button>
         </div>
       </CardContent>

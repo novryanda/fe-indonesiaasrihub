@@ -34,6 +34,8 @@ function getDashboardByRole(role: UserRole): string {
   switch (role) {
     case "superadmin":
       return "/dashboard/nasional";
+    case "sysadmin":
+      return "/system/jadwal-scrapping";
     case "qcc_wcc":
       return "/dashboard/regional";
     case "pic_sosmed":
@@ -284,4 +286,3 @@ export default function LoginV1() {
     </Suspense>
   );
 }
-

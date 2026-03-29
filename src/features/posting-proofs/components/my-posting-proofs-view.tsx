@@ -38,6 +38,31 @@ function formatStatValue(value: number | null | undefined) {
   return new Intl.NumberFormat("id-ID").format(value);
 }
 
+function getStatsInfo(stats?: PostingProofItem["links"][number]["stats"]) {
+  const hasAnyValue = [stats?.views, stats?.likes, stats?.comments, stats?.reposts, stats?.share_posts].some(
+    (value) => value !== null && value !== undefined,
+  );
+
+  if (stats?.auto_updated_at) {
+    return {
+      label: `Diperbarui otomatis · ${formatDateTime(stats.auto_updated_at)}`,
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  if (hasAnyValue) {
+    return {
+      label: "Diisi manual",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  return {
+    label: "Menunggu data scraping...",
+    className: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  };
+}
+
 export function MyPostingProofsView() {
   const { isAuthorized, isPending } = useRoleGuard(["pic_sosmed"]);
   const [items, setItems] = useState<PostingProofItem[]>([]);
@@ -210,6 +235,10 @@ export function MyPostingProofsView() {
                           </p>
                         </div>
                       </div>
+
+                      <Badge variant="outline" className={cn("w-fit rounded-full px-3 py-1", getStatsInfo(link.stats).className)}>
+                        {getStatsInfo(link.stats).label}
+                      </Badge>
 
                       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                         <div className="rounded-2xl border bg-muted/20 p-4">

@@ -54,6 +54,31 @@ function parseNullableInt(value: string): number | null {
   return Number.parseInt(trimmed, 10);
 }
 
+function getStatsInfo(stats?: PostingProofDetail["links"][number]["stats"]) {
+  const hasAnyValue = [stats?.views, stats?.likes, stats?.comments, stats?.reposts, stats?.share_posts].some(
+    (value) => value !== null && value !== undefined,
+  );
+
+  if (stats?.auto_updated_at) {
+    return {
+      label: `Diperbarui otomatis · ${formatDateTime(stats.auto_updated_at)}`,
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  if (hasAnyValue) {
+    return {
+      label: "Diisi manual",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  return {
+    label: "Menunggu data scraping...",
+    className: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  };
+}
+
 export function PostingProofStatsDetailView() {
   const params = useParams<{ id: string }>();
   const proofId = typeof params?.id === "string" ? params.id : "";
@@ -267,6 +292,10 @@ export function PostingProofStatsDetailView() {
                     <p className="mt-2 font-medium">{link.validated_at ? formatDateTime(link.validated_at) : "-"}</p>
                   </div>
                 </div>
+
+                <Badge variant="outline" className={getStatsInfo(link.stats).className}>
+                  {getStatsInfo(link.stats).label}
+                </Badge>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                   <div className="grid gap-2">
