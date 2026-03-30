@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { CheckCircle2, KeyRound, RefreshCw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, ExternalLink, KeyRound, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -37,6 +37,8 @@ export function ScraperConfigurationView() {
   const { isAuthorized, isPending } = useRoleGuard(["sysadmin"]);
   const [connectionStatus, setConnectionStatus] = useState<ScraperConnectionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const redisDashboardUrl = process.env.NEXT_PUBLIC_REDIS_DASHBOARD_URL?.trim() ?? "";
+  const bullBoardUrl = process.env.NEXT_PUBLIC_BULL_BOARD_URL?.trim() ?? "";
 
   const loadStatus = async () => {
     setIsLoading(true);
@@ -189,17 +191,55 @@ export function ScraperConfigurationView() {
         <CardHeader>
           <CardTitle>Verifikasi Manual</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="font-medium text-sm">Test koneksi Apify sekarang</p>
-            <p className="text-muted-foreground text-sm">
-              Gunakan tombol ini untuk memeriksa apakah token server masih valid dan actor Apify tiap platform sudah terbaca.
-            </p>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-medium text-sm">Test koneksi Apify sekarang</p>
+              <p className="text-muted-foreground text-sm">
+                Gunakan tombol ini untuk memeriksa apakah token server masih valid dan actor Apify tiap platform sudah terbaca.
+              </p>
+            </div>
+            <Button onClick={() => void loadStatus()} disabled={isLoading}>
+              {isLoading ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
+              Test Koneksi
+            </Button>
           </div>
-          <Button onClick={() => void loadStatus()} disabled={isLoading}>
-            {isLoading ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
-            Test Koneksi
-          </Button>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-medium text-sm">Dashboard Redis Queue</p>
+              <p className="text-muted-foreground text-sm">
+                Redis dipakai untuk antrean BullMQ scraper per akun. Sysadmin bisa membuka dashboard eksternal Redis dari tombol ini.
+              </p>
+              <p className="break-all text-xs text-muted-foreground">
+                {redisDashboardUrl || "NEXT_PUBLIC_REDIS_DASHBOARD_URL belum di-set."}
+              </p>
+            </div>
+            <Button asChild variant="outline" disabled={!redisDashboardUrl}>
+              <a href={redisDashboardUrl || "#"} target="_blank" rel="noreferrer noopener">
+                <ExternalLink className="mr-2 size-4" />
+                Buka Redis Dashboard
+              </a>
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="font-medium text-sm">BullMQ Queue Monitor</p>
+              <p className="text-muted-foreground text-sm">
+                Bull Board menampilkan antrean scraper per akun secara visual, termasuk job waiting, active, completed, failed, dan retry.
+              </p>
+              <p className="break-all text-xs text-muted-foreground">
+                {bullBoardUrl || "NEXT_PUBLIC_BULL_BOARD_URL belum di-set."}
+              </p>
+            </div>
+            <Button asChild variant="outline" disabled={!bullBoardUrl}>
+              <a href={bullBoardUrl || "#"} target="_blank" rel="noreferrer noopener">
+                <ExternalLink className="mr-2 size-4" />
+                Buka Bull Board
+              </a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
