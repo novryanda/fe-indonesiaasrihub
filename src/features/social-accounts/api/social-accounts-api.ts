@@ -5,6 +5,7 @@ import type {
   CreateSocialAccountPayload,
   DelegateSocialAccountPayload,
   SocialAccountDetail,
+  SocialAccountScrapedPostDetail,
   SocialAccountFilters,
   SocialAccountItem,
   SocialAccountListMeta,
@@ -125,6 +126,10 @@ export async function getSocialAccountDetail(id: string, params?: { month?: numb
     },
   });
   return response;
+}
+
+export async function getSocialAccountScrapedPostDetail(id: string, postId: string) {
+  return apiClient<SocialAccountScrapedPostDetail>(`/v1/akun-sosmed/${id}/postingan/${postId}`);
 }
 
 export async function createSocialAccount(payload: CreateSocialAccountPayload) {

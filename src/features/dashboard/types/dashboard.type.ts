@@ -70,6 +70,7 @@ export interface NationalDashboardData {
     bukti_menunggu_validasi: number;
     total_tayangan: number;
     total_interaksi: number;
+    avg_engagement_rate: number;
   };
   map_regions: DashboardMapRegionItem[];
   trend: DashboardTrendItem[];

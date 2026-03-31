@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from "recharts";
+import Link from "next/link";
+
 import { Activity, BellRing, Eye, Globe2, MapPinned, MessageCircleHeart, UsersRound } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 import { IndonesiaMap } from "@/components/shadcnmaps/maps/indonesia";
 import { Badge } from "@/components/ui/badge";
@@ -17,26 +18,28 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { getNationalDashboard } from "@/features/dashboard/api/dashboard-api";
 import {
   INDONESIA_CHOROPLETH_BUCKETS,
   INDONESIA_REGION_MAP,
 } from "@/features/dashboard/constants/indonesia-region-map";
-import type { NationalDashboardData } from "@/features/dashboard/types/dashboard.type";
-import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
+import type { DashboardMapRegionItem, NationalDashboardData } from "@/features/dashboard/types/dashboard.type";
+import { getMonitoringSosmedData } from "@/features/monitoring-sosmed/api/monitoring-sosmed-api";
+import type {
+  MonitoringDailyPlatformAreaItem,
+  MonitoringDailyPlatformMetric,
+  MonitoringPlatform,
+  MonitoringSosmedData,
+} from "@/features/monitoring-sosmed/types/monitoring-sosmed.type";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
 const compactFormatter = new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 });
+const MONITORING_PLATFORMS: MonitoringPlatform[] = ["instagram", "tiktok", "youtube", "facebook", "x"];
 const monthOptions = [
   { value: "1", label: "Januari" },
   { value: "2", label: "Februari" },
@@ -68,6 +71,79 @@ function formatCompact(value: number) {
   return compactFormatter.format(value);
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Belum ada sinkronisasi";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function aggregateMonitoringDailyMetrics(items: MonitoringDailyPlatformAreaItem[]) {
+  const totals = new Map<MonitoringPlatform, MonitoringDailyPlatformMetric>();
+  const dailyTotals: Array<{
+    period_date: string;
+    period_label: string;
+    total_views: number;
+    total_interactions: number;
+    engagement_rate: number;
+  }> = [];
+
+  for (const platform of MONITORING_PLATFORMS) {
+    totals.set(platform, {
+      platform,
+      views: 0,
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+      engagement_rate: 0,
+    });
+  }
+
+  for (const item of items) {
+    dailyTotals.push({
+      period_date: item.period_date,
+      period_label: item.period_label,
+      total_views: item.platform_metrics.reduce((sum, metric) => sum + metric.views, 0),
+      total_interactions: item.platform_metrics.reduce(
+        (sum, metric) => sum + metric.likes + metric.comments + metric.reposts,
+        0,
+      ),
+      engagement_rate: 0,
+    });
+
+    for (const metric of item.platform_metrics) {
+      const current = totals.get(metric.platform);
+
+      if (!current) {
+        continue;
+      }
+
+      current.views += metric.views;
+      current.likes += metric.likes;
+      current.comments += metric.comments;
+      current.reposts += metric.reposts;
+    }
+  }
+
+  return {
+    platformTotals: MONITORING_PLATFORMS.map((platform) => totals.get(platform))
+      .filter((item): item is MonitoringDailyPlatformMetric => Boolean(item))
+      .filter((item) => item.views > 0 || item.likes > 0 || item.comments > 0 || item.reposts > 0),
+    dailyTotals: dailyTotals.map((item) => ({
+      ...item,
+      engagement_rate:
+        item.total_views > 0 ? Number(((item.total_interactions / item.total_views) * 100).toFixed(1)) : 0,
+    })),
+  };
+}
+
 function findSelectedRegion(data: NationalDashboardData | null, regionId: string | null) {
   if (!data || !regionId) {
     return null;
@@ -96,6 +172,7 @@ export function NationalDashboardView() {
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
   const [data, setData] = useState<NationalDashboardData | null>(null);
+  const [monitoringData, setMonitoringData] = useState<MonitoringSosmedData | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,12 +186,22 @@ export function NationalDashboardView() {
 
     setLoading(true);
     setError(null);
+    setMonitoringData(null);
 
-    void getNationalDashboard({
-      month: Number(selectedMonth),
-      year: Number(selectedYear),
-    })
-      .then((response) => setData(response.data))
+    void Promise.all([
+      getNationalDashboard({
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+      }),
+      getMonitoringSosmedData({
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+      }).catch(() => null),
+    ])
+      .then(([dashboardResponse, monitoringResponse]) => {
+        setData(dashboardResponse.data);
+        setMonitoringData(monitoringResponse?.data ?? null);
+      })
       .catch((caught) => {
         const message = caught instanceof Error ? caught.message : "Gagal memuat dashboard nasional.";
         setError(message);
@@ -122,22 +209,183 @@ export function NationalDashboardView() {
       .finally(() => setLoading(false));
   }, [isAuthorized, isPending, selectedMonth, selectedYear]);
 
-  const selectedRegion = useMemo(
-    () => findSelectedRegion(data, selectedRegionId),
-    [data, selectedRegionId],
+  const selectedRegion = useMemo(() => findSelectedRegion(data, selectedRegionId), [data, selectedRegionId]);
+
+  const { platformTotals: monitoringPlatformTotals, dailyTotals: monitoringDailyTotals } = useMemo(
+    () => aggregateMonitoringDailyMetrics(monitoringData?.daily_platform_area ?? []),
+    [monitoringData],
   );
 
-  function handleMapContainerClick(event: React.MouseEvent<HTMLDivElement>) {
+  const trendChartData = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    const merged = new Map(
+      data.trend.map((item) => [
+        item.period_date,
+        {
+          period_date: item.period_date,
+          period_label: item.period_label,
+          valid_post_count: item.valid_post_count,
+          total_views: item.total_views,
+          total_interactions: item.total_interactions,
+          engagement_rate:
+            item.total_views > 0 ? Number(((item.total_interactions / item.total_views) * 100).toFixed(1)) : 0,
+        },
+      ]),
+    );
+
+    for (const item of monitoringDailyTotals) {
+      const current = merged.get(item.period_date);
+
+      merged.set(item.period_date, {
+        period_date: item.period_date,
+        period_label: current?.period_label ?? item.period_label,
+        valid_post_count: current?.valid_post_count ?? 0,
+        total_views: item.total_views,
+        total_interactions: item.total_interactions,
+        engagement_rate: item.engagement_rate,
+      });
+    }
+
+    return [...merged.values()].sort((left, right) => left.period_date.localeCompare(right.period_date));
+  }, [data, monitoringDailyTotals]);
+
+  const platformDistributionItems = useMemo(() => {
+    const dashboardItems = new Map((data?.platform_distribution ?? []).map((item) => [item.platform, item]));
+    const monitoringItems = new Map(monitoringPlatformTotals.map((item) => [item.platform, item]));
+
+    return MONITORING_PLATFORMS.map((platform) => {
+      const dashboardItem = dashboardItems.get(platform);
+      const monitoringItem = monitoringItems.get(platform);
+      const totalViews = monitoringItem?.views ?? dashboardItem?.total_views ?? 0;
+      const totalInteractions =
+        monitoringItem != null
+          ? monitoringItem.likes + monitoringItem.comments + monitoringItem.reposts
+          : (dashboardItem?.total_interactions ?? 0);
+      const postCount = dashboardItem?.post_count ?? 0;
+
+      return {
+        platform,
+        account_count: dashboardItem?.account_count ?? 0,
+        post_count: postCount,
+        total_views: totalViews,
+        total_interactions: totalInteractions,
+        share_value: totalViews > 0 ? totalViews : postCount,
+      };
+    }).filter(
+      (item) => item.account_count > 0 || item.post_count > 0 || item.total_views > 0 || item.total_interactions > 0,
+    );
+  }, [data, monitoringPlatformTotals]);
+
+  const topNationalAccounts = useMemo(() => {
+    if (monitoringData?.top_accounts.length) {
+      const sorted = [...monitoringData.top_accounts].sort((left, right) => right.total_views - left.total_views);
+      const highlightedAccounts = sorted.slice(0, 5).map((account, index) => ({
+        id: account.id,
+        rank: index + 1,
+        platform: account.platform,
+        profile_name: account.profile_name,
+        username: account.username,
+        total_views: account.total_views,
+        metric_label: "Engagement",
+        metric_value: `${account.engagement_rate.toFixed(1)}%`,
+        posting_label: "Posting",
+        posting_value: formatNumber(account.posting_count),
+        wilayah_label: account.wilayah?.nama ?? "Indonesia",
+        highlight_label: null as string | null,
+      }));
+
+      const indonesiaAccount = sorted.find((account) => {
+        const wilayahLabel = account.wilayah?.nama?.toLowerCase();
+        return wilayahLabel === "indonesia" || wilayahLabel === "nasional" || account.wilayah == null;
+      });
+
+      if (indonesiaAccount && !highlightedAccounts.some((account) => account.id === indonesiaAccount.id)) {
+        highlightedAccounts.push({
+          id: indonesiaAccount.id,
+          rank: sorted.findIndex((account) => account.id === indonesiaAccount.id) + 1,
+          platform: indonesiaAccount.platform,
+          profile_name: indonesiaAccount.profile_name,
+          username: indonesiaAccount.username,
+          total_views: indonesiaAccount.total_views,
+          metric_label: "Engagement",
+          metric_value: `${indonesiaAccount.engagement_rate.toFixed(1)}%`,
+          posting_label: "Posting",
+          posting_value: formatNumber(indonesiaAccount.posting_count),
+          wilayah_label: indonesiaAccount.wilayah?.nama ?? "Indonesia",
+          highlight_label: "Akun Indonesia",
+        });
+      }
+
+      return highlightedAccounts;
+    }
+
+    return (data?.top_accounts ?? []).slice(0, 5).map((account, index) => ({
+      id: account.id,
+      rank: index + 1,
+      platform: account.platform,
+      profile_name: account.profile_name,
+      username: account.username,
+      total_views: account.total_views,
+      metric_label: "Interaksi",
+      metric_value: formatNumber(account.total_interactions),
+      posting_label: "Posting valid",
+      posting_value: formatNumber(account.valid_post_count),
+      wilayah_label: account.wilayah?.nama ?? "Indonesia",
+      highlight_label: null as string | null,
+    }));
+  }, [data, monitoringData]);
+
+  const topRegionsWithIndonesia = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    if (data.top_regions.some((region) => region.region_id === "ID")) {
+      return data.top_regions.slice(0, 5);
+    }
+
+    const indonesiaRegion: DashboardMapRegionItem = {
+      region_id: "ID",
+      wilayah_id: data.scope.wilayah_id,
+      wilayah_kode: data.scope.wilayah_kode,
+      wilayah_nama: data.scope.wilayah_nama,
+      account_count: data.stats.total_akun_sosmed,
+      pic_count: 0,
+      valid_post_count: data.stats.total_posting_valid,
+      total_views: data.stats.total_tayangan,
+      choropleth_bucket: 0,
+    };
+
+    return [indonesiaRegion, ...data.top_regions.filter((region) => region.region_id !== "ID").slice(0, 4)];
+  }, [data]);
+
+  const trendDescription = monitoringData?.latest_scraped_at
+    ? `Pergerakan posting valid harian dan tayangan/engagement dari hasil scraping. Sinkronisasi terakhir ${formatDateTime(
+        monitoringData.latest_scraped_at,
+      )}.`
+    : "Pergerakan posting valid, tayangan, dan engagement harian.";
+
+  const platformDescription = monitoringData?.latest_scraped_at
+    ? `Kontribusi tayangan hasil scraping per platform, dilengkapi jumlah akun dan posting valid. Sinkronisasi terakhir ${formatDateTime(
+        monitoringData.latest_scraped_at,
+      )}.`
+    : "Porsi posting valid berdasarkan platform pada periode terpilih.";
+
+  const topAccountsDescription = monitoringData?.latest_scraped_at
+    ? `Peringkat akun berdasarkan tayangan hasil scraping nasional. Akun Indonesia ikut ditampilkan bila tersedia pada periode ini.`
+    : "Peringkat akun berdasarkan tayangan pada periode yang dipilih.";
+
+  function handleMapContainerClick(event: React.MouseEvent<HTMLElement>) {
     const target = event.target as Element;
 
     if (target.closest("[data-slot='map-region']")) {
       return;
     }
 
-    if (
-      target.closest("[data-slot='map']") ||
-      target.closest("[data-slot='map-zoom-layer']")
-    ) {
+    if (target.closest("[data-slot='map']") || target.closest("[data-slot='map-zoom-layer']")) {
       setSelectedRegionId((current) => (current === "ID" ? null : "ID"));
     }
   }
@@ -148,12 +396,42 @@ export function NationalDashboardView() {
     }
 
     return [
-      { label: "User Aktif", value: formatNumber(data.stats.total_user_aktif), helper: "Seluruh role aktif", icon: UsersRound },
-      { label: "Akun Sosmed", value: formatNumber(data.stats.total_akun_sosmed), helper: "Semua akun terdaftar", icon: Globe2 },
-      { label: "Posting Valid", value: formatNumber(data.stats.total_posting_valid), helper: data.selected_period.label, icon: Activity },
-      { label: "Menunggu Validasi", value: formatNumber(data.stats.bukti_menunggu_validasi), helper: "Queue validasi berjalan", icon: BellRing },
-      { label: "Tayangan", value: formatCompact(data.stats.total_tayangan), helper: "Akumulasi bulan terpilih", icon: Eye },
-      { label: "Interaksi", value: formatCompact(data.stats.total_interaksi), helper: "Like + komentar + repost + bagikan", icon: MessageCircleHeart },
+      {
+        label: "User Aktif",
+        value: formatNumber(data.stats.total_user_aktif),
+        helper: "Seluruh role aktif",
+        icon: UsersRound,
+      },
+      {
+        label: "Akun Sosmed",
+        value: formatNumber(data.stats.total_akun_sosmed),
+        helper: "Semua akun terdaftar",
+        icon: Globe2,
+      },
+      {
+        label: "Posting Valid",
+        value: formatNumber(data.stats.total_posting_valid),
+        helper: data.selected_period.label,
+        icon: Activity,
+      },
+      {
+        label: "Menunggu Validasi",
+        value: formatNumber(data.stats.bukti_menunggu_validasi),
+        helper: "Queue validasi berjalan",
+        icon: BellRing,
+      },
+      {
+        label: "Tayangan",
+        value: formatCompact(data.stats.total_tayangan),
+        helper: "Akumulasi bulan terpilih",
+        icon: Eye,
+      },
+      {
+        label: "Engagement",
+        value: `${data.stats.avg_engagement_rate.toFixed(1)}%`,
+        helper: "Rata-rata ((like + komentar + repost) / views) x 100 dari hasil scraping",
+        icon: MessageCircleHeart,
+      },
     ];
   }, [data]);
 
@@ -183,7 +461,7 @@ export function NationalDashboardView() {
 
   const areaChartConfig = {
     total_views: { label: "Tayangan", color: "#0f766e" },
-    total_interactions: { label: "Interaksi", color: "#f59e0b" },
+    engagement_rate: { label: "Engagement", color: "#f59e0b" },
     valid_post_count: { label: "Posting Valid", color: "#2563eb" },
   } as const;
 
@@ -212,18 +490,38 @@ export function NationalDashboardView() {
 
   return (
     <div className="space-y-6">
-      <Dialog open={Boolean(selectedRegionId)} onOpenChange={(open) => setSelectedRegionId(open ? selectedRegionId : null)}>
+      <Dialog
+        open={Boolean(selectedRegionId)}
+        onOpenChange={(open) => setSelectedRegionId(open ? selectedRegionId : null)}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{selectedRegion?.wilayah_nama ?? "Detail Wilayah"}</DialogTitle>
-            <DialogDescription>Ringkasan operasional wilayah berdasarkan akun sosmed dan posting valid.</DialogDescription>
+            <DialogDescription>
+              Ringkasan operasional wilayah berdasarkan akun sosmed dan posting valid.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-2xl border border-foreground/10 bg-muted/20 p-4 text-sm">
-            <div className="flex items-center justify-between"><span className="text-muted-foreground">Akun sosmed</span><span className="font-medium">{formatNumber(selectedRegion?.account_count ?? 0)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-muted-foreground">PIC aktif</span><span className="font-medium">{formatNumber(selectedRegion?.pic_count ?? 0)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-muted-foreground">Posting valid</span><span className="font-medium">{formatNumber(selectedRegion?.valid_post_count ?? 0)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-muted-foreground">Total tayangan</span><span className="font-medium">{formatNumber(selectedRegion?.total_views ?? 0)}</span></div>
-            <div className="flex items-center justify-between"><span className="text-muted-foreground">Kode wilayah</span><span className="font-medium">{selectedRegion?.wilayah_kode ?? "-"}</span></div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Akun sosmed</span>
+              <span className="font-medium">{formatNumber(selectedRegion?.account_count ?? 0)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">PIC aktif</span>
+              <span className="font-medium">{formatNumber(selectedRegion?.pic_count ?? 0)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Posting valid</span>
+              <span className="font-medium">{formatNumber(selectedRegion?.valid_post_count ?? 0)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Total tayangan</span>
+              <span className="font-medium">{formatNumber(selectedRegion?.total_views ?? 0)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Kode wilayah</span>
+              <span className="font-medium">{selectedRegion?.wilayah_kode ?? "-"}</span>
+            </div>
           </div>
           <div className="flex justify-end">
             <Button asChild>
@@ -237,14 +535,17 @@ export function NationalDashboardView() {
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
-              <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700">
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700"
+              >
                 Dashboard / Nasional
               </Badge>
               <div className="space-y-2">
                 <h1 className="font-semibold text-3xl tracking-tight">Dashboard Nasional</h1>
                 <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                  Ringkasan operasional dan performa nasional: peta sebaran akun, tren posting valid, distribusi platform,
-                  dan wilayah dengan tayangan tertinggi.
+                  Ringkasan operasional dan performa nasional: peta sebaran akun, tren posting valid dengan tayangan
+                  hasil scraping, distribusi platform, dan wilayah dengan tayangan tertinggi.
                 </p>
               </div>
             </div>
@@ -288,7 +589,7 @@ export function NationalDashboardView() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="py-10 text-sm text-rose-600">{error}</CardContent>
+          <CardContent className="py-10 text-rose-600 text-sm">{error}</CardContent>
         </Card>
       ) : data ? (
         <>
@@ -322,16 +623,19 @@ export function NationalDashboardView() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
-                  <div
+                  <button
+                    type="button"
                     className="rounded-3xl border border-transparent"
                     onClick={handleMapContainerClick}
-                    role="presentation"
+                    aria-label="Lihat ringkasan wilayah pada peta Indonesia"
                   >
                     <IndonesiaMap
                       regions={mapOverrides}
-                      onRegionClick={({ region }) => setSelectedRegionId((current) => (current === region.id ? null : region.id))}
+                      onRegionClick={({ region }) =>
+                        setSelectedRegionId((current) => (current === region.id ? null : region.id))
+                      }
                     />
-                  </div>
+                  </button>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <p className="font-medium">Kepadatan Akun</p>
@@ -356,28 +660,92 @@ export function NationalDashboardView() {
               <CardHeader className="border-b py-5">
                 <div className="grid gap-1">
                   <CardTitle>Tren Nasional</CardTitle>
-                  <CardDescription>Pergerakan posting valid, tayangan, dan interaksi harian.</CardDescription>
+                  <CardDescription>{trendDescription}</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <ChartContainer config={areaChartConfig} className="aspect-auto h-[340px] w-full">
-                  <AreaChart data={data.trend}>
+                  <AreaChart data={trendChartData}>
                     <defs>
                       <linearGradient id="fillNationalViews" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--color-total_views)" stopOpacity={0.75} />
                         <stop offset="95%" stopColor="var(--color-total_views)" stopOpacity={0.08} />
                       </linearGradient>
-                      <linearGradient id="fillNationalInteractions" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-total_interactions)" stopOpacity={0.65} />
-                        <stop offset="95%" stopColor="var(--color-total_interactions)" stopOpacity={0.08} />
+                      <linearGradient id="fillNationalEngagement" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-engagement_rate)" stopOpacity={0.65} />
+                        <stop offset="95%" stopColor="var(--color-engagement_rate)" stopOpacity={0.08} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="period_label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={18} />
-                    <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-                    <Area dataKey="total_views" type="natural" fill="url(#fillNationalViews)" stroke="var(--color-total_views)" strokeWidth={2} />
-                    <Area dataKey="total_interactions" type="natural" fill="url(#fillNationalInteractions)" stroke="var(--color-total_interactions)" strokeWidth={2} />
-                    <Area dataKey="valid_post_count" type="natural" stroke="var(--color-valid_post_count)" strokeWidth={2} fillOpacity={0} />
+                    <YAxis
+                      yAxisId="views"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => compactFormatter.format(Number(value))}
+                      width={52}
+                    />
+                    <YAxis
+                      yAxisId="engagement"
+                      orientation="right"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                      domain={[0, (dataMax: number) => Math.max(5, Math.ceil(dataMax + 1))]}
+                      width={48}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          indicator="dot"
+                          formatter={(value, name) => {
+                            const label =
+                              name === "engagement_rate"
+                                ? "Engagement"
+                                : name === "valid_post_count"
+                                  ? "Posting Valid"
+                                  : "Tayangan";
+                            const formattedValue =
+                              name === "engagement_rate"
+                                ? `${Number(value).toFixed(1)}%`
+                                : Number(value).toLocaleString("id-ID");
+
+                            return (
+                              <div className="flex w-full items-center justify-between gap-3">
+                                <span className="text-muted-foreground">{label}</span>
+                                <span className="font-medium font-mono text-foreground tabular-nums">
+                                  {formattedValue}
+                                </span>
+                              </div>
+                            );
+                          }}
+                        />
+                      }
+                    />
+                    <Area
+                      dataKey="total_views"
+                      yAxisId="views"
+                      type="natural"
+                      fill="url(#fillNationalViews)"
+                      stroke="var(--color-total_views)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      dataKey="engagement_rate"
+                      yAxisId="engagement"
+                      type="natural"
+                      fill="url(#fillNationalEngagement)"
+                      stroke="var(--color-engagement_rate)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      dataKey="valid_post_count"
+                      yAxisId="views"
+                      type="natural"
+                      stroke="var(--color-valid_post_count)"
+                      strokeWidth={2}
+                      fillOpacity={0}
+                    />
                     <ChartLegend content={<ChartLegendContent />} />
                   </AreaChart>
                 </ChartContainer>
@@ -388,33 +756,51 @@ export function NationalDashboardView() {
           <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <Card className="border-foreground/10">
               <CardHeader>
-                <CardTitle>Distribusi Posting Per Platform</CardTitle>
-                <CardDescription>Porsi posting valid berdasarkan platform pada periode terpilih.</CardDescription>
+                <CardTitle>Distribusi Per Platform</CardTitle>
+                <CardDescription>{platformDescription}</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 lg:grid-cols-[1fr_auto]">
                 <ChartContainer config={pieChartConfig} className="mx-auto h-[280px] w-full max-w-[360px]">
                   <PieChart>
                     <ChartTooltip content={<ChartTooltipContent nameKey="platform" hideLabel />} />
-                    <Pie data={data.platform_distribution} dataKey="post_count" nameKey="platform" innerRadius={72} outerRadius={110} strokeWidth={4}>
-                      {data.platform_distribution.map((item) => (
+                    <Pie
+                      data={platformDistributionItems}
+                      dataKey="share_value"
+                      nameKey="platform"
+                      innerRadius={72}
+                      outerRadius={110}
+                      strokeWidth={4}
+                    >
+                      {platformDistributionItems.map((item) => (
                         <Cell key={item.platform} fill={platformColors[item.platform]} />
                       ))}
                     </Pie>
                   </PieChart>
                 </ChartContainer>
                 <div className="space-y-3">
-                  {data.platform_distribution.map((item) => (
-                    <div key={item.platform} className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm">
+                  {platformDistributionItems.map((item) => (
+                    <div
+                      key={item.platform}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm"
+                    >
                       <div className="flex items-center gap-3">
-                        <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: platformColors[item.platform] }} />
+                        <span
+                          className="inline-flex h-3 w-3 rounded-full"
+                          style={{ backgroundColor: platformColors[item.platform] }}
+                        />
                         <div>
                           <p className="font-medium">{formatPlatformLabel(item.platform)}</p>
                           <p className="text-muted-foreground">{formatNumber(item.account_count)} akun</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{formatNumber(item.post_count)}</p>
-                        <p className="text-muted-foreground">posting</p>
+                        <p className="font-semibold">
+                          {item.total_views > 0 ? formatCompact(item.total_views) : formatNumber(item.post_count)}
+                        </p>
+                        <p className="text-muted-foreground">{item.total_views > 0 ? "tayangan" : "posting"}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatNumber(item.post_count)} posting • {formatCompact(item.total_interactions)} interaksi
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -424,16 +810,32 @@ export function NationalDashboardView() {
 
             <Card className="border-foreground/10">
               <CardHeader>
-                <CardTitle>Provinsi Teratas Berdasarkan Tayangan</CardTitle>
-                <CardDescription>Wilayah dengan performa tayangan tertinggi pada bulan yang dipilih.</CardDescription>
+                <CardTitle>Wilayah Teratas Berdasarkan Tayangan</CardTitle>
+                <CardDescription>
+                  Wilayah dengan performa tayangan tertinggi pada bulan yang dipilih, termasuk agregasi Indonesia.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {data.top_regions.map((region, index) => (
-                  <div key={region.region_id} className="grid gap-3 rounded-2xl border border-foreground/10 bg-muted/20 p-4 md:grid-cols-[auto_1fr_auto_auto] md:items-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">{index + 1}</div>
+                {topRegionsWithIndonesia.map((region, index) => (
+                  <div
+                    key={region.region_id}
+                    className="grid gap-3 rounded-2xl border border-foreground/10 bg-muted/20 p-4 md:grid-cols-[auto_1fr_auto_auto] md:items-center"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">
+                      {index + 1}
+                    </div>
                     <div>
-                      <p className="font-medium">{region.wilayah_nama}</p>
-                      <p className="text-muted-foreground text-sm">{formatNumber(region.account_count)} akun • {formatNumber(region.pic_count)} PIC</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{region.wilayah_nama}</p>
+                        {region.region_id === "ID" ? (
+                          <Badge variant="secondary" className="rounded-full">
+                            Nasional
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {formatNumber(region.account_count)} akun • {formatNumber(region.pic_count)} PIC
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCompact(region.total_views)}</p>
@@ -452,21 +854,46 @@ export function NationalDashboardView() {
           <Card className="border-foreground/10">
             <CardHeader>
               <CardTitle>Akun Sosmed Nasional Teratas</CardTitle>
-              <CardDescription>Peringkat akun berdasarkan tayangan pada periode yang dipilih.</CardDescription>
+              <CardDescription>{topAccountsDescription}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              {data.top_accounts.map((account) => (
-                <div key={account.id} className="rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] p-5 shadow-sm">
-                  <Badge variant="outline" className="border-foreground/10">
-                    {formatPlatformLabel(account.platform)}
-                  </Badge>
+              {topNationalAccounts.map((account) => (
+                <div
+                  key={account.id}
+                  className="rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] p-5 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Badge variant="outline" className="border-foreground/10">
+                      {formatPlatformLabel(account.platform)}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {account.highlight_label ? (
+                        <Badge variant="secondary" className="rounded-full">
+                          {account.highlight_label}
+                        </Badge>
+                      ) : null}
+                      <span className="font-medium text-muted-foreground text-xs">#{account.rank}</span>
+                    </div>
+                  </div>
                   <h3 className="mt-3 font-semibold text-lg leading-tight">{account.profile_name}</h3>
                   <p className="text-muted-foreground text-sm">{account.username}</p>
                   <div className="mt-5 grid gap-3 text-sm">
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Tayangan</span><span className="font-medium">{formatNumber(account.total_views)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Interaksi</span><span className="font-medium">{formatNumber(account.total_interactions)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Posting valid</span><span className="font-medium">{formatNumber(account.valid_post_count)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Wilayah</span><span className="font-medium">{account.wilayah?.nama ?? "-"}</span></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tayangan</span>
+                      <span className="font-medium">{formatNumber(account.total_views)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{account.metric_label}</span>
+                      <span className="font-medium">{account.metric_value}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{account.posting_label}</span>
+                      <span className="font-medium">{account.posting_value}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Wilayah</span>
+                      <span className="font-medium">{account.wilayah_label}</span>
+                    </div>
                   </div>
                   <Button asChild className="mt-5 w-full" variant="outline">
                     <Link href="/analitik/monitoring-sosmed">Buka Monitoring</Link>
