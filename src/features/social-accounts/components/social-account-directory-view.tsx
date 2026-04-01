@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Globe, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Check, ChevronsUpDown, Globe, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +44,12 @@ import {
   listSocialAccounts,
   updateSocialAccount,
 } from "../api/social-accounts-api";
+import {
+  ESELON_1_OPTIONS,
+  ESELON_2_OPTIONS,
+  type SocialAccountEselon1,
+  type SocialAccountEselon2,
+} from "../constants/social-account-eselon";
 import type {
   CreateSocialAccountPayload,
   SocialAccountItem,
@@ -54,6 +62,62 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: "bisnis", label: "Bisnis" },
   { value: "personal", label: "Personal" },
 ] as const;
+
+function SearchableSelect({
+  label,
+  placeholder,
+  value,
+  options,
+  onValueChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  options: readonly string[];
+  onValueChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className={cn("truncate text-left", !value && "text-muted-foreground")}>{value || placeholder}</span>
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+        <Command>
+          <CommandInput placeholder={`Cari ${label.toLowerCase()}...`} />
+          <CommandList>
+            <CommandEmpty>{label} tidak ditemukan.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option}
+                  value={option}
+                  onSelect={() => {
+                    onValueChange(option);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="max-w-full truncate">{option}</span>
+                  <Check className={cn("ml-auto size-4 shrink-0", value === option ? "opacity-100" : "opacity-0")} />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function getVerificationBadge(status: SocialAccountItem["verification_status"]) {
   switch (status) {
@@ -77,7 +141,10 @@ function getDelegationBadge(status: SocialAccountItem["delegation_status"]) {
   }
 }
 
-type SocialAccountFormState = Omit<CreateSocialAccountPayload, "screenshot"> & { screenshot: File | null };
+type SocialAccountFormState = Omit<CreateSocialAccountPayload, "eselon_1" | "eselon_2"> & {
+  eselon_1: SocialAccountEselon1 | "";
+  eselon_2: SocialAccountEselon2 | "";
+};
 
 const initialForm: SocialAccountFormState = {
   wilayah: "",
@@ -86,9 +153,10 @@ const initialForm: SocialAccountFormState = {
   profile_url: "",
   nama_profil: "",
   tipe_akun: "government",
+  eselon_1: "",
+  eselon_2: "",
   followers: 0,
   deskripsi: "",
-  screenshot: null,
 };
 
 export function SocialAccountDirectoryView() {
@@ -122,9 +190,10 @@ export function SocialAccountDirectoryView() {
       profile_url: item.profile_url,
       nama_profil: item.nama_profil,
       tipe_akun: item.tipe_akun,
+      eselon_1: item.eselon_1 ?? "",
+      eselon_2: item.eselon_2 ?? "",
       followers: item.followers,
       deskripsi: item.description ?? "",
-      screenshot: null,
     });
     setIsDialogOpen(true);
   };
@@ -136,7 +205,7 @@ export function SocialAccountDirectoryView() {
     }
   };
 
-  const validateForm = (requireScreenshot: boolean) => {
+  const validateForm = () => {
     if (!form.wilayah.trim()) {
       toast.error("Wilayah akun wajib diisi.");
       return false;
@@ -157,8 +226,13 @@ export function SocialAccountDirectoryView() {
       return false;
     }
 
-    if (requireScreenshot && !form.screenshot) {
-      toast.error("Screenshot profil wajib diunggah.");
+    if (!form.eselon_1) {
+      toast.error("Eselon 1 wajib dipilih.");
+      return false;
+    }
+
+    if (!form.eselon_2) {
+      toast.error("Eselon 2 wajib dipilih.");
       return false;
     }
 
@@ -172,14 +246,14 @@ export function SocialAccountDirectoryView() {
     profile_url: form.profile_url,
     nama_profil: form.nama_profil,
     tipe_akun: form.tipe_akun,
+    eselon_1: form.eselon_1 as SocialAccountEselon1,
+    eselon_2: form.eselon_2 as SocialAccountEselon2,
     followers: form.followers,
     deskripsi: form.deskripsi,
   });
 
   const handleSubmit = async () => {
-    const isEditMode = Boolean(editingAccount);
-
-    if (!validateForm(!isEditMode)) {
+    if (!validateForm()) {
       return;
     }
 
@@ -188,11 +262,8 @@ export function SocialAccountDirectoryView() {
       if (editingAccount) {
         await updateSocialAccount(editingAccount.id, toUpdatePayload());
         toast.success("Akun sosmed berhasil diperbarui.");
-      } else if (form.screenshot) {
-        await createSocialAccount({
-          ...toUpdatePayload(),
-          screenshot: form.screenshot,
-        });
+      } else {
+        await createSocialAccount(toUpdatePayload());
         toast.success("Akun sosmed berhasil didaftarkan.");
       }
 
@@ -345,11 +416,21 @@ export function SocialAccountDirectoryView() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-4">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <div className="rounded-2xl border bg-muted/20 p-4">
                       <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Wilayah Akun</p>
                       <p className="mt-2 font-medium text-sm">{item.wilayah_name}</p>
                       <p className="text-muted-foreground text-xs">Scope delegasi dan analitik akun</p>
+                    </div>
+                    <div className="rounded-2xl border bg-muted/20 p-4">
+                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Eselon 1</p>
+                      <p className="mt-2 font-medium text-sm">{item.eselon_1 ?? "-"}</p>
+                      <p className="text-muted-foreground text-xs">Unit utama pemilik akun</p>
+                    </div>
+                    <div className="rounded-2xl border bg-muted/20 p-4">
+                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Eselon 2</p>
+                      <p className="mt-2 font-medium text-sm">{item.eselon_2 ?? "-"}</p>
+                      <p className="text-muted-foreground text-xs">Unit kerja pengelola akun</p>
                     </div>
                     <div className="rounded-2xl border bg-muted/20 p-4">
                       <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Added By</p>
@@ -403,7 +484,7 @@ export function SocialAccountDirectoryView() {
             <DialogDescription>
               {editingAccount
                 ? "Perbarui metadata akun sosmed yang sudah terdaftar."
-                : "Lengkapi metadata akun lalu unggah screenshot profil terbaru."}
+                : "Lengkapi metadata akun sosmed beserta informasi eselon 1 dan eselon 2."}
             </DialogDescription>
           </DialogHeader>
 
@@ -494,6 +575,32 @@ export function SocialAccountDirectoryView() {
             </div>
 
             <div className="grid gap-2 md:col-span-2">
+              <Label>Eselon 1</Label>
+              <SearchableSelect
+                label="Eselon 1"
+                placeholder="Pilih eselon 1"
+                value={form.eselon_1}
+                options={ESELON_1_OPTIONS}
+                onValueChange={(value) =>
+                  setForm((previous) => ({ ...previous, eselon_1: value as SocialAccountEselon1 }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2 md:col-span-2">
+              <Label>Eselon 2</Label>
+              <SearchableSelect
+                label="Eselon 2"
+                placeholder="Pilih eselon 2"
+                value={form.eselon_2}
+                options={ESELON_2_OPTIONS}
+                onValueChange={(value) =>
+                  setForm((previous) => ({ ...previous, eselon_2: value as SocialAccountEselon2 }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2 md:col-span-2">
               <Label>Deskripsi</Label>
               <Textarea
                 value={form.deskripsi ?? ""}
@@ -504,22 +611,6 @@ export function SocialAccountDirectoryView() {
             <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sky-800 text-sm md:col-span-2">
               Jumlah followers akan diperbarui otomatis oleh sistem setelah akun berhasil disimpan.
             </div>
-
-            {!editingAccount && (
-              <div className="grid gap-2 md:col-span-2">
-                <Label>Screenshot Profil</Label>
-                <Input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  onChange={(event) =>
-                    setForm((previous) => ({
-                      ...previous,
-                      screenshot: event.target.files?.[0] ?? null,
-                    }))
-                  }
-                />
-              </div>
-            )}
           </div>
 
           <DialogFooter>

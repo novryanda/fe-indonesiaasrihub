@@ -5,10 +5,10 @@ import type {
   CreateSocialAccountPayload,
   DelegateSocialAccountPayload,
   SocialAccountDetail,
-  SocialAccountScrapedPostDetail,
   SocialAccountFilters,
   SocialAccountItem,
   SocialAccountListMeta,
+  SocialAccountScrapedPostDetail,
   SocialPicOption,
   UpdateSocialAccountPayload,
   UpsertSocialAccountStatPayload,
@@ -68,6 +68,8 @@ export async function listSocialAccounts(filters: SocialAccountFilters) {
       profile_url: string;
       nama_profil: string;
       tipe_akun: SocialAccountItem["tipe_akun"];
+      eselon_1: SocialAccountItem["eselon_1"];
+      eselon_2: SocialAccountItem["eselon_2"];
       followers: number;
       description: string | null;
       is_verified: boolean;
@@ -106,6 +108,8 @@ export async function listSocialAccounts(filters: SocialAccountFilters) {
       profile_url: item.profile_url,
       nama_profil: item.nama_profil,
       tipe_akun: item.tipe_akun,
+      eselon_1: item.eselon_1,
+      eselon_2: item.eselon_2,
       followers: item.followers,
       description: item.description,
       is_verified: item.is_verified,
@@ -134,24 +138,23 @@ export async function getSocialAccountScrapedPostDetail(id: string, postId: stri
 
 export async function createSocialAccount(payload: CreateSocialAccountPayload) {
   const wilayahId = await resolveWilayahId(payload.wilayah);
-  const formData = new FormData();
-  formData.append("wilayah_id", wilayahId ?? "");
-  formData.append("platform", payload.platform);
-  formData.append("username", payload.username.trim());
-  formData.append("profile_url", payload.profile_url.trim());
-  formData.append("nama_profil", payload.nama_profil.trim());
-  formData.append("tipe_akun", payload.tipe_akun);
-  formData.append("followers", String(payload.followers));
-  if (payload.deskripsi?.trim()) {
-    formData.append("deskripsi", payload.deskripsi.trim());
-  }
-  formData.append("screenshot", payload.screenshot);
 
   return apiClient<{ id: string; message: string; verification_status: string; delegation_status: string }>(
     "/v1/akun-sosmed",
     {
       method: "POST",
-      body: formData,
+      body: {
+        wilayah_id: wilayahId ?? "",
+        platform: payload.platform,
+        username: payload.username.trim(),
+        profile_url: payload.profile_url.trim(),
+        nama_profil: payload.nama_profil.trim(),
+        tipe_akun: payload.tipe_akun,
+        eselon_1: payload.eselon_1,
+        eselon_2: payload.eselon_2,
+        followers: payload.followers,
+        deskripsi: payload.deskripsi?.trim() || undefined,
+      },
     },
   );
 }
@@ -168,6 +171,8 @@ export async function updateSocialAccount(id: string, payload: UpdateSocialAccou
       profile_url: payload.profile_url.trim(),
       nama_profil: payload.nama_profil.trim(),
       tipe_akun: payload.tipe_akun,
+      eselon_1: payload.eselon_1,
+      eselon_2: payload.eselon_2,
       followers: payload.followers,
       deskripsi: payload.deskripsi?.trim() || undefined,
     },

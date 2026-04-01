@@ -1,5 +1,7 @@
 import type { ContentPlatform } from "@/features/content-shared/types/content.type";
 
+import type { SocialAccountEselon1, SocialAccountEselon2 } from "../constants/social-account-eselon";
+
 export type SocialAccountVerificationStatus = "verified" | "pending" | "rejected";
 export type SocialAccountDelegationStatus = "belum_didelegasikan" | "sudah_didelegasikan" | "delegasi_dicabut";
 export type SocialAccountType = "personal" | "bisnis" | "government";
@@ -29,6 +31,8 @@ export interface SocialAccountItem {
   profile_url: string;
   nama_profil: string;
   tipe_akun: SocialAccountType;
+  eselon_1: SocialAccountEselon1 | null;
+  eselon_2: SocialAccountEselon2 | null;
   followers: number;
   description?: string | null;
   is_verified: boolean;
@@ -61,9 +65,10 @@ export interface CreateSocialAccountPayload {
   profile_url: string;
   nama_profil: string;
   tipe_akun: SocialAccountType;
+  eselon_1: SocialAccountEselon1;
+  eselon_2: SocialAccountEselon2;
   followers: number;
   deskripsi?: string;
-  screenshot: File;
 }
 
 export interface UpdateSocialAccountPayload {
@@ -73,6 +78,8 @@ export interface UpdateSocialAccountPayload {
   profile_url: string;
   nama_profil: string;
   tipe_akun: SocialAccountType;
+  eselon_1: SocialAccountEselon1;
+  eselon_2: SocialAccountEselon2;
   followers: number;
   deskripsi?: string;
 }
@@ -230,6 +237,8 @@ export interface SocialAccountDetail {
   profile_url: string;
   nama_profil: string;
   tipe_akun: SocialAccountType;
+  eselon_1: SocialAccountEselon1 | null;
+  eselon_2: SocialAccountEselon2 | null;
   followers: number;
   description: string | null;
   screenshot_url: string | null;
