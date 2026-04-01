@@ -1,15 +1,32 @@
 import { z } from "zod";
+import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
 
 export const userRoleSchema = z.enum(["superadmin", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed"]);
 export const userStatusSchema = z.enum(["aktif", "nonaktif"]);
-const nullablePhoneNumber = z.preprocess((value) => {
-  if (typeof value !== "string") {
-    return value;
-  }
+const usernameSchema = z
+  .string()
+  .trim()
+  .min(3, "Username minimal 3 karakter")
+  .max(30, "Username maksimal 30 karakter")
+  .regex(/^[a-zA-Z0-9_.]+$/, "Username hanya boleh huruf, angka, titik, dan underscore")
+  .transform((value) => value.toLowerCase());
 
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}, z.string().min(8, "Nomor HP minimal 8 karakter").max(24, "Nomor HP maksimal 24 karakter").regex(/^[0-9+\-\s()]+$/, "Format nomor HP tidak valid").nullable().optional());
+const nullablePhoneNumber = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    return normalizeIndonesianPhoneNumber(value);
+  },
+  z
+    .string()
+    .min(11, "Nomor HP minimal 8 digit")
+    .max(25, "Nomor HP maksimal 22 digit")
+    .regex(/^\+62[0-9]+$/, "Format nomor HP tidak valid")
+    .nullable()
+    .optional(),
+);
 
 const nullableWilayahId = z.preprocess((value) => {
   if (typeof value !== "string") {
@@ -23,6 +40,7 @@ const nullableWilayahId = z.preprocess((value) => {
 export const createUserSchema = z
   .object({
     name: z.string().trim().min(3, "Nama minimal 3 karakter").max(120, "Nama maksimal 120 karakter"),
+    username: usernameSchema,
     email: z.string().trim().email("Format email tidak valid"),
     phone_number: nullablePhoneNumber,
     role: userRoleSchema,
@@ -42,6 +60,7 @@ export const createUserSchema = z
 export const updateUserSchema = z
   .object({
     name: z.string().trim().min(3, "Nama minimal 3 karakter").max(120, "Nama maksimal 120 karakter"),
+    username: usernameSchema,
     phone_number: nullablePhoneNumber,
     role: userRoleSchema,
     wilayah_id: nullableWilayahId,

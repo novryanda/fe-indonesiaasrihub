@@ -5,6 +5,7 @@ export type UserStatus = "aktif" | "nonaktif";
 export interface UserItem {
   id: string;
   name: string;
+  username: string | null;
   email: string;
   phone_number: string | null;
   role: UserRole;
@@ -47,6 +48,7 @@ export interface ListUsersQuery {
 
 export interface CreateUserPayload {
   name: string;
+  username: string;
   email: string;
   phone_number?: string | null;
   role: UserRole;
@@ -57,6 +59,7 @@ export interface CreateUserPayload {
 export interface CreateUserResult {
   id: string;
   name: string;
+  username: string;
   email: string;
   phone_number: string | null;
   role: UserRole;
@@ -67,6 +70,7 @@ export interface CreateUserResult {
 
 export interface UpdateUserPayload {
   name?: string;
+  username?: string;
   phone_number?: string | null;
   role?: UserRole;
   wilayah_id?: string | null;
@@ -76,6 +80,7 @@ export interface UpdateUserPayload {
 export interface UpdateUserResult {
   id: string;
   name: string;
+  username: string | null;
   phone_number: string | null;
   role: UserRole;
   wilayah_id: string | null;

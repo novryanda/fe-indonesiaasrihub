@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
 import { listWilayahOptions, type WilayahOption } from "@/shared/api/wilayah";
 
 import {
@@ -39,6 +40,7 @@ interface UserFormDialogProps {
 
 type FormDraft = {
   name: string;
+  username: string;
   email: string;
   phone_number: string;
   role: UserItem["role"];
@@ -53,6 +55,7 @@ function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], us
   if (mode === "edit" && user) {
     return {
       name: user.name,
+      username: user.username ?? "",
       email: user.email,
       phone_number: user.phone_number ?? "",
       role: user.role,
@@ -64,6 +67,7 @@ function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], us
 
   return {
     name: "",
+    username: "",
     email: "",
     phone_number: "",
     role: allowedRoles[0] ?? "wcc",
@@ -173,6 +177,7 @@ export function UserFormDialog({
       mode === "create"
         ? {
             name: draft.name,
+            username: draft.username,
             email: draft.email,
             phone_number: draft.phone_number,
             role: draft.role,
@@ -181,6 +186,7 @@ export function UserFormDialog({
           }
         : {
             name: draft.name,
+            username: draft.username,
             phone_number: draft.phone_number,
             role: draft.role,
             wilayah_id: draft.wilayah_id,
@@ -217,6 +223,17 @@ export function UserFormDialog({
             {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="user-username">Username</Label>
+            <Input
+              id="user-username"
+              value={draft.username}
+              onChange={(event) => handleFieldChange("username", event.target.value)}
+              placeholder="username.login"
+            />
+            {errors.username && <p className="text-destructive text-xs">{errors.username}</p>}
+          </div>
+
           {mode === "create" ? (
             <div className="grid gap-2">
               <Label htmlFor="user-email">Email</Label>
@@ -242,6 +259,7 @@ export function UserFormDialog({
               id="user-phone-number"
               value={draft.phone_number}
               onChange={(event) => handleFieldChange("phone_number", event.target.value)}
+              onBlur={(event) => handleFieldChange("phone_number", normalizeIndonesianPhoneNumber(event.target.value) ?? "")}
               placeholder="+6281234567890"
             />
             {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number}</p>}
@@ -271,9 +289,7 @@ export function UserFormDialog({
               onValueChange={(value) => handleFieldChange("wilayah_id", value === "__none__" ? "" : value)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={isLoadingWilayah ? "Memuat wilayah..." : "Pilih wilayah"}
-                />
+                <SelectValue placeholder={isLoadingWilayah ? "Memuat wilayah..." : "Pilih wilayah"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Tanpa wilayah</SelectItem>

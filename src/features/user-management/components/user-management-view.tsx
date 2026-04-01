@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
+import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
 
 import { useCreateUser } from "../hooks/use-create-user";
 import { useDeleteUser } from "../hooks/use-delete-user";
@@ -35,6 +36,10 @@ import { UsersTable } from "./users-table";
 interface UserManagementContentProps {
   accessToken?: string;
   actorRole: "superadmin" | "sysadmin";
+}
+
+function normalizeUsername(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function UserManagementContent({ accessToken, actorRole }: UserManagementContentProps) {
@@ -73,14 +78,15 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
   };
 
   const handleCreateUser = async (payload: CreateUserFormValues) => {
-    if (!payload.name?.trim() || !payload.email?.trim() || !payload.password) {
-      throw new Error("Nama, email, dan password wajib diisi");
+    if (!payload.name?.trim() || !payload.username?.trim() || !payload.email?.trim() || !payload.password) {
+      throw new Error("Nama, username, email, dan password wajib diisi");
     }
 
     await create({
       name: payload.name.trim(),
+      username: normalizeUsername(payload.username),
       email: payload.email.trim().toLowerCase(),
-      phone_number: payload.phone_number?.trim() || null,
+      phone_number: normalizeIndonesianPhoneNumber(payload.phone_number),
       role: payload.role,
       wilayah_id: payload.wilayah_id ?? null,
       password: payload.password,
@@ -96,13 +102,14 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
       return;
     }
 
-    if (!payload.name?.trim() || !payload.role || !payload.status) {
+    if (!payload.name?.trim() || !payload.username?.trim() || !payload.role || !payload.status) {
       throw new Error("Payload update user tidak lengkap");
     }
 
     await update(editingUser.id, {
       name: payload.name.trim(),
-      phone_number: payload.phone_number?.trim() || null,
+      username: normalizeUsername(payload.username),
+      phone_number: normalizeIndonesianPhoneNumber(payload.phone_number),
       role: payload.role,
       wilayah_id: payload.wilayah_id ?? null,
       status: payload.status,
@@ -123,6 +130,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
     try {
       await update(deactivatingUser.id, {
         name: deactivatingUser.name,
+        username: deactivatingUser.username ?? undefined,
         phone_number: deactivatingUser.phone_number,
         role: deactivatingUser.role,
         wilayah_id: deactivatingUser.wilayah_id,
@@ -160,6 +168,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
     try {
       await update(reactivatingUser.id, {
         name: reactivatingUser.name,
+        username: reactivatingUser.username ?? undefined,
         phone_number: reactivatingUser.phone_number,
         role: reactivatingUser.role,
         wilayah_id: reactivatingUser.wilayah_id,

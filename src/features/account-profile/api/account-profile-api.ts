@@ -1,6 +1,11 @@
 import { apiClient } from "@/shared/api/api-client";
 
-import type { AccountProfileData, ChangeMyPasswordPayload } from "../types/account-profile.type";
+import type {
+  AccountProfileData,
+  ChangeMyEmailPayload,
+  ChangeMyPasswordPayload,
+  UpdateMyAccountProfilePayload,
+} from "../types/account-profile.type";
 
 function resolveAuthErrorMessage(payload: unknown, fallback = "Gagal mengubah password") {
   if (!payload || typeof payload !== "object") {
@@ -28,8 +33,8 @@ export async function getMyAccountProfile() {
   });
 }
 
-export async function changeMyPassword(payload: ChangeMyPasswordPayload) {
-  const response = await fetch("/api/auth/change-password", {
+async function postAuthJson<TResponse>(path: string, payload: unknown, fallbackMessage: string) {
+  const response = await fetch(path, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -38,22 +43,49 @@ export async function changeMyPassword(payload: ChangeMyPasswordPayload) {
     body: JSON.stringify(payload),
   });
 
-  const data = (await response.json().catch(() => null)) as {
+  const data = (await response.json().catch(() => null)) as
+    | (TResponse & {
+        message?: string;
+        error?: {
+          message?: string;
+        };
+      })
+    | null;
+
+  if (!response.ok) {
+    throw new Error(resolveAuthErrorMessage(data, fallbackMessage));
+  }
+
+  return data;
+}
+
+export async function updateMyAccountProfile(payload: UpdateMyAccountProfilePayload) {
+  return postAuthJson<{ status?: boolean; user?: Record<string, unknown> }>(
+    "/api/auth/update-user",
+    {
+      name: payload.name,
+      username: payload.username,
+      phoneNumber: payload.phone_number,
+    },
+    "Gagal memperbarui profil",
+  );
+}
+
+export async function changeMyEmail(payload: ChangeMyEmailPayload) {
+  return postAuthJson<{ status?: boolean; user?: Record<string, unknown> }>(
+    "/api/auth/change-email",
+    payload,
+    "Gagal memperbarui email",
+  );
+}
+
+export async function changeMyPassword(payload: ChangeMyPasswordPayload) {
+  return postAuthJson<{
     token?: string | null;
     user?: {
       id: string;
       email: string;
       name: string;
     };
-    message?: string;
-    error?: {
-      message?: string;
-    };
-  } | null;
-
-  if (!response.ok) {
-    throw new Error(resolveAuthErrorMessage(data));
-  }
-
-  return data;
+  }>("/api/auth/change-password", payload, "Gagal mengubah password");
 }

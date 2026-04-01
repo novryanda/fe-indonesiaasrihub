@@ -9,6 +9,7 @@ export async function getUsers(query: ListUsersQuery, _accessToken?: string) {
       users: Array<{
         id: string;
         name: string;
+        username?: string | null;
         email: string;
         phone_number: string | null;
         role: ListUsersData["users"][number]["role"];
@@ -45,6 +46,7 @@ export async function getUsers(query: ListUsersQuery, _accessToken?: string) {
       users: response.data.users.map((user) => ({
         id: user.id,
         name: user.name,
+        username: user.username ?? null,
         email: user.email,
         phone_number: user.phone_number,
         role: user.role,

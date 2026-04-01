@@ -40,6 +40,7 @@ export interface AccountProfileData {
   user: {
     id: string;
     name: string;
+    username: string | null;
     email: string;
     phone_number: string | null;
     image: string | null;
@@ -59,4 +60,15 @@ export interface ChangeMyPasswordPayload {
   currentPassword: string;
   newPassword: string;
   revokeOtherSessions?: boolean;
+}
+
+export interface UpdateMyAccountProfilePayload {
+  name?: string;
+  username?: string;
+  phone_number?: string | null;
+}
+
+export interface ChangeMyEmailPayload {
+  newEmail: string;
+  callbackURL?: string;
 }

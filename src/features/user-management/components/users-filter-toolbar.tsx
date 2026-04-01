@@ -38,7 +38,7 @@ export function UsersFilterToolbar({
       <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="grid flex-1 gap-3 md:grid-cols-3">
           <Input
-            placeholder="Cari nama atau email"
+            placeholder="Cari nama, email, atau username"
             value={filters.search}
             onChange={(event) => onSearchChange(event.target.value)}
           />

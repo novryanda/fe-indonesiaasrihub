@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCheck, UserX } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,7 @@ export function UsersTable({
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Nomor HP</TableHead>
               <TableHead>Role</TableHead>
@@ -83,7 +85,7 @@ export function UsersTable({
           <TableBody>
             {!isLoading && users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   Data user belum tersedia
                 </TableCell>
               </TableRow>
@@ -92,6 +94,7 @@ export function UsersTable({
             {users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>{user.username ?? "-"}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.phone_number ?? "-"}</TableCell>
                 <TableCell>{toRoleLabel(user.role)}</TableCell>
