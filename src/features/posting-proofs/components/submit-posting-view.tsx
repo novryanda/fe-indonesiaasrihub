@@ -15,12 +15,16 @@ import { Spinner } from "@/components/ui/spinner";
 import type { BankContentItem } from "@/features/content-library/types/content-library.type";
 import type { ContentPlatform } from "@/features/content-shared/types/content.type";
 import { formatDate, formatPlatformLabel, formatTopikLabel } from "@/features/content-shared/utils/content-formatters";
-import { useRoleGuard } from "@/shared/hooks/use-role-guard";
-
-import { listPostableBankContents, listPostingProofs, submitPostingLinksFromBankContent } from "../api/posting-proofs-api";
-import type { SubmitPostingLinkPayloadItem } from "../types/posting-proof.type";
 import { listSocialAccounts } from "@/features/social-accounts/api/social-accounts-api";
 import type { SocialAccountItem } from "@/features/social-accounts/types/social-account.type";
+import { useRoleGuard } from "@/shared/hooks/use-role-guard";
+
+import {
+  listPostableBankContents,
+  listPostingProofs,
+  submitPostingLinksFromBankContent,
+} from "../api/posting-proofs-api";
+import type { SubmitPostingLinkPayloadItem } from "../types/posting-proof.type";
 
 interface DraftLinkRow {
   social_account_id: string;
@@ -98,9 +102,9 @@ export function SubmitPostingView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+          <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
             Posting / Submit
           </Badge>
           <div className="space-y-2">
@@ -122,7 +126,9 @@ export function SubmitPostingView() {
         </Card>
       ) : contents.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center text-muted-foreground">Belum ada konten bank yang siap diposting.</CardContent>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Belum ada konten bank yang siap diposting.
+          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
@@ -147,7 +153,12 @@ export function SubmitPostingView() {
                 <div className="rounded-2xl border bg-muted/20 p-4 text-sm">
                   <p>Konten ini akan diposting menggunakan akun sosmed delegasi yang sesuai dengan platform target.</p>
                   <div className="mt-3">
-                    <a href={content.drive_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-emerald-700 underline-offset-4 hover:underline">
+                    <a
+                      href={content.drive_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-emerald-700 underline-offset-4 hover:underline"
+                    >
                       <ExternalLink className="size-4" />
                       Buka folder kerja
                     </a>

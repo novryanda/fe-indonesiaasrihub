@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  formatContentStatusLabel,
   formatDate,
   formatDateTime,
   formatJenisKontenLabel,
@@ -33,7 +32,6 @@ import {
   formatTopikLabel,
   formatYear,
   getPlatformAccentClassName,
-  getStatusAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
@@ -73,12 +71,7 @@ function formatAccessLabel(value: BankContentDetail["status_akses"]) {
 export function BankContentDetailView() {
   const params = useParams<{ id: string }>();
   const contentId = typeof params?.id === "string" ? params.id : "";
-  const { accessToken, isAuthorized, isPending } = useRoleGuard([
-    "qcc_wcc",
-    "wcc",
-    "pic_sosmed",
-    "superadmin",
-  ]);
+  const { accessToken, isAuthorized, isPending } = useRoleGuard(["qcc_wcc", "wcc", "pic_sosmed", "superadmin"]);
 
   const [detail, setDetail] = useState<BankContentDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -158,13 +151,13 @@ export function BankContentDetailView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-5 px-6 py-8 md:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
               <Badge
                 variant="outline"
-                className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700"
+                className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
               >
                 Konten / Detail Bank Konten
               </Badge>
@@ -186,7 +179,7 @@ export function BankContentDetailView() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-emerald-200 bg-white/80 p-4">
+          <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -235,13 +228,13 @@ export function BankContentDetailView() {
         <section className="space-y-6">
           <Card className="overflow-hidden border-foreground/10">
             <CardContent className="grid gap-5 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 via-amber-50 to-zinc-100">
+              <div className="app-bg-media relative aspect-[16/10] overflow-hidden rounded-3xl">
                 {detail.thumbnail_url ? (
                   // biome-ignore lint/performance/noImgElement: remote URL preview is acceptable for bank content detail
                   <img src={detail.thumbnail_url} alt={detail.judul} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-                    <div className="flex size-16 items-center justify-center rounded-full border border-emerald-200 bg-white/70 font-semibold text-2xl text-emerald-700">
+                    <div className="flex size-16 items-center justify-center rounded-full border border-emerald-200 bg-background/75 dark:bg-card/75 font-semibold text-2xl text-emerald-700">
                       {detail.judul.slice(0, 1).toUpperCase()}
                     </div>
                     <p className="px-6 text-xs">Preview thumbnail belum tersedia</p>
@@ -342,10 +335,7 @@ export function BankContentDetailView() {
                           {formatPlatformLabel(usage.social_account.platform)}
                         </Badge>
                         {usage.validation_status ? (
-                          <Badge
-                            variant="outline"
-                            className={cn("rounded-full px-3 py-1")}
-                          >
+                          <Badge variant="outline" className={cn("rounded-full px-3 py-1")}>
                             {usage.validation_status.replaceAll("_", " ")}
                           </Badge>
                         ) : null}

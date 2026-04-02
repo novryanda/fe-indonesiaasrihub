@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import Link from "next/link";
 
 import { ChartColumnBig, ExternalLink, ShieldCheck, ShieldX } from "lucide-react";
 import { toast } from "sonner";
@@ -107,9 +108,9 @@ export function MyPostingProofsView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+          <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
             Posting / Riwayat Saya
           </Badge>
           <div className="space-y-2">
@@ -144,7 +145,10 @@ export function MyPostingProofsView() {
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-semibold text-xl">{item.bank_content_judul}</h2>
-                      <Badge variant="outline" className={cn("rounded-full px-3 py-1", getStatusBadgeClass(item.status))}>
+                      <Badge
+                        variant="outline"
+                        className={cn("rounded-full px-3 py-1", getStatusBadgeClass(item.status))}
+                      >
                         {item.status.replaceAll("_", " ")}
                       </Badge>
                     </div>
@@ -236,7 +240,10 @@ export function MyPostingProofsView() {
                         </div>
                       </div>
 
-                      <Badge variant="outline" className={cn("w-fit rounded-full px-3 py-1", getStatsInfo(link.stats).className)}>
+                      <Badge
+                        variant="outline"
+                        className={cn("w-fit rounded-full px-3 py-1", getStatsInfo(link.stats).className)}
+                      >
                         {getStatsInfo(link.stats).label}
                       </Badge>
 

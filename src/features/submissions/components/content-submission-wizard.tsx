@@ -326,12 +326,12 @@ export function ContentSubmissionWizard({
     <>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-6">
-          <Card className="overflow-hidden border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+          <Card className="overflow-hidden app-bg-hero app-border-soft">
             <CardContent className="space-y-8 px-6 py-8 md:px-8">
               <div className="space-y-4">
                 <Badge
                   variant="outline"
-                  className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700"
+                  className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
                 >
                   {isResubmitMode ? "WCC / Resubmit Konten" : "WCC / Submit Konten Baru"}
                 </Badge>

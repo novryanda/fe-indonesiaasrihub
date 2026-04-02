@@ -1,7 +1,7 @@
 .loader {
-  --background: linear-gradient(135deg, #23C4F8, #275EFE);
-  --shadow: rgba(39, 94, 254, 0.28);
-  --text: #6C7486;
+  --background: linear-gradient(135deg, #0b7269, #005f5b 58%, #2f80ed);
+  --shadow: rgba(0, 95, 91, 0.24);
+  --text: #4d6664;
   --page: rgba(255, 255, 255, 0.36);
   --page-fold: rgba(255, 255, 255, 0.52);
   --duration: 3s;

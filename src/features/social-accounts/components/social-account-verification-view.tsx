@@ -64,18 +64,19 @@ export function SocialAccountVerificationView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+          <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
             Akun Sosmed / Verifikasi
           </Badge>
           <div className="space-y-2">
             <h1 className="font-semibold text-3xl tracking-tight">Verifikasi Akun Sosmed</h1>
             <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-              Superadmin meninjau akun yang diajukan regional sebelum akun masuk ke bank akun aktif dan siap didelegasikan.
+              Superadmin meninjau akun yang diajukan regional sebelum akun masuk ke bank akun aktif dan siap
+              didelegasikan.
             </p>
           </div>
-          <div className="rounded-3xl border border-emerald-200 bg-white/80 p-4 text-sm text-emerald-800">
+          <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75 text-sm text-emerald-800">
             {pendingCount} akun menunggu verifikasi.
           </div>
         </CardContent>
@@ -90,7 +91,9 @@ export function SocialAccountVerificationView() {
         </Card>
       ) : items.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center text-muted-foreground">Tidak ada akun yang menunggu verifikasi.</CardContent>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Tidak ada akun yang menunggu verifikasi.
+          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
@@ -114,7 +117,12 @@ export function SocialAccountVerificationView() {
 
                 <div className="rounded-2xl border bg-muted/20 p-4">
                   <p className="font-medium text-sm">URL Profil</p>
-                  <a href={item.profile_url} target="_blank" rel="noreferrer" className="mt-1 block text-muted-foreground text-sm underline-offset-4 hover:underline">
+                  <a
+                    href={item.profile_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 block text-muted-foreground text-sm underline-offset-4 hover:underline"
+                  >
                     {item.profile_url}
                   </a>
                 </div>

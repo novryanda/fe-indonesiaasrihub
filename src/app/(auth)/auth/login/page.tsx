@@ -208,9 +208,9 @@ function LoginPageContent() {
   return (
     <>
       <FullScreenLoader isLoading={isLoading} text="Sedang masuk ke sistem..." />
-      <div className="flex h-dvh overflow-hidden bg-white">
+      <div className="app-bg-canvas flex h-dvh overflow-hidden">
         {/* Left Decoration Panel */}
-        <div className="hidden bg-primary lg:block lg:w-1/3">
+        <div className="app-bg-hero-strong hidden lg:block lg:w-1/3">
           <div className="flex h-full flex-col items-center justify-center p-12 text-center">
             <div className="fade-in slide-in-from-bottom-4 animate-in space-y-6 duration-700">
               <div className="relative mx-auto flex h-48 w-48 items-center justify-center rounded-[3rem] bg-white/10 shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-500 hover:scale-105">
@@ -225,11 +225,11 @@ function LoginPageContent() {
 
               <div className="space-y-4 pt-12 text-left">
                 <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="h-2 w-2 rounded-full bg-green-400" />
+                  <div className="h-2 w-2 rounded-full bg-emerald-300" />
                   <p className="text-sm text-white/80">Sistem terintegrasi KLHK</p>
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="h-2 w-2 rounded-full bg-blue-400" />
+                  <div className="h-2 w-2 rounded-full bg-orange-300" />
                   <p className="text-sm text-white/80">Platform Pendukung KIE</p>
                 </div>
               </div>
@@ -238,24 +238,24 @@ function LoginPageContent() {
         </div>
 
         {/* Right Login Section */}
-        <div className="flex w-full items-center justify-center bg-gray-50 p-6 lg:w-2/3 lg:p-12">
+        <div className="app-bg-canvas flex w-full items-center justify-center p-6 lg:w-2/3 lg:p-12">
           <div className="fade-in slide-in-from-right-4 w-full max-w-md animate-in space-y-8 duration-500">
             <div className="space-y-6">
               <div className="flex flex-col space-y-2 text-center">
-                <h2 className="font-bold text-3xl text-gray-900 tracking-tight">Selamat Datang</h2>
-                <p className="text-gray-500">Silakan masuk untuk mengakses portal ASRI Hub</p>
+                <h2 className="font-bold text-3xl text-foreground tracking-tight">Selamat Datang</h2>
+                <p className="text-muted-foreground">Silakan masuk untuk mengakses portal ASRI Hub</p>
               </div>
 
               {/* Role Switcher Tabs */}
-              <div className="grid w-full grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-gray-100 p-1.5 shadow-sm">
+              <div className="app-tab-surface grid w-full grid-cols-2 gap-2 rounded-xl border p-1.5 shadow-sm">
                 <button
                   type="button"
                   onClick={() => handleRoleChange("creator")}
                   className={cn(
                     "flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-all",
                     role === "creator"
-                      ? "bg-white text-secondary-600 shadow-md ring-1 ring-black/5"
-                      : "text-gray-500 hover:bg-gray-200",
+                      ? "app-tab-active text-primary shadow-md ring-1 ring-black/5"
+                      : "text-muted-foreground hover:bg-background/70",
                   )}
                 >
                   <UserCheck className="h-4 w-4" />
@@ -267,8 +267,8 @@ function LoginPageContent() {
                   className={cn(
                     "flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-all",
                     role === "admin"
-                      ? "bg-white text-gray-900 shadow-md ring-1 ring-black/5"
-                      : "text-gray-500 hover:bg-gray-200",
+                      ? "app-tab-active text-foreground shadow-md ring-1 ring-black/5"
+                      : "text-muted-foreground hover:bg-background/70",
                   )}
                 >
                   <ShieldCheck className="h-4 w-4" />
@@ -277,7 +277,7 @@ function LoginPageContent() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-gray-200/50 shadow-xl">
+            <div className="app-bg-surface app-border-soft rounded-2xl border p-8 shadow-xl">
               <LoginForm
                 role={role}
                 identifier={identifier}
@@ -291,20 +291,20 @@ function LoginPageContent() {
 
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-gray-100 border-t" />
+                  <span className="w-full border-border border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 font-medium text-gray-400">Atau masuk dengan</span>
+                  <span className="bg-card px-3 font-medium text-muted-foreground">Atau masuk dengan</span>
                 </div>
               </div>
 
               <GoogleButton
-                className="w-full border-gray-200 font-semibold text-gray-700 hover:bg-gray-50"
+                className="w-full border-border font-semibold text-foreground hover:bg-muted/70"
                 variant="outline"
               />
             </div>
 
-            <p className="text-center font-medium text-gray-500 text-sm">
+            <p className="text-center font-medium text-muted-foreground text-sm">
               Belum punya akun? <span className="font-bold text-primary">Hubungi Administrator</span>
             </p>
           </div>
@@ -318,7 +318,7 @@ export default function LoginV1() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-dvh items-center justify-center bg-gray-50 text-gray-500 text-sm">
+        <div className="app-bg-canvas flex h-dvh items-center justify-center text-muted-foreground text-sm">
           Memuat halaman login...
         </div>
       }

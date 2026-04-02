@@ -59,7 +59,7 @@ export function LoginForm({
       )}
 
       <div className="space-y-2">
-        <label htmlFor="identifier" className="font-medium text-gray-700 text-sm">
+        <label htmlFor="identifier" className="font-medium text-foreground text-sm">
           Email atau Username
         </label>
         <Input
@@ -74,13 +74,10 @@ export function LoginForm({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="password" className="font-medium text-gray-700 text-sm">
+          <label htmlFor="password" className="font-medium text-foreground text-sm">
             Password
           </label>
-          <button
-            type="button"
-            className="font-medium text-primary-600 text-sm transition-colors hover:text-primary-500"
-          >
+          <button type="button" className="font-medium text-primary text-sm transition-colors hover:text-primary/80">
             Lupa password?
           </button>
         </div>
@@ -98,18 +95,14 @@ export function LoginForm({
         <input
           id="remember"
           type="checkbox"
-          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
         />
-        <label htmlFor="remember" className="text-gray-500 text-sm">
+        <label htmlFor="remember" className="text-muted-foreground text-sm">
           Ingat saya di perangkat ini
         </label>
       </div>
 
-      <Button
-        type="submit"
-        className={`w-full ${role === "creator" ? "bg-emerald-600 text-white hover:bg-emerald-600/90" : "bg-gray-900 text-white hover:bg-gray-800"}`}
-        isLoading={isLoading}
-      >
+      <Button type="submit" className="w-full" isLoading={isLoading}>
         Masuk Aplikasi
       </Button>
     </form>

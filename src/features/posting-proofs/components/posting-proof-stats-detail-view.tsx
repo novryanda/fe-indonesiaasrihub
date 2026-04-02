@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 import { ArrowLeft, ExternalLink, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -166,11 +167,14 @@ export function PostingProofStatsDetailView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-sky-100 bg-linear-to-br from-sky-50 via-background to-emerald-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
-              <Badge variant="outline" className="rounded-full border-sky-200 bg-white/80 px-3 py-1 text-sky-700">
+              <Badge
+                variant="outline"
+                className="rounded-full border-sky-200 bg-background/75 px-3 py-1 text-sky-700 dark:bg-card/75"
+              >
                 Postingan / Detail Statistik
               </Badge>
               <h1 className="font-semibold text-3xl tracking-tight">{item?.bank_content_judul ?? "Detail Posting"}</h1>

@@ -41,57 +41,54 @@ export function SubmissionSidebarSummary({
 }: SubmissionSidebarSummaryProps) {
   return (
     <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-      <Card className="border-foreground/10 bg-linear-to-br from-zinc-950 to-zinc-900 text-white shadow-lg">
+      <Card className="app-bg-surface app-border-soft shadow-lg">
         <CardHeader>
-          <CardTitle className="text-white">Ringkasan Singkat</CardTitle>
-          <CardDescription className="text-zinc-300">Snapshot konten yang sedang Anda siapkan.</CardDescription>
+          <CardTitle>Ringkasan Singkat</CardTitle>
+          <CardDescription>Snapshot konten yang sedang Anda siapkan.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <p className="text-xs text-zinc-400 uppercase tracking-[0.2em]">Judul</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Judul</p>
             <p className="line-clamp-2 font-medium text-sm">{judul || "Belum diisi"}</p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs text-zinc-400 uppercase tracking-[0.2em]">Platform</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Platform</p>
             <div className="flex flex-wrap gap-2">
               {platform.length > 0 ? (
                 platform.map((item) => (
                   <Badge
                     key={item}
                     variant="outline"
-                    className={cn(
-                      "rounded-full border-white/20 px-3 py-1 text-white",
-                      getPlatformAccentClassName(item),
-                    )}
+                    className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(item))}
                   >
                     {formatPlatformLabel(item)}
                   </Badge>
                 ))
               ) : (
-                <span className="text-sm text-zinc-300">Belum dipilih</span>
+                <span className="text-muted-foreground text-sm">Belum dipilih</span>
               )}
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-2xl bg-white/8 p-4 text-sm">
+          <div className="grid gap-3 rounded-2xl bg-background/70 p-4 text-sm dark:bg-card/70">
             <div className="flex items-center gap-3">
-              <FolderKanban className="size-4 text-emerald-300" />
+              <FolderKanban className="size-4 text-[color:var(--brand-hero)]" />
               <span>{formatJenisKontenLabel(jenisKonten as never)}</span>
             </div>
             <div className="flex items-center gap-3">
-              <CalendarClock className="size-4 text-emerald-300" />
+              <CalendarClock className="size-4 text-[color:var(--brand-hero)]" />
               <span>{tanggalPosting ? formatDate(tanggalPosting) : "Tanggal belum dipilih"}</span>
             </div>
             <div className="flex items-center gap-3">
-              <ShieldCheck className="size-4 text-emerald-300" />
+              <ShieldCheck className="size-4 text-[color:var(--brand-hero)]" />
               <span>{formatUrgensiLabel(urgensi as never)}</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-emerald-100 bg-emerald-50/70">
+      <Card className="app-bg-highlight app-border-soft">
         <CardHeader>
           <CardTitle>Checklist Wizard</CardTitle>
           <CardDescription>Pastikan tiap step selesai sebelum dikirim.</CardDescription>

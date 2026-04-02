@@ -64,41 +64,48 @@
 These serve as the fallback; there is no separate default.css file. */
 :root {
   --radius: 0.625rem;
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.148 0.004 228.8);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.148 0.004 228.8);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
-  --accent: oklch(0.963 0.002 197.1);
-  --accent-foreground: oklch(0.218 0.008 223.9);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
-  --ring: oklch(0.723 0.014 214.4);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.987 0.002 197.1);
-  --sidebar-foreground: oklch(0.148 0.004 228.8);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.963 0.002 197.1);
-  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
-  --sidebar-border: oklch(0.925 0.005 214.3);
-  --sidebar-ring: oklch(0.723 0.014 214.4);
+  --brand-hero: #005f5b;
+  --brand-hero-strong: #0b7269;
+  --brand-hero-foreground: #f5fbf8;
+  --action-orange: #f58a1f;
+  --action-orange-foreground: #fff8f1;
+  --screen-blue: #eaf3ff;
+  --screen-blue-soft: #f2f7fe;
+  --card: #ffffff;
+  --card-foreground: #17323f;
+  --popover: #ffffff;
+  --popover-foreground: #17323f;
+  --primary: var(--action-orange);
+  --primary-foreground: var(--action-orange-foreground);
+  --secondary: #eaf3ff;
+  --secondary-foreground: #245b98;
+  --muted: #eef5fc;
+  --muted-foreground: #62758a;
+  --accent: #e7f3ee;
+  --accent-foreground: #1e4d49;
+  --destructive: #d94d32;
+  --border: #d7e2f0;
+  --input: #d8e6f5;
+  --ring: rgba(245, 138, 31, 0.24);
+  --chart-1: var(--brand-hero);
+  --chart-2: #2f80ed;
+  --chart-3: var(--action-orange);
+  --chart-4: #5a96e8;
+  --chart-5: #2c6d67;
+  --sidebar: #eef4fc;
+  --sidebar-foreground: #17323f;
+  --sidebar-primary: var(--brand-hero);
+  --sidebar-primary-foreground: var(--brand-hero-foreground);
+  --sidebar-accent: #e5effc;
+  --sidebar-accent-foreground: #245b98;
+  --sidebar-border: #d6e2f2;
+  --sidebar-ring: rgba(245, 138, 31, 0.22);
 
   /* fonts */
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.148 0.004 228.8);
+  --background: var(--screen-blue-soft);
+  --foreground: #17323f;
   --map-region: oklch(44.3% 0.11 240.79);
   --map-region-hover: oklch(50% 0.134 242.748);
   --map-region-selected: oklch(39.1% 0.09 240.875);
@@ -109,40 +116,79 @@ These serve as the fallback; there is no separate default.css file. */
   --map-label: oklch(100% 0 0);
   --map-label-hover: oklch(100% 0 0);
   --map-label-selected: oklch(100% 0 0);
+  --app-gradient-page:
+    radial-gradient(circle at top left, rgba(47, 128, 237, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(174, 206, 248, 0.18), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(0, 95, 91, 0.07), transparent 26%),
+    linear-gradient(180deg, #f3f8fe 0%, #edf4fc 100%);
+  --app-gradient-hero:
+    radial-gradient(circle at top left, rgba(0, 95, 91, 0.24), transparent 42%),
+    radial-gradient(circle at top right, rgba(47, 128, 237, 0.08), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(245, 138, 31, 0.06), transparent 28%),
+    linear-gradient(135deg, rgba(223, 243, 236, 0.98), rgba(237, 248, 243, 0.98) 56%, rgba(247, 251, 249, 0.98));
+  --app-gradient-hero-strong:
+    radial-gradient(circle at top right, rgba(47, 128, 237, 0.18), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(245, 138, 31, 0.12), transparent 34%),
+    linear-gradient(135deg, #005f5b 0%, #0b7269 54%, #085a55 100%);
+  --app-gradient-highlight:
+    radial-gradient(circle at top left, rgba(47, 128, 237, 0.15), transparent 34%),
+    radial-gradient(circle at top right, rgba(162, 201, 255, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(0, 95, 91, 0.05), transparent 26%),
+    linear-gradient(135deg, rgba(248, 251, 255, 0.98), rgba(238, 245, 253, 0.98));
+  --app-gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.99));
+  --app-gradient-media: linear-gradient(
+    135deg,
+    rgba(232, 242, 255, 0.95),
+    rgba(247, 250, 255, 0.96) 56%,
+    rgba(223, 241, 236, 0.9)
+  );
+  --app-panel-bg: rgba(240, 247, 255, 0.82);
+  --app-panel-border: rgba(166, 195, 237, 0.5);
+  --app-control-bg: rgba(249, 252, 255, 0.94);
+  --app-soft-border: rgba(91, 144, 220, 0.18);
+  --app-tab-bg: rgba(236, 244, 253, 0.94);
+  --app-tab-active-bg: rgba(255, 255, 255, 0.98);
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
-  --foreground: oklch(0.987 0.002 197.1);
-  --card: oklch(0.218 0.008 223.9);
-  --card-foreground: oklch(0.987 0.002 197.1);
-  --popover: oklch(0.218 0.008 223.9);
-  --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.424 0.199 265.638);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.275 0.011 216.9);
-  --muted-foreground: oklch(0.723 0.014 214.4);
-  --accent: oklch(0.275 0.011 216.9);
-  --accent-foreground: oklch(0.987 0.002 197.1);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.56 0.021 213.5);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.218 0.008 223.9);
-  --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.275 0.011 216.9);
-  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.56 0.021 213.5);
+  --brand-hero: #0d5b56;
+  --brand-hero-strong: #16756c;
+  --brand-hero-foreground: #f3fbf8;
+  --action-orange: #dd862d;
+  --action-orange-foreground: #fff5ea;
+  --screen-blue: #1a2d44;
+  --screen-blue-soft: #0f1824;
+  --background: var(--screen-blue-soft);
+  --foreground: #e6effa;
+  --card: #16212e;
+  --card-foreground: #e6effa;
+  --popover: #16212e;
+  --popover-foreground: #e6effa;
+  --primary: var(--action-orange);
+  --primary-foreground: #201307;
+  --secondary: #1b3148;
+  --secondary-foreground: #d7e7fc;
+  --muted: #172434;
+  --muted-foreground: #95a8be;
+  --accent: #18332f;
+  --accent-foreground: #e6f4ef;
+  --destructive: #ff8c6b;
+  --border: rgba(170, 192, 224, 0.16);
+  --input: rgba(177, 196, 221, 0.18);
+  --ring: rgba(221, 134, 45, 0.3);
+  --chart-1: #73c5bb;
+  --chart-2: #6ba8f5;
+  --chart-3: #dd862d;
+  --chart-4: #4f87d6;
+  --chart-5: #3d8f88;
+  --sidebar: #132030;
+  --sidebar-foreground: #e6effa;
+  --sidebar-primary: #66bcb1;
+  --sidebar-primary-foreground: #081312;
+  --sidebar-accent: #1c3047;
+  --sidebar-accent-foreground: #d7e7fc;
+  --sidebar-border: rgba(170, 192, 224, 0.16);
+  --sidebar-ring: rgba(221, 134, 45, 0.3);
   --map-region: oklch(44.3% 0.11 240.79);
   --map-region-hover: oklch(50% 0.134 242.748);
   --map-region-selected: oklch(39.1% 0.09 240.875);
@@ -153,6 +199,38 @@ These serve as the fallback; there is no separate default.css file. */
   --map-label: oklch(100% 0 0);
   --map-label-hover: oklch(100% 0 0);
   --map-label-selected: oklch(100% 0 0);
+  --app-gradient-page:
+    radial-gradient(circle at top left, rgba(73, 135, 219, 0.22), transparent 30%),
+    radial-gradient(circle at top right, rgba(106, 168, 245, 0.16), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(13, 91, 86, 0.16), transparent 26%),
+    linear-gradient(180deg, #0f1824 0%, #111d2a 100%);
+  --app-gradient-hero:
+    radial-gradient(circle at top left, rgba(102, 188, 177, 0.18), transparent 38%),
+    radial-gradient(circle at top right, rgba(107, 168, 245, 0.1), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(221, 134, 45, 0.09), transparent 26%),
+    linear-gradient(135deg, rgba(18, 49, 46, 0.96), rgba(13, 38, 36, 0.98) 58%, rgba(16, 32, 30, 0.98));
+  --app-gradient-hero-strong:
+    radial-gradient(circle at top right, rgba(107, 168, 245, 0.12), transparent 36%),
+    radial-gradient(circle at bottom left, rgba(221, 134, 45, 0.12), transparent 28%),
+    linear-gradient(135deg, #0d5b56 0%, #16756c 54%, #0c4f4b 100%);
+  --app-gradient-highlight:
+    radial-gradient(circle at top left, rgba(107, 168, 245, 0.14), transparent 34%),
+    radial-gradient(circle at top right, rgba(78, 135, 214, 0.1), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(102, 188, 177, 0.07), transparent 24%),
+    linear-gradient(135deg, rgba(22, 34, 50, 0.97), rgba(18, 29, 42, 0.98));
+  --app-gradient-surface: linear-gradient(180deg, rgba(23, 34, 48, 0.96), rgba(18, 28, 40, 0.99));
+  --app-gradient-media: linear-gradient(
+    135deg,
+    rgba(28, 48, 74, 0.92),
+    rgba(18, 29, 42, 0.95) 56%,
+    rgba(21, 45, 43, 0.84)
+  );
+  --app-panel-bg: rgba(22, 36, 54, 0.84);
+  --app-panel-border: rgba(123, 155, 201, 0.2);
+  --app-control-bg: rgba(19, 31, 46, 0.94);
+  --app-soft-border: rgba(118, 154, 206, 0.2);
+  --app-tab-bg: rgba(20, 33, 49, 0.94);
+  --app-tab-active-bg: rgba(24, 38, 56, 0.98);
 }
 
 @layer base {
@@ -163,10 +241,75 @@ These serve as the fallback; there is no separate default.css file. */
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, sans-serif;
+    background-image: var(--app-gradient-page);
+    background-attachment: fixed;
   }
 }
 
 @layer utilities {
+  .screen-blue,
+  .app-bg-canvas {
+    background-color: var(--background);
+    background-image: var(--app-gradient-page);
+    background-repeat: no-repeat;
+  }
+
+  .hero-green,
+  .app-bg-hero {
+    background-color: var(--card);
+    background-image: var(--app-gradient-hero);
+    background-repeat: no-repeat;
+  }
+
+  .hero-green-strong,
+  .app-bg-hero-strong {
+    background-color: var(--brand-hero);
+    background-image: var(--app-gradient-hero-strong);
+    background-repeat: no-repeat;
+  }
+
+  .surface-blue-soft,
+  .app-bg-highlight {
+    background-color: var(--card);
+    background-image: var(--app-gradient-highlight);
+    background-repeat: no-repeat;
+  }
+
+  .neutral-card,
+  .app-bg-surface {
+    background-color: var(--card);
+    background-image: var(--app-gradient-surface);
+    background-repeat: no-repeat;
+  }
+
+  .app-bg-media {
+    background-color: var(--muted);
+    background-image: var(--app-gradient-media);
+    background-repeat: no-repeat;
+  }
+
+  .app-panel-glass {
+    background-color: var(--app-panel-bg);
+    border-color: var(--app-panel-border);
+  }
+
+  .app-control-surface {
+    background-color: var(--app-control-bg);
+  }
+
+  .app-border-soft {
+    border-color: var(--app-soft-border);
+  }
+
+  .app-tab-surface {
+    background-color: var(--app-tab-bg);
+    border-color: var(--app-soft-border);
+  }
+
+  .app-tab-active {
+    background-color: var(--app-tab-active-bg);
+  }
+
   [data-theme-preset]:not([data-theme-preset="default"]) .shadow-2xs {
     box-shadow: var(--shadow-2xs);
   }

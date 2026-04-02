@@ -123,13 +123,13 @@ function SubmissionCard({ item, onOpenHistory }: { item: ContentItem; onOpenHist
   return (
     <Card className="overflow-hidden border-foreground/10">
       <CardContent className="grid gap-5 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border bg-linear-to-br from-emerald-50 via-amber-50 to-zinc-100">
+        <div className="app-bg-media relative aspect-[4/3] overflow-hidden rounded-3xl border">
           {item.thumbnail_url ? (
             // biome-ignore lint/performance/noImgElement: preview thumbnail comes from backend file path or remote URL
             <img src={item.thumbnail_url} alt={item.judul} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground">
-              <div className="flex size-14 items-center justify-center rounded-full bg-white/80 text-emerald-700">
+              <div className="flex size-14 items-center justify-center rounded-full bg-background/75 text-emerald-700 dark:bg-card/75">
                 <ImageOff className="size-6" />
               </div>
               <p className="text-xs">Thumbnail belum tersedia</p>
@@ -281,13 +281,13 @@ export function MyContentsView() {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-5 px-6 py-8 md:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
                 <Badge
                   variant="outline"
-                  className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700"
+                  className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
                 >
                   WCC / Konten Saya
                 </Badge>
@@ -308,7 +308,7 @@ export function MyContentsView() {
               </Button>
             </div>
 
-            <div className="rounded-3xl border border-emerald-200 bg-white/80 p-4">
+            <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
               <p className="font-medium text-emerald-800 text-sm">
                 {meta?.total ?? items.length} submission tercatat untuk akun Anda.
               </p>

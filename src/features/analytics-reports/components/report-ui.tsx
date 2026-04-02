@@ -143,11 +143,14 @@ export function AnalyticsFiltersBar(props: {
   onChange: (next: AnalyticsFilterParams) => void;
 }) {
   return (
-    <Card className="overflow-hidden border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(37,99,235,0.12),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+    <Card className="app-bg-hero app-border-soft overflow-hidden">
       <CardContent className="space-y-6 px-6 py-8 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700">
+            <Badge
+              variant="outline"
+              className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+            >
               Analitik / Laporan Analitik
             </Badge>
             <div className="space-y-2">
@@ -156,7 +159,7 @@ export function AnalyticsFiltersBar(props: {
             </div>
           </div>
 
-          <div className="grid gap-2 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur">
+          <div className="app-panel-glass grid gap-2 rounded-2xl border p-4 shadow-sm backdrop-blur">
             <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">Scope Dashboard</p>
             <p className="font-semibold text-lg">Nasional</p>
             <p className="text-muted-foreground text-sm">
@@ -177,7 +180,7 @@ export function AnalyticsFiltersBar(props: {
                 })
               }
             >
-              <SelectTrigger className="min-w-56 bg-white">
+              <SelectTrigger className="app-control-surface min-w-56">
                 <SelectValue placeholder="Pilih bulan" />
               </SelectTrigger>
               <SelectContent>
@@ -198,7 +201,7 @@ export function AnalyticsFiltersBar(props: {
                 })
               }
             >
-              <SelectTrigger className="min-w-56 bg-white">
+              <SelectTrigger className="app-control-surface min-w-56">
                 <SelectValue placeholder="Pilih tahun" />
               </SelectTrigger>
               <SelectContent>
@@ -219,7 +222,7 @@ export function AnalyticsFiltersBar(props: {
                 })
               }
             >
-              <SelectTrigger className="min-w-56 bg-white">
+              <SelectTrigger className="app-control-surface min-w-56">
                 <SelectValue placeholder="Pilih platform" />
               </SelectTrigger>
               <SelectContent>

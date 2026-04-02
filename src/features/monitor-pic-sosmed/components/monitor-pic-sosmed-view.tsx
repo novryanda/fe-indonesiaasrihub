@@ -1,7 +1,8 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 
 import { BellRing, CalendarClock, Eye, Search, Send, TimerReset, Users2 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,7 +30,10 @@ import {
   getMonitorPicSosmedList,
   sendMonitorPicReminder,
 } from "@/features/monitor-pic-sosmed/api/monitor-pic-sosmed-api";
-import type { MonitorPicListItem, PicActivityStatus } from "@/features/monitor-pic-sosmed/types/monitor-pic-sosmed.type";
+import type {
+  MonitorPicListItem,
+  PicActivityStatus,
+} from "@/features/monitor-pic-sosmed/types/monitor-pic-sosmed.type";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
@@ -93,26 +97,29 @@ export function MonitorPicSosmedView() {
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
-  async function loadData(nextPage = page, nextStatus = statusFilter, nextSearch = search) {
-    setLoading(true);
+  const loadData = useCallback(
+    async (nextPage = page, nextStatus = statusFilter, nextSearch = search) => {
+      setLoading(true);
 
-    try {
-      const response = await getMonitorPicSosmedList({
-        page: nextPage,
-        limit: 10,
-        search: nextSearch || undefined,
-        status: nextStatus === "all" ? undefined : nextStatus,
-      });
+      try {
+        const response = await getMonitorPicSosmedList({
+          page: nextPage,
+          limit: 10,
+          search: nextSearch || undefined,
+          status: nextStatus === "all" ? undefined : nextStatus,
+        });
 
-      setItems(response.data.items);
-      setStats(response.data.stats);
-      setTotal(response.meta?.total ?? response.data.items.length);
-    } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat monitoring PIC sosmed");
-    } finally {
-      setLoading(false);
-    }
-  }
+        setItems(response.data.items);
+        setStats(response.data.stats);
+        setTotal(response.meta?.total ?? response.data.items.length);
+      } catch (errorValue) {
+        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat monitoring PIC sosmed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, search, statusFilter],
+  );
 
   useEffect(() => {
     if (!isAuthorized || isPending) {
@@ -120,7 +127,7 @@ export function MonitorPicSosmedView() {
     }
 
     void loadData();
-  }, [isAuthorized, isPending, page, search, statusFilter]);
+  }, [isAuthorized, isPending, loadData]);
 
   const totalPages = Math.max(Math.ceil(total / 10), 1);
 
@@ -188,17 +195,20 @@ export function MonitorPicSosmedView() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(37,99,235,0.1),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="space-y-3">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700">
+            <Badge
+              variant="outline"
+              className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+            >
               Tim / Monitor PIC Sosmed
             </Badge>
             <div className="space-y-2">
               <h1 className="font-semibold text-3xl tracking-tight">Monitor PIC Sosmed</h1>
               <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                Pantau PIC sosmed sesuai wilayah Anda, lihat akun delegasi yang mereka pegang, aktivitas posting,
-                serta kirim pengingat untuk bank konten yang belum diposting.
+                Pantau PIC sosmed sesuai wilayah Anda, lihat akun delegasi yang mereka pegang, aktivitas posting, serta
+                kirim pengingat untuk bank konten yang belum diposting.
               </p>
             </div>
           </div>
@@ -302,7 +312,11 @@ export function MonitorPicSosmedView() {
                         <div className="flex max-w-72 flex-wrap gap-2">
                           {item.akun_sosmed.length > 0 ? (
                             item.akun_sosmed.map((account) => (
-                              <Badge key={account.id} variant="outline" className="h-auto px-2 py-1 text-left leading-5 whitespace-normal">
+                              <Badge
+                                key={account.id}
+                                variant="outline"
+                                className="h-auto whitespace-normal px-2 py-1 text-left leading-5"
+                              >
                                 <span className="font-medium">{formatPlatformLabel(account.platform)}</span>
                                 <span>{account.username}</span>
                               </Badge>
@@ -315,7 +329,7 @@ export function MonitorPicSosmedView() {
                       <TableCell className="align-top">
                         <div className="space-y-1">
                           <p className="font-medium">{formatNumber(item.overdue_bank_content_count)}</p>
-                          <p className="max-w-56 text-muted-foreground text-xs leading-5 whitespace-normal">
+                          <p className="max-w-56 whitespace-normal text-muted-foreground text-xs leading-5">
                             {item.overdue_bank_content_count > 0
                               ? item.overdue_bank_contents
                                   .slice(0, 2)
@@ -346,7 +360,7 @@ export function MonitorPicSosmedView() {
                           {item.activity_status.replace("_", " ")}
                         </Badge>
                       </TableCell>
-                      <TableCell className="align-top text-right">
+                      <TableCell className="text-right align-top">
                         <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline">
                             <Link href={`/tim/pic-sosmed/${item.id}`}>
@@ -380,7 +394,11 @@ export function MonitorPicSosmedView() {
                   <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
                     Sebelumnya
                   </Button>
-                  <Button variant="outline" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>
+                  <Button
+                    variant="outline"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
                     Berikutnya
                   </Button>
                 </div>

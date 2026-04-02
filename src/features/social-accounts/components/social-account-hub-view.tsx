@@ -90,9 +90,9 @@ export function SocialAccountHubView() {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-4 px-6 py-8 md:px-8">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+            <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
               Akun Sosmed / {role === "pic_sosmed" ? "Akun Saya" : "Delegasi"}
             </Badge>
             <div className="space-y-2">
@@ -160,7 +160,9 @@ export function SocialAccountHubView() {
                     </div>
                     <div className="rounded-2xl border bg-muted/20 p-4">
                       <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Delegated At</p>
-                      <p className="mt-2 font-medium text-sm">{item.delegated_at ? formatDateTime(item.delegated_at) : "-"}</p>
+                      <p className="mt-2 font-medium text-sm">
+                        {item.delegated_at ? formatDateTime(item.delegated_at) : "-"}
+                      </p>
                     </div>
                     <div className="rounded-2xl border bg-muted/20 p-4">
                       <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Last Stat Update</p>
@@ -171,7 +173,7 @@ export function SocialAccountHubView() {
                   </div>
 
                   {role !== "pic_sosmed" && (
-                  <div className="flex flex-col gap-3 border-border/60 border-t pt-4 md:flex-row">
+                    <div className="flex flex-col gap-3 border-border/60 border-t pt-4 md:flex-row">
                       <Select
                         value={selectedPic[item.id] ?? item.officer_id ?? ""}
                         onValueChange={(value) => setSelectedPic((previous) => ({ ...previous, [item.id]: value }))}
@@ -208,7 +210,9 @@ export function SocialAccountHubView() {
                               toast.success("Akun berhasil didelegasikan.");
                               await loadData();
                             } catch (errorValue) {
-                              toast.error(errorValue instanceof Error ? errorValue.message : "Gagal mendelegasikan akun");
+                              toast.error(
+                                errorValue instanceof Error ? errorValue.message : "Gagal mendelegasikan akun",
+                              );
                             } finally {
                               setActiveId(null);
                             }
@@ -269,19 +273,44 @@ export function SocialAccountHubView() {
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label>Pekan (hari Senin)</Label>
-              <Input type="date" value={statForm.week_date} onChange={(event) => setStatForm((previous) => ({ ...previous, week_date: event.target.value }))} />
+              <Input
+                type="date"
+                value={statForm.week_date}
+                onChange={(event) => setStatForm((previous) => ({ ...previous, week_date: event.target.value }))}
+              />
             </div>
             <div className="grid gap-2">
               <Label>Followers</Label>
-              <Input type="number" min={0} value={String(statForm.followers)} onChange={(event) => setStatForm((previous) => ({ ...previous, followers: Number(event.target.value || 0) }))} />
+              <Input
+                type="number"
+                min={0}
+                value={String(statForm.followers)}
+                onChange={(event) =>
+                  setStatForm((previous) => ({ ...previous, followers: Number(event.target.value || 0) }))
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label>Jumlah Posting</Label>
-              <Input type="number" min={0} value={String(statForm.posting_count)} onChange={(event) => setStatForm((previous) => ({ ...previous, posting_count: Number(event.target.value || 0) }))} />
+              <Input
+                type="number"
+                min={0}
+                value={String(statForm.posting_count)}
+                onChange={(event) =>
+                  setStatForm((previous) => ({ ...previous, posting_count: Number(event.target.value || 0) }))
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label>Total Reach</Label>
-              <Input type="number" min={0} value={String(statForm.total_reach)} onChange={(event) => setStatForm((previous) => ({ ...previous, total_reach: Number(event.target.value || 0) }))} />
+              <Input
+                type="number"
+                min={0}
+                value={String(statForm.total_reach)}
+                onChange={(event) =>
+                  setStatForm((previous) => ({ ...previous, total_reach: Number(event.target.value || 0) }))
+                }
+              />
             </div>
           </div>
 

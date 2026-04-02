@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from "recharts";
+import Link from "next/link";
+
 import { BellRing, BriefcaseBusiness, Eye, MessageCircleHeart, MonitorPlay, UsersRound } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,9 @@ import {
 } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { getRegionalDashboard } from "@/features/dashboard/api/dashboard-api";
 import type { RegionalDashboardData } from "@/features/dashboard/types/dashboard.type";
-import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
@@ -107,12 +108,42 @@ export function RegionalDashboardView() {
     }
 
     return [
-      { label: "WCC Wilayah", value: formatNumber(data.stats.total_wcc_wilayah), helper: "Tim pembuat konten aktif", icon: UsersRound },
-      { label: "PIC Wilayah", value: formatNumber(data.stats.total_pic_wilayah), helper: "PIC yang dipantau QCC", icon: BriefcaseBusiness },
-      { label: "Akun Sosmed", value: formatNumber(data.stats.total_akun_sosmed), helper: "Akun regional terdaftar", icon: MonitorPlay },
-      { label: "Posting Valid", value: formatNumber(data.stats.total_posting_valid), helper: data.selected_period.label, icon: Eye },
-      { label: "Menunggu Validasi", value: formatNumber(data.stats.bukti_menunggu_validasi), helper: "Queue regional saat ini", icon: BellRing },
-      { label: "Overdue PIC", value: formatNumber(data.alerts.overdue_pic_count), helper: `${formatNumber(data.stats.overdue_bank_content_pic)} target bank konten`, icon: MessageCircleHeart },
+      {
+        label: "WCC Wilayah",
+        value: formatNumber(data.stats.total_wcc_wilayah),
+        helper: "Tim pembuat konten aktif",
+        icon: UsersRound,
+      },
+      {
+        label: "PIC Wilayah",
+        value: formatNumber(data.stats.total_pic_wilayah),
+        helper: "PIC yang dipantau QCC",
+        icon: BriefcaseBusiness,
+      },
+      {
+        label: "Akun Sosmed",
+        value: formatNumber(data.stats.total_akun_sosmed),
+        helper: "Akun regional terdaftar",
+        icon: MonitorPlay,
+      },
+      {
+        label: "Posting Valid",
+        value: formatNumber(data.stats.total_posting_valid),
+        helper: data.selected_period.label,
+        icon: Eye,
+      },
+      {
+        label: "Menunggu Validasi",
+        value: formatNumber(data.stats.bukti_menunggu_validasi),
+        helper: "Queue regional saat ini",
+        icon: BellRing,
+      },
+      {
+        label: "Overdue PIC",
+        value: formatNumber(data.alerts.overdue_pic_count),
+        helper: `${formatNumber(data.stats.overdue_bank_content_pic)} target bank konten`,
+        icon: MessageCircleHeart,
+      },
     ];
   }, [data]);
 
@@ -147,26 +178,29 @@ export function RegionalDashboardView() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-sky-100 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.10),_transparent_35%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
-              <Badge variant="outline" className="rounded-full border-sky-200 bg-white/80 px-3 py-1 text-sky-700">
+              <Badge
+                variant="outline"
+                className="rounded-full border-sky-200 bg-background/75 px-3 py-1 text-sky-700 dark:bg-card/75"
+              >
                 Dashboard / Regional
               </Badge>
               <div className="space-y-2">
                 <h1 className="font-semibold text-3xl tracking-tight">Dashboard Regional</h1>
                 <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                  Ringkasan performa wilayah {data?.scope.wilayah_nama ?? "-"}: aktivitas posting valid, distribusi platform,
-                  PIC teratas, akun regional terkuat, serta alert operasional yang perlu ditindaklanjuti.
+                  Ringkasan performa wilayah {data?.scope.wilayah_nama ?? "-"}: aktivitas posting valid, distribusi
+                  platform, PIC teratas, akun regional terkuat, serta alert operasional yang perlu ditindaklanjuti.
                 </p>
               </div>
             </div>
-            <div className="grid gap-2 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur">
+            <div className="app-panel-glass grid gap-2 rounded-2xl border p-4 shadow-sm backdrop-blur">
               <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">Periode</p>
               <p className="font-semibold text-lg">{data?.scope.wilayah_nama ?? "Wilayah Regional"}</p>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="min-w-52 bg-white">
+                <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih bulan" />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,7 +212,7 @@ export function RegionalDashboardView() {
                 </SelectContent>
               </Select>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="min-w-52 bg-white">
+                <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih tahun" />
                 </SelectTrigger>
                 <SelectContent>
@@ -248,9 +282,27 @@ export function RegionalDashboardView() {
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="period_label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={18} />
                     <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-                    <Area dataKey="total_views" type="natural" fill="url(#fillRegionalViews)" stroke="var(--color-total_views)" strokeWidth={2} />
-                    <Area dataKey="total_interactions" type="natural" fill="url(#fillRegionalInteractions)" stroke="var(--color-total_interactions)" strokeWidth={2} />
-                    <Area dataKey="valid_post_count" type="natural" stroke="var(--color-valid_post_count)" strokeWidth={2} fillOpacity={0} />
+                    <Area
+                      dataKey="total_views"
+                      type="natural"
+                      fill="url(#fillRegionalViews)"
+                      stroke="var(--color-total_views)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      dataKey="total_interactions"
+                      type="natural"
+                      fill="url(#fillRegionalInteractions)"
+                      stroke="var(--color-total_interactions)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      dataKey="valid_post_count"
+                      type="natural"
+                      stroke="var(--color-valid_post_count)"
+                      strokeWidth={2}
+                      fillOpacity={0}
+                    />
                     <ChartLegend content={<ChartLegendContent />} />
                   </AreaChart>
                 </ChartContainer>
@@ -266,7 +318,14 @@ export function RegionalDashboardView() {
                 <ChartContainer config={pieChartConfig} className="mx-auto h-[280px] w-full max-w-[360px]">
                   <PieChart>
                     <ChartTooltip content={<ChartTooltipContent nameKey="platform" hideLabel />} />
-                    <Pie data={data.platform_distribution} dataKey="post_count" nameKey="platform" innerRadius={72} outerRadius={110} strokeWidth={4}>
+                    <Pie
+                      data={data.platform_distribution}
+                      dataKey="post_count"
+                      nameKey="platform"
+                      innerRadius={72}
+                      outerRadius={110}
+                      strokeWidth={4}
+                    >
                       {data.platform_distribution.map((item) => (
                         <Cell key={item.platform} fill={platformColors[item.platform]} />
                       ))}
@@ -275,9 +334,15 @@ export function RegionalDashboardView() {
                 </ChartContainer>
                 <div className="space-y-3">
                   {data.platform_distribution.map((item) => (
-                    <div key={item.platform} className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm">
+                    <div
+                      key={item.platform}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm"
+                    >
                       <div className="flex items-center gap-3">
-                        <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: platformColors[item.platform] }} />
+                        <span
+                          className="inline-flex h-3 w-3 rounded-full"
+                          style={{ backgroundColor: platformColors[item.platform] }}
+                        />
                         <div>
                           <p className="font-medium">{formatPlatformLabel(item.platform)}</p>
                           <p className="text-muted-foreground">{formatNumber(item.account_count)} akun</p>
@@ -303,17 +368,25 @@ export function RegionalDashboardView() {
               <CardContent className="space-y-3">
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
                   <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">PIC Overdue</p>
-                  <p className="mt-2 font-semibold text-3xl text-amber-700">{formatNumber(data.alerts.overdue_pic_count)}</p>
-                  <p className="mt-1 text-sm text-amber-700/90">{formatNumber(data.stats.overdue_bank_content_pic)} target bank konten belum dikerjakan</p>
+                  <p className="mt-2 font-semibold text-3xl text-amber-700">
+                    {formatNumber(data.alerts.overdue_pic_count)}
+                  </p>
+                  <p className="mt-1 text-sm text-amber-700/90">
+                    {formatNumber(data.stats.overdue_bank_content_pic)} target bank konten belum dikerjakan
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
                   <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Bukti Menunggu Validasi</p>
-                  <p className="mt-2 font-semibold text-3xl text-sky-700">{formatNumber(data.alerts.bukti_menunggu_validasi)}</p>
+                  <p className="mt-2 font-semibold text-3xl text-sky-700">
+                    {formatNumber(data.alerts.bukti_menunggu_validasi)}
+                  </p>
                   <p className="mt-1 text-sm text-sky-700/90">Posting yang masih menunggu pengecekan QCC</p>
                 </div>
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
                   <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Reminder Bulan Ini</p>
-                  <p className="mt-2 font-semibold text-3xl text-emerald-700">{formatNumber(data.alerts.reminder_sent_bulan_ini)}</p>
+                  <p className="mt-2 font-semibold text-3xl text-emerald-700">
+                    {formatNumber(data.alerts.reminder_sent_bulan_ini)}
+                  </p>
                   <p className="mt-1 text-sm text-emerald-700/90">Jumlah pengingat yang sudah dikirim ke PIC</p>
                 </div>
                 <Button asChild className="w-full" variant="outline">
@@ -329,8 +402,13 @@ export function RegionalDashboardView() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.top_pics.map((pic, index) => (
-                  <div key={pic.id} className="grid gap-3 rounded-2xl border border-foreground/10 bg-muted/20 p-4 md:grid-cols-[auto_1fr_auto_auto] md:items-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 font-semibold text-sky-700">{index + 1}</div>
+                  <div
+                    key={pic.id}
+                    className="grid gap-3 rounded-2xl border border-foreground/10 bg-muted/20 p-4 md:grid-cols-[auto_1fr_auto_auto] md:items-center"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 font-semibold text-sky-700">
+                      {index + 1}
+                    </div>
                     <div>
                       <p className="font-medium">{pic.name}</p>
                       <p className="text-muted-foreground text-sm">{pic.email}</p>
@@ -356,17 +434,29 @@ export function RegionalDashboardView() {
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {data.top_accounts.map((account) => (
-                <div key={account.id} className="rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] p-5 shadow-sm">
+                <div key={account.id} className="rounded-3xl border border-foreground/10 app-bg-surface p-5 shadow-sm">
                   <Badge variant="outline" className="border-foreground/10">
                     {formatPlatformLabel(account.platform)}
                   </Badge>
                   <h3 className="mt-3 font-semibold text-lg leading-tight">{account.profile_name}</h3>
                   <p className="text-muted-foreground text-sm">{account.username}</p>
                   <div className="mt-5 grid gap-3 text-sm">
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Tayangan</span><span className="font-medium">{formatNumber(account.total_views)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Interaksi</span><span className="font-medium">{formatNumber(account.total_interactions)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Posting valid</span><span className="font-medium">{formatNumber(account.valid_post_count)}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-muted-foreground">Update terakhir</span><span className="font-medium">{formatDateTime(account.last_stat_update)}</span></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tayangan</span>
+                      <span className="font-medium">{formatNumber(account.total_views)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Interaksi</span>
+                      <span className="font-medium">{formatNumber(account.total_interactions)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Posting valid</span>
+                      <span className="font-medium">{formatNumber(account.valid_post_count)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Update terakhir</span>
+                      <span className="font-medium">{formatDateTime(account.last_stat_update)}</span>
+                    </div>
                   </div>
                 </div>
               ))}

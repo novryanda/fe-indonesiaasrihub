@@ -262,11 +262,11 @@ export function AccountProfileView() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.12),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <Avatar className="size-16 rounded-2xl border bg-white shadow-sm">
+              <Avatar className="size-16 rounded-2xl border bg-card shadow-sm">
                 <AvatarImage src={data.user.image ?? undefined} alt={data.user.name} />
                 <AvatarFallback className="rounded-2xl text-lg">{getInitials(data.user.name)}</AvatarFallback>
               </Avatar>
@@ -274,7 +274,7 @@ export function AccountProfileView() {
                 <div className="space-y-2">
                   <Badge
                     variant="outline"
-                    className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700"
+                    className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
                   >
                     Akun / Profil
                   </Badge>
@@ -379,7 +379,8 @@ export function AccountProfileView() {
             </div>
 
             <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sky-800 text-sm">
-              Perubahan email memerlukan verifikasi ulang, tapi sekarang masih belum perlu, belum dipasang verifikasi email nya .
+              Perubahan email memerlukan verifikasi ulang, tapi sekarang masih belum perlu, belum dipasang verifikasi
+              email nya .
             </div>
 
             <div className="flex flex-wrap gap-2">

@@ -8,13 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -156,9 +150,12 @@ export function ScraperLogView() {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-amber-100 bg-linear-to-br from-amber-50 via-background to-sky-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-4 px-6 py-8 md:px-8">
-            <Badge variant="outline" className="rounded-full border-amber-200 bg-white/80 px-3 py-1 text-amber-700">
+            <Badge
+              variant="outline"
+              className="rounded-full border-amber-200 bg-background/75 px-3 py-1 text-amber-700 dark:bg-card/75"
+            >
               System / Monitoring
             </Badge>
             <div className="space-y-2">
@@ -209,7 +206,9 @@ export function ScraperLogView() {
               <Label>Status</Label>
               <Select
                 value={filters.status ?? "all"}
-                onValueChange={(value) => setFilters((previous) => ({ ...previous, status: value as ScraperLogsQuery["status"] }))}
+                onValueChange={(value) =>
+                  setFilters((previous) => ({ ...previous, status: value as ScraperLogsQuery["status"] }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Semua status" />
@@ -228,7 +227,9 @@ export function ScraperLogView() {
               <Label>Platform</Label>
               <Select
                 value={filters.platform ?? "all"}
-                onValueChange={(value) => setFilters((previous) => ({ ...previous, platform: value as ScraperLogsQuery["platform"] }))}
+                onValueChange={(value) =>
+                  setFilters((previous) => ({ ...previous, platform: value as ScraperLogsQuery["platform"] }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Semua platform" />
@@ -333,7 +334,12 @@ export function ScraperLogView() {
                         <TableCell>{formatDuration(log.durationMs)}</TableCell>
                         <TableCell>
                           <div className="flex justify-end">
-                            <Button variant="outline" size="sm" onClick={() => void handleOpenDetail(log.id)} disabled={detailLoadingId === log.id}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleOpenDetail(log.id)}
+                              disabled={detailLoadingId === log.id}
+                            >
                               {detailLoadingId === log.id && <Spinner className="mr-2" />}
                               Lihat Detail
                             </Button>
@@ -422,7 +428,10 @@ export function ScraperLogView() {
                           <TableCell>{formatNumber(result.postCount)}</TableCell>
                           <TableCell>{formatNumber(result.totalReach)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={result.success ? getStatusClass("success") : getStatusClass("failed")}>
+                            <Badge
+                              variant="outline"
+                              className={result.success ? getStatusClass("success") : getStatusClass("failed")}
+                            >
                               {result.success ? "success" : "failed"}
                             </Badge>
                           </TableCell>

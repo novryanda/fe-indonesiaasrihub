@@ -2,9 +2,6 @@ import type { ReactNode } from "react";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-
-import { Github } from "lucide-react";
 
 import { AppSidebar } from "@/app/(main)/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -40,6 +37,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       <AppSidebar variant={variant} collapsible={collapsible} />
       <SidebarInset
         className={cn(
+          "app-bg-canvas",
           "[html[data-content-layout=centered]_&]:mx-auto! [html[data-content-layout=centered]_&]:max-w-screen-2xl!",
           "max-[113rem]:peer-data-[variant=inset]:mr-2! min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:mr-auto!",
         )}

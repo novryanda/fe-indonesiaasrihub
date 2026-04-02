@@ -1,7 +1,8 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 
 import { ArrowLeft, BellRing, Clock3, ExternalLink, Mail, Phone, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -70,7 +71,7 @@ export function PicSosmedDetailView({ id }: { id: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
 
-  async function loadDetail() {
+  const loadDetail = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -81,7 +82,7 @@ export function PicSosmedDetailView({ id }: { id: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     if (!isAuthorized || isPending) {
@@ -89,7 +90,7 @@ export function PicSosmedDetailView({ id }: { id: string }) {
     }
 
     void loadDetail();
-  }, [id, isAuthorized, isPending]);
+  }, [isAuthorized, isPending, loadDetail]);
 
   const statCards = useMemo(() => {
     if (!data) {
@@ -156,11 +157,14 @@ export function PicSosmedDetailView({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.1),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
-              <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700">
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+              >
                 Tim / Monitor PIC Sosmed / Detail
               </Badge>
               <div className="space-y-2">
@@ -280,7 +284,9 @@ export function PicSosmedDetailView({ id }: { id: string }) {
         <Card>
           <CardHeader>
             <CardTitle>Bank Konten Overdue</CardTitle>
-            <CardDescription>Konten aktif yang masih terlihat untuk PIC ini tetapi belum dikirim sebagai bukti posting.</CardDescription>
+            <CardDescription>
+              Konten aktif yang masih terlihat untuk PIC ini tetapi belum dikirim sebagai bukti posting.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.overdue_bank_contents.length === 0 ? (

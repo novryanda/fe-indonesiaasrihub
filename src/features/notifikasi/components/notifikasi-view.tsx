@@ -1,7 +1,8 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { BellRing, CheckCheck, ExternalLink, MailOpen, SearchX } from "lucide-react";
 import { toast } from "sonner";
@@ -38,24 +39,27 @@ export function NotifikasiView() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  async function loadNotifications(nextStatus = statusFilter) {
-    setLoading(true);
+  const loadNotifications = useCallback(
+    async (nextStatus = statusFilter) => {
+      setLoading(true);
 
-    try {
-      const response = await getNotifications({
-        status: nextStatus,
-        page: 1,
-        limit: 50,
-      });
+      try {
+        const response = await getNotifications({
+          status: nextStatus,
+          page: 1,
+          limit: 50,
+        });
 
-      setItems(response.data.notifications);
-      setUnreadCount(response.data.unreadCount);
-    } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat notifikasi");
-    } finally {
-      setLoading(false);
-    }
-  }
+        setItems(response.data.notifications);
+        setUnreadCount(response.data.unreadCount);
+      } catch (errorValue) {
+        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat notifikasi");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [statusFilter],
+  );
 
   useEffect(() => {
     if (!isAuthorized || isPending) {
@@ -63,7 +67,7 @@ export function NotifikasiView() {
     }
 
     void loadNotifications(statusFilter);
-  }, [isAuthorized, isPending, statusFilter]);
+  }, [isAuthorized, isPending, loadNotifications, statusFilter]);
 
   async function handleMarkAsRead(id: string) {
     setUpdatingId(id);
@@ -109,10 +113,13 @@ export function NotifikasiView() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-amber-100 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.12),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(37,99,235,0.08),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="space-y-3">
-            <Badge variant="outline" className="rounded-full border-amber-200 bg-white/80 px-3 py-1 text-amber-700">
+            <Badge
+              variant="outline"
+              className="rounded-full border-amber-200 bg-background/75 px-3 py-1 text-amber-700 dark:bg-card/75"
+            >
               Akun / Notifikasi
             </Badge>
             <div className="space-y-2">
@@ -134,7 +141,12 @@ export function NotifikasiView() {
               <BellRing className="size-5 text-amber-600" />
             </div>
             <p className="font-semibold text-3xl tracking-tight">{unreadCount}</p>
-            <Button className="w-full" variant="outline" onClick={handleMarkAllAsRead} disabled={markingAll || unreadCount === 0}>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={handleMarkAllAsRead}
+              disabled={markingAll || unreadCount === 0}
+            >
               <CheckCheck className="mr-2 size-4" />
               Tandai Semua Dibaca
             </Button>
@@ -171,7 +183,10 @@ export function NotifikasiView() {
               </div>
             ) : (
               items.map((item) => (
-                <div key={item.id} className={`rounded-2xl border p-4 ${item.isRead ? "bg-muted/20" : "bg-amber-50/70"}`}>
+                <div
+                  key={item.id}
+                  className={`rounded-2xl border p-4 ${item.isRead ? "bg-muted/20" : "bg-amber-50/70"}`}
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">

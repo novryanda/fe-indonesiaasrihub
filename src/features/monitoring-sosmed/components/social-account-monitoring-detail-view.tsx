@@ -334,7 +334,7 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#1f2937_0%,#0f766e_40%,#172554_100%)] text-white shadow-xl">
+      <Card className="app-bg-hero-strong overflow-hidden border-0 text-white shadow-xl">
         <CardContent className="grid gap-6 px-6 py-8 md:px-8 xl:grid-cols-[1.35fr_0.9fr]">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -681,7 +681,7 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
               {data.scraped_posts.map((post) => (
                 <div
                   key={post.id}
-                  className="overflow-hidden rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)] shadow-sm"
+                  className="overflow-hidden rounded-3xl border border-foreground/10 app-bg-surface shadow-sm"
                 >
                   <div className="space-y-4 p-4">
                     <div className="flex flex-wrap items-center gap-2">

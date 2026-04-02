@@ -134,16 +134,16 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-4 px-6 py-8 md:px-8">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+            <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
               {config.subtitle}
             </Badge>
             <div className="space-y-2">
               <h1 className="font-semibold text-3xl tracking-tight">{config.title}</h1>
               <p className="max-w-2xl text-muted-foreground text-sm leading-6">{config.description}</p>
             </div>
-            <div className="rounded-3xl border border-emerald-200 bg-white/80 p-4">
+            <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
               <p className="font-medium text-emerald-800 text-sm">
                 {meta?.total ?? items.length} konten menunggu{" "}
                 {mode === "final-approval" ? "final approval" : "final approval"}.

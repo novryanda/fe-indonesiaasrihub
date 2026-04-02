@@ -713,7 +713,7 @@ export function MonitoringSosmedDashboard() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#062f2a_0%,#0d4d43_38%,#0f2f55_100%)] text-white shadow-xl">
+        <Card className="app-bg-hero-strong overflow-hidden border-0 text-white shadow-xl">
           <CardContent className="grid gap-6 px-6 py-8 md:px-8 xl:grid-cols-[1.35fr_0.9fr]">
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-3">
@@ -831,7 +831,7 @@ export function MonitoringSosmedDashboard() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {statCards.map((item) => (
-            <Card key={item.key} className="border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)]">
+            <Card key={item.key} className="border-foreground/10 app-bg-surface">
               <CardContent className="space-y-4 py-6">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-muted-foreground text-sm">
@@ -878,7 +878,7 @@ export function MonitoringSosmedDashboard() {
                         "rounded-2xl border px-4 py-3",
                         item.tone === "warning"
                           ? "border-amber-200 bg-amber-50"
-                          : "border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)]",
+                          : "border-foreground/10 app-bg-surface",
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -1104,7 +1104,7 @@ export function MonitoringSosmedDashboard() {
                   {operationalRecommendations.map((item, index) => (
                     <div
                       key={`${index + 1}-${item}`}
-                      className="flex gap-3 rounded-2xl border border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)] p-4"
+                      className="flex gap-3 rounded-2xl border border-foreground/10 app-bg-surface p-4"
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-700">
                         {index + 1}
@@ -1139,7 +1139,7 @@ export function MonitoringSosmedDashboard() {
                 {data.top_posts.map((post, index) => (
                   <div
                     key={post.id}
-                    className="space-y-4 rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)] p-5 shadow-sm"
+                    className="space-y-4 rounded-3xl border border-foreground/10 app-bg-surface p-5 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-foreground text-background">
@@ -1205,10 +1205,7 @@ export function MonitoringSosmedDashboard() {
             </CardHeader>
             <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
               {data.top_comments.map((comment, index) => (
-                <div
-                  key={comment.id}
-                  className="space-y-3 rounded-2xl border border-foreground/10 bg-[linear-gradient(180deg,#fff,#f8fafc)] p-4"
-                >
+                <div key={comment.id} className="space-y-3 rounded-2xl border border-foreground/10 app-bg-surface p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">

@@ -77,15 +77,19 @@ export function ScraperConfigurationView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-sky-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700">
+          <Badge
+            variant="outline"
+            className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+          >
             System / Konfigurasi
           </Badge>
           <div className="space-y-2">
             <h1 className="font-semibold text-3xl tracking-tight">Konfigurasi Sistem</h1>
             <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-              Halaman ini memverifikasi token Apify dan actor scraper yang aktif untuk setiap platform di environment server.
+              Halaman ini memverifikasi token Apify dan actor scraper yang aktif untuk setiap platform di environment
+              server.
             </p>
           </div>
         </CardContent>
@@ -95,7 +99,8 @@ export function ScraperConfigurationView() {
         <ShieldAlert className="size-4" />
         <AlertTitle>Secret tidak disimpan di database</AlertTitle>
         <AlertDescription>
-          API Token Apify dibaca langsung dari environment variable server. UI ini hanya menampilkan status koneksi dan actor yang aktif per platform.
+          API Token Apify dibaca langsung dari environment variable server. UI ini hanya menampilkan status koneksi dan
+          actor yang aktif per platform.
         </AlertDescription>
       </Alert>
 
@@ -115,7 +120,9 @@ export function ScraperConfigurationView() {
                 <Badge variant="outline" className={badge.className}>
                   {badge.label}
                 </Badge>
-                <p className="text-sm text-muted-foreground">{connectionStatus?.message ?? "Belum ada data koneksi."}</p>
+                <p className="text-sm text-muted-foreground">
+                  {connectionStatus?.message ?? "Belum ada data koneksi."}
+                </p>
               </>
             )}
           </CardContent>
@@ -196,7 +203,8 @@ export function ScraperConfigurationView() {
             <div className="space-y-1">
               <p className="font-medium text-sm">Test koneksi Apify sekarang</p>
               <p className="text-muted-foreground text-sm">
-                Gunakan tombol ini untuk memeriksa apakah token server masih valid dan actor Apify tiap platform sudah terbaca.
+                Gunakan tombol ini untuk memeriksa apakah token server masih valid dan actor Apify tiap platform sudah
+                terbaca.
               </p>
             </div>
             <Button onClick={() => void loadStatus()} disabled={isLoading}>
@@ -209,7 +217,8 @@ export function ScraperConfigurationView() {
             <div className="space-y-1">
               <p className="font-medium text-sm">Dashboard Redis Queue</p>
               <p className="text-muted-foreground text-sm">
-                Redis dipakai untuk antrean BullMQ scraper per akun. Sysadmin bisa membuka dashboard eksternal Redis dari tombol ini.
+                Redis dipakai untuk antrean BullMQ scraper per akun. Sysadmin bisa membuka dashboard eksternal Redis
+                dari tombol ini.
               </p>
               <p className="break-all text-xs text-muted-foreground">
                 {redisDashboardUrl || "NEXT_PUBLIC_REDIS_DASHBOARD_URL belum di-set."}
@@ -227,7 +236,8 @@ export function ScraperConfigurationView() {
             <div className="space-y-1">
               <p className="font-medium text-sm">BullMQ Queue Monitor</p>
               <p className="text-muted-foreground text-sm">
-                Bull Board menampilkan antrean scraper per akun secara visual, termasuk job waiting, active, completed, failed, dan retry.
+                Bull Board menampilkan antrean scraper per akun secara visual, termasuk job waiting, active, completed,
+                failed, dan retry.
               </p>
               <p className="break-all text-xs text-muted-foreground">
                 {bullBoardUrl || "NEXT_PUBLIC_BULL_BOARD_URL belum di-set."}

@@ -30,9 +30,9 @@ function SubmissionStepBadge({
         className={cn(
           "flex size-11 items-center justify-center rounded-full border font-semibold text-sm transition",
           completed
-            ? "border-emerald-500 bg-emerald-500 text-white"
+            ? "border-[color:var(--brand-hero)] bg-[color:var(--brand-hero)] text-white"
             : current
-              ? "border-emerald-500 bg-white text-emerald-700 shadow-sm"
+              ? "border-[color:var(--brand-hero)] bg-background text-[color:var(--brand-hero)] shadow-sm"
               : "border-border bg-background text-muted-foreground",
         )}
       >
@@ -48,9 +48,9 @@ function SubmissionStepBadge({
 export function SubmissionStepper({ step }: { step: WizardStep }) {
   return (
     <div className="space-y-6">
-      <div className="h-2 rounded-full bg-white/80">
+      <div className="h-2 rounded-full bg-secondary/80">
         <div
-          className="h-2 rounded-full bg-linear-to-r from-emerald-500 to-emerald-700 transition-all"
+          className="h-2 rounded-full bg-linear-to-r from-[color:var(--brand-hero)] to-[color:var(--brand-hero-strong)] transition-all"
           style={{ width: `${(step / 4) * 100}%` }}
         />
       </div>

@@ -531,13 +531,13 @@ export function NationalDashboardView() {
         </DialogContent>
       </Dialog>
 
-      <Card className="overflow-hidden border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_35%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))]">
+      <Card className="app-bg-hero app-border-soft overflow-hidden">
         <CardContent className="space-y-6 px-6 py-8 md:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <Badge
                 variant="outline"
-                className="rounded-full border-emerald-200 bg-white/80 px-3 py-1 text-emerald-700"
+                className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
               >
                 Dashboard / Nasional
               </Badge>
@@ -549,10 +549,10 @@ export function NationalDashboardView() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-2 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur">
+            <div className="app-panel-glass grid gap-2 rounded-2xl border p-4 shadow-sm backdrop-blur">
               <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">Periode</p>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="min-w-52 bg-white">
+                <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih bulan" />
                 </SelectTrigger>
                 <SelectContent>
@@ -564,7 +564,7 @@ export function NationalDashboardView() {
                 </SelectContent>
               </Select>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="min-w-52 bg-white">
+                <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih tahun" />
                 </SelectTrigger>
                 <SelectContent>
@@ -858,10 +858,7 @@ export function NationalDashboardView() {
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {topNationalAccounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="rounded-3xl border border-foreground/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] p-5 shadow-sm"
-                >
+                <div key={account.id} className="rounded-3xl border border-foreground/10 app-bg-surface p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <Badge variant="outline" className="border-foreground/10">
                       {formatPlatformLabel(account.platform)}

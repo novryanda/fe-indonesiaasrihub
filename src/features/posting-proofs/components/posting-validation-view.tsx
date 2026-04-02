@@ -34,7 +34,10 @@ export function PostingValidationView() {
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<
-    Record<string, Record<string, { action: ValidatePostingLinkPayloadItem["action"]; rejection_type: string; note: string }>>
+    Record<
+      string,
+      Record<string, { action: ValidatePostingLinkPayloadItem["action"]; rejection_type: string; note: string }>
+    >
   >({});
 
   const loadData = async () => {
@@ -76,9 +79,9 @@ export function PostingValidationView() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+      <Card className="app-bg-hero app-border-soft">
         <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+          <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
             Posting / Validasi
           </Badge>
           <div className="space-y-2">
@@ -99,7 +102,9 @@ export function PostingValidationView() {
         </Card>
       ) : items.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center text-muted-foreground">Belum ada bukti posting yang menunggu validasi.</CardContent>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Belum ada bukti posting yang menunggu validasi.
+          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
@@ -271,8 +276,7 @@ export function PostingValidationView() {
 
                       if (
                         payload.some(
-                          (entry) =>
-                            entry.action !== "valid" && (!entry.rejection_type?.trim() || !entry.note?.trim()),
+                          (entry) => entry.action !== "valid" && (!entry.rejection_type?.trim() || !entry.note?.trim()),
                         )
                       ) {
                         toast.error("Semua link yang ditolak wajib memiliki alasan dan catatan.");
@@ -285,7 +289,9 @@ export function PostingValidationView() {
                         toast.success("Validasi bukti posting berhasil disimpan.");
                         await loadData();
                       } catch (errorValue) {
-                        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memvalidasi bukti posting");
+                        toast.error(
+                          errorValue instanceof Error ? errorValue.message : "Gagal memvalidasi bukti posting",
+                        );
                       } finally {
                         setSubmittingId(null);
                       }

@@ -46,13 +46,13 @@ function StatsCard({ title, value, icon }: { title: string; value: string; icon:
 function BankContentCard({ item }: { item: BankContentItem }) {
   return (
     <Card className="hover:-translate-y-0.5 overflow-hidden border-foreground/10 transition hover:shadow-md">
-      <div className="relative aspect-[16/10] overflow-hidden bg-linear-to-br from-emerald-50 via-amber-50 to-zinc-100">
+      <div className="app-bg-media relative aspect-[16/10] overflow-hidden">
         {item.thumbnail_url ? (
           // biome-ignore lint/performance/noImgElement: remote URL preview is acceptable for card thumbnail
           <img src={item.thumbnail_url} alt={item.judul} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-            <div className="flex size-16 items-center justify-center rounded-full border border-emerald-200 bg-white/70 font-semibold text-2xl text-emerald-700">
+            <div className="flex size-16 items-center justify-center rounded-full border border-emerald-200 bg-background/75 dark:bg-card/75 font-semibold text-2xl text-emerald-700">
               {item.judul.slice(0, 1).toUpperCase()}
             </div>
             <p className="px-6 text-xs">Preview thumbnail belum tersedia</p>
@@ -114,12 +114,7 @@ function BankContentCard({ item }: { item: BankContentItem }) {
 }
 
 export function ContentLibraryView() {
-  const { accessToken, role, isAuthorized, isPending } = useRoleGuard([
-    "qcc_wcc",
-    "wcc",
-    "pic_sosmed",
-    "superadmin",
-  ]);
+  const { accessToken, role, isAuthorized, isPending } = useRoleGuard(["qcc_wcc", "wcc", "pic_sosmed", "superadmin"]);
   const { items, stats, meta, filters, setFilters, isLoading, isUploading, error, availableTopics, createItem } =
     useContentLibrary(accessToken);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -151,9 +146,9 @@ export function ContentLibraryView() {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-emerald-100 bg-linear-to-br from-emerald-50 via-background to-amber-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-4 px-6 py-8 md:px-8">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-white/70 px-3 py-1 text-emerald-700">
+            <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
               {role === "superadmin" ? "Konten / Bank Konten" : "Referensi / Bank Konten"}
             </Badge>
             <div className="space-y-2">

@@ -226,17 +226,21 @@ export function ScraperScheduleView() {
   return (
     <>
       <div className="space-y-6">
-        <Card className="border-sky-100 bg-linear-to-br from-sky-50 via-background to-emerald-50">
+        <Card className="app-bg-hero app-border-soft">
           <CardContent className="space-y-4 px-6 py-8 md:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
-                <Badge variant="outline" className="rounded-full border-sky-200 bg-white/80 px-3 py-1 text-sky-700">
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-sky-200 bg-background/75 px-3 py-1 text-sky-700 dark:bg-card/75"
+                >
                   System / Scraper
                 </Badge>
                 <div className="space-y-2">
                   <h1 className="font-semibold text-3xl tracking-tight">Jadwal Scraping</h1>
                   <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                    Sysadmin mengatur kapan scraper Apify dijalankan untuk memperbarui data akun sosial dan statistik posting per platform.
+                    Sysadmin mengatur kapan scraper Apify dijalankan untuk memperbarui data akun sosial dan statistik
+                    posting per platform.
                   </p>
                 </div>
               </div>
@@ -289,8 +293,13 @@ export function ScraperScheduleView() {
                         <TableCell>{item.runAt}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Switch checked={item.isActive} onCheckedChange={(checked) => void handleToggle(item, checked)} />
-                            <span className="text-sm text-muted-foreground">{item.isActive ? "Aktif" : "Nonaktif"}</span>
+                            <Switch
+                              checked={item.isActive}
+                              onCheckedChange={(checked) => void handleToggle(item, checked)}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {item.isActive ? "Aktif" : "Nonaktif"}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>{item.lastRunAt ? formatDateTime(item.lastRunAt) : "-"}</TableCell>
@@ -300,7 +309,12 @@ export function ScraperScheduleView() {
                             <Button variant="outline" size="sm" onClick={() => openEditDialog(item)}>
                               Edit
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => void handleRunNow(item)} disabled={runningId === item.id}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleRunNow(item)}
+                              disabled={runningId === item.id}
+                            >
                               {runningId === item.id ? <Spinner className="mr-2" /> : <Play className="mr-2 size-4" />}
                               Jalankan
                             </Button>
@@ -355,7 +369,9 @@ export function ScraperScheduleView() {
               <Label>Frekuensi</Label>
               <RadioGroup
                 value={form.frequency}
-                onValueChange={(value) => setForm((previous) => ({ ...previous, frequency: value as ScraperFrequency }))}
+                onValueChange={(value) =>
+                  setForm((previous) => ({ ...previous, frequency: value as ScraperFrequency }))
+                }
                 className="grid gap-3 md:grid-cols-3"
               >
                 {(["harian", "mingguan", "custom"] as const).map((option) => (
@@ -392,7 +408,10 @@ export function ScraperScheduleView() {
                 <p className="font-medium text-sm">Aktifkan jadwal</p>
                 <p className="text-muted-foreground text-xs">Jadwal nonaktif tidak akan diproses oleh scheduler.</p>
               </div>
-              <Switch checked={form.isActive} onCheckedChange={(checked) => setForm((previous) => ({ ...previous, isActive: checked }))} />
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) => setForm((previous) => ({ ...previous, isActive: checked }))}
+              />
             </div>
           </div>
 
