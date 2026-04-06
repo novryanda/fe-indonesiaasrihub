@@ -1,28 +1,20 @@
-"use client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 
-import { useRouter } from "next/navigation";
+import { DashboardEntryClient } from "./_components/dashboard-entry-client";
 
-import type { UserRole } from "@/app/(auth)/auth/types/auth.types";
-import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
-import { useSession } from "@/lib/auth-client";
-import { getDefaultRouteForRole } from "@/lib/role-routes";
+export default async function DashboardEntryPage() {
+  const cookieStore = await cookies();
+  const roleHomeCookie = cookieStore.get(ROLE_HOME_COOKIE_NAME)?.value;
+  const roleHomeRoute = roleHomeCookie ? decodeURIComponent(roleHomeCookie) : null;
+  const safeRoleHomeRoute =
+    roleHomeRoute && roleHomeRoute.startsWith("/") && !roleHomeRoute.startsWith("//") ? roleHomeRoute : null;
 
-export default function DashboardEntryPage() {
-  const router = useRouter();
-  const { data: session, isPending } = useSession();
+  if (safeRoleHomeRoute) {
+    redirect(safeRoleHomeRoute);
+  }
 
-  const role = ((session?.user as { role?: UserRole } | undefined)?.role ?? "wcc") as UserRole;
-
-  useEffect(() => {
-    if (!isPending && session) {
-      router.replace(getDefaultRouteForRole(role));
-    }
-    if (!isPending && !session) {
-      router.replace("/auth/login");
-    }
-  }, [isPending, role, router, session]);
-
-  return <FullScreenLoader isLoading text="Mengarahkan ke halaman utama..." />;
+  return <DashboardEntryClient />;
 }

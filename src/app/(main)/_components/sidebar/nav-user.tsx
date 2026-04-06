@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/lib/utils";
 
@@ -34,9 +35,14 @@ export function NavUser({
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const clearRoleHomeRoute = () => {
+    document.cookie = `${ROLE_HOME_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await signOut();
+    clearRoleHomeRoute();
 
     // Memberikan jeda waktu agar animasi loading terlihat (sesuai permintaan)
     await new Promise((r) => setTimeout(r, 1500));

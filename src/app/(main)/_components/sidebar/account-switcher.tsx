@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut, useSession } from "@/lib/auth-client";
 import { cn, getInitials } from "@/lib/utils";
@@ -34,9 +35,14 @@ export function AccountSwitcher() {
       }
     : { name: "", email: "", avatar: "", role: "" };
 
+  const clearRoleHomeRoute = () => {
+    document.cookie = `${ROLE_HOME_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await signOut();
+    clearRoleHomeRoute();
 
     // Memberikan jeda waktu agar animasi loading terlihat (sesuai permintaan)
     await new Promise((r) => setTimeout(r, 1500));

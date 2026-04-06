@@ -3,12 +3,13 @@
  * content layout, navbar style) from cookies or localStorage based on the
  * configured persistence mode.
  *
- * Runs early in <head> to apply the correct data attributes before hydration,
- * preventing layout or theme flicker and keeping RootLayout fully static.
+ * The generated code is injected directly from RootLayout through next/script
+ * so it stays in the server-rendered document and runs before hydration.
  */
+
 import { PREFERENCE_DEFAULTS, PREFERENCE_PERSISTENCE } from "@/lib/preferences/preferences-config";
 
-export function ThemeBootScript() {
+export function getThemeBootCode() {
   const persistence = JSON.stringify({
     theme_mode: PREFERENCE_PERSISTENCE.theme_mode,
     theme_preset: PREFERENCE_PERSISTENCE.theme_preset,
@@ -108,6 +109,5 @@ export function ThemeBootScript() {
     })();
   `;
 
-  /* biome-ignore lint/security/noDangerouslySetInnerHtml: required for pre-hydration boot script */
-  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+  return code;
 }

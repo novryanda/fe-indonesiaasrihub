@@ -3,12 +3,13 @@
 import { type FormEvent, Suspense, useState } from "react";
 
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { toast } from "sonner";
 
 import type { UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { authClient, signIn, signOut } from "@/lib/auth-client";
 import { resolveRouteForRole } from "@/lib/role-routes";
 
@@ -54,6 +55,14 @@ function resolveAuthMessage(payload: unknown, fallback = "Login gagal. Silakan c
   return fallback;
 }
 
+function persistRoleHomeRoute(targetRoute: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${ROLE_HOME_COOKIE_NAME}=${encodeURIComponent(targetRoute)}; Path=/; Max-Age=604800; SameSite=Lax`;
+}
+
 async function signInWithUsername(username: string, password: string): Promise<AuthActionResult> {
   const response = await fetch("/api/auth/sign-in/username", {
     method: "POST",
@@ -86,7 +95,6 @@ async function signInWithUsername(username: string, password: string): Promise<A
 }
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -168,13 +176,14 @@ function LoginPageContent() {
 
       const userRole = authUser?.role ?? "wcc";
       const targetRoute = resolveRouteForRole(userRole, safeCallbackUrl);
+      persistRoleHomeRoute(targetRoute);
       setIsSubmitting(false);
       setIsRedirecting(true);
 
       // Jeda buatan untuk memberi waktu loading screen terlihat (sesuai permintaan user)
       await new Promise((r) => setTimeout(r, 1500));
 
-      router.push(targetRoute);
+      window.location.assign(targetRoute);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan jaringan. Silakan coba lagi.";
       setError(message);

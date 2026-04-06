@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { SESSION_COOKIE_NAME, SESSION_COOKIE_NAME_HOST, SESSION_COOKIE_NAME_SECURE } from "@/lib/auth-constants";
+import {
+  ROLE_HOME_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_NAME_HOST,
+  SESSION_COOKIE_NAME_SECURE,
+} from "@/lib/auth-constants";
 
 const AUTH_ROUTES = ["/auth"];
 const PUBLIC_ROUTES = [...AUTH_ROUTES];
@@ -26,13 +31,17 @@ export function proxy(req: NextRequest) {
     req.cookies.get(SESSION_COOKIE_NAME)?.value ||
     req.cookies.get(SESSION_COOKIE_NAME_SECURE)?.value ||
     req.cookies.get(SESSION_COOKIE_NAME_HOST)?.value;
+  const roleHomeCookie = req.cookies.get(ROLE_HOME_COOKIE_NAME)?.value;
+  const roleHomeRoute = roleHomeCookie ? decodeURIComponent(roleHomeCookie) : null;
+  const safeRoleHomeRoute =
+    roleHomeRoute && roleHomeRoute.startsWith("/") && !roleHomeRoute.startsWith("//") ? roleHomeRoute : null;
 
   const isAuthenticated = !!sessionToken;
   const isAuthRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
   // Authenticated user trying to access auth pages → redirect to dashboard
   if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL(safeRoleHomeRoute ?? "/dashboard", req.url));
   }
 
   // Unauthenticated user trying to access protected pages → redirect to login
