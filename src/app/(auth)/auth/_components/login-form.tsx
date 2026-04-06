@@ -4,26 +4,10 @@ import type { FormEvent } from "react";
 
 import { AlertCircle } from "lucide-react";
 
-import type { LoginRole } from "@/app/(auth)/auth/types/auth.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const ROLE_META: Record<
-  LoginRole,
-  {
-    placeholder: string;
-  }
-> = {
-  creator: {
-    placeholder: "email.tim-operasional@asrihub.id atau wcc.nasional01",
-  },
-  admin: {
-    placeholder: "superadmin@asrihub.id atau superadmin",
-  },
-};
-
 interface LoginFormProps {
-  role: LoginRole;
   identifier: string;
   password: string;
   isLoading: boolean;
@@ -34,7 +18,6 @@ interface LoginFormProps {
 }
 
 export function LoginForm({
-  role,
   identifier,
   password,
   isLoading,
@@ -43,8 +26,6 @@ export function LoginForm({
   onIdentifierChange,
   onPasswordChange,
 }: LoginFormProps) {
-  const roleMeta = ROLE_META[role];
-
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error && (
@@ -65,7 +46,7 @@ export function LoginForm({
         <Input
           id="identifier"
           type="text"
-          placeholder={roleMeta.placeholder}
+          placeholder="email@asrihub.id atau username"
           value={identifier}
           onChange={(event) => onIdentifierChange(event.target.value)}
           required
@@ -103,7 +84,7 @@ export function LoginForm({
       </div>
 
       <Button type="submit" className="w-full" isLoading={isLoading}>
-        Masuk Aplikasi
+        Masuk
       </Button>
     </form>
   );

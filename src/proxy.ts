@@ -32,7 +32,7 @@ export function proxy(req: NextRequest) {
 
   // Authenticated user trying to access auth pages → redirect to dashboard
   if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard/nasional", req.url));
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   // Unauthenticated user trying to access protected pages → redirect to login

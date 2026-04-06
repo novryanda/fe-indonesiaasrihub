@@ -5,33 +5,14 @@ import { type FormEvent, Suspense, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { ShieldCheck, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import type { LoginRole, UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
+import type { UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import { authClient, signIn, signOut } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { resolveRouteForRole } from "@/lib/role-routes";
 
 import { LoginForm } from "../_components/login-form";
-import { GoogleButton } from "../_components/social-auth/google-button";
-
-function getDashboardByRole(role: UserRole): string {
-  switch (role) {
-    case "superadmin":
-      return "/dashboard/nasional";
-    case "sysadmin":
-      return "/system/jadwal-scrapping";
-    case "qcc_wcc":
-      return "/dashboard/regional";
-    case "pic_sosmed":
-      return "/akun/akun-sosmed";
-    case "wcc":
-      return "/dashboard/konten-saya";
-    default:
-      return "/dashboard/konten-saya";
-  }
-}
 
 type AuthUserPayload = {
   role?: UserRole;
@@ -107,10 +88,10 @@ async function signInWithUsername(username: string, password: string): Promise<A
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [role, setRole] = useState<LoginRole>("creator");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState("");
 
   const callbackUrl = searchParams.get("callbackUrl");
@@ -118,7 +99,8 @@ function LoginPageContent() {
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
+    setIsRedirecting(false);
     setError("");
 
     try {
@@ -128,7 +110,7 @@ function LoginPageContent() {
         const message = "Email atau username wajib diisi.";
         setError(message);
         toast.error(message);
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -145,7 +127,7 @@ function LoginPageContent() {
         const message = resolveAuthMessage(result, "Login gagal. Silakan coba lagi.");
         setError(message);
         toast.error(message);
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -166,7 +148,7 @@ function LoginPageContent() {
           const message = sessionResult.error.message ?? "Login gagal. Silakan coba lagi.";
           setError(message);
           toast.error(message);
-          setIsLoading(false);
+          setIsSubmitting(false);
           return;
         }
 
@@ -180,47 +162,45 @@ function LoginPageContent() {
         const message = "Akun Anda sedang nonaktif dan tidak dapat masuk. Hubungi administrator.";
         setError(message);
         toast.error(message);
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
       const userRole = authUser?.role ?? "wcc";
+      const targetRoute = resolveRouteForRole(userRole, safeCallbackUrl);
+      setIsSubmitting(false);
+      setIsRedirecting(true);
 
       // Jeda buatan untuk memberi waktu loading screen terlihat (sesuai permintaan user)
       await new Promise((r) => setTimeout(r, 1500));
 
-      router.push(safeCallbackUrl ?? getDashboardByRole(userRole));
+      router.push(targetRoute);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan jaringan. Silakan coba lagi.";
       setError(message);
       toast.error(message);
-      setIsLoading(false);
+      setIsSubmitting(false);
+      setIsRedirecting(false);
     }
-  };
-
-  const handleRoleChange = (newRole: LoginRole) => {
-    setRole(newRole);
-    setIdentifier("");
-    setPassword("");
-    setError("");
   };
 
   return (
     <>
-      <FullScreenLoader isLoading={isLoading} text="Sedang masuk ke sistem..." />
+      <FullScreenLoader isLoading={isRedirecting} text="Sedang masuk ke sistem..." />
       <div className="app-bg-canvas flex h-dvh overflow-hidden">
         {/* Left Decoration Panel */}
-        <div className="app-bg-hero-strong hidden lg:block lg:w-1/3">
-          <div className="flex h-full flex-col items-center justify-center p-12 text-center">
+        <div className="relative hidden overflow-hidden lg:block lg:w-1/3">
+          <div
+            className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+            style={{ backgroundImage: "url('/silas-baisch-PvBECXDZw84-unsplash.png')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/70 via-emerald-900/60 to-emerald-950/75" />
+          <div className="relative z-10 flex h-full flex-col items-center justify-center p-12 text-center">
             <div className="fade-in slide-in-from-bottom-4 animate-in space-y-6 duration-700">
-              <div className="relative mx-auto flex h-48 w-48 items-center justify-center rounded-[3rem] bg-white/10 shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-500 hover:scale-105">
-                <div className="relative h-32 w-32">
-                  <Image src="/logo-klhk.png" alt="KLHK Logo" fill className="object-contain" priority />
-                </div>
-              </div>
               <div className="space-y-2">
                 <h1 className="font-bold text-4xl text-white tracking-tight">Indonesia ASRI Hub</h1>
-                <p className="font-medium text-lg text-primary-foreground/70">Platform Modern untuk Lingkungan Hidup</p>
+                <p className="font-medium text-lg text-primary-foreground/70">Waste Crisis Centre (WCC)</p>
+                <p className="text-sm text-white/80">Kementrian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup</p>
               </div>
 
               <div className="space-y-4 pt-12 text-left">
@@ -240,73 +220,39 @@ function LoginPageContent() {
         {/* Right Login Section */}
         <div className="app-bg-canvas flex w-full items-center justify-center p-6 lg:w-2/3 lg:p-12">
           <div className="fade-in slide-in-from-right-4 w-full max-w-md animate-in space-y-8 duration-500">
-            <div className="space-y-6">
-              <div className="flex flex-col space-y-2 text-center">
-                <h2 className="font-bold text-3xl text-foreground tracking-tight">Selamat Datang</h2>
-                <p className="text-muted-foreground">Silakan masuk untuk mengakses portal ASRI Hub</p>
+            <div className="space-y-5">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative h-24 w-24 sm:h-28 sm:w-28">
+                  <Image src="/logo-klhk.png" alt="KLHK Logo" fill className="object-contain" priority />
+                </div>
+                <div className="relative h-12 w-[13.5rem] overflow-hidden sm:h-14 sm:w-[15rem]">
+                  <Image
+                    src="/logo-indonesiaasrihub.png"
+                    alt="Indonesia ASRI Hub"
+                    fill
+                    className="scale-[1.18] object-cover object-center"
+                    priority
+                  />
+                </div>
               </div>
 
-              {/* Role Switcher Tabs */}
-              <div className="app-tab-surface grid w-full grid-cols-2 gap-2 rounded-xl border p-1.5 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange("creator")}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-all",
-                    role === "creator"
-                      ? "app-tab-active text-primary shadow-md ring-1 ring-black/5"
-                      : "text-muted-foreground hover:bg-background/70",
-                  )}
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Kreator / PIC
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange("admin")}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-all",
-                    role === "admin"
-                      ? "app-tab-active text-foreground shadow-md ring-1 ring-black/5"
-                      : "text-muted-foreground hover:bg-background/70",
-                  )}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin
-                </button>
+              <div className="flex flex-col space-y-2 text-center">
+                {/* <h2 className="font-bold text-3xl text-foreground tracking-tight">Selamat Datang</h2>
+                <p className="text-muted-foreground">Silakan masuk untuk mengakses portal ASRI Hub</p> */}
               </div>
             </div>
 
             <div className="app-bg-surface app-border-soft rounded-2xl border p-8 shadow-xl">
               <LoginForm
-                role={role}
                 identifier={identifier}
                 password={password}
-                isLoading={isLoading}
+                isLoading={isSubmitting}
                 error={error}
                 onIdentifierChange={setIdentifier}
                 onPasswordChange={setPassword}
                 onSubmit={handleLogin}
               />
-
-              <div className="relative my-8">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-border border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-3 font-medium text-muted-foreground">Atau masuk dengan</span>
-                </div>
-              </div>
-
-              <GoogleButton
-                className="w-full border-border font-semibold text-foreground hover:bg-muted/70"
-                variant="outline"
-              />
             </div>
-
-            <p className="text-center font-medium text-muted-foreground text-sm">
-              Belum punya akun? <span className="font-bold text-primary">Hubungi Administrator</span>
-            </p>
           </div>
         </div>
       </div>

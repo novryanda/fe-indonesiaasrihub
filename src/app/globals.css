@@ -1,11 +1,37 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@heroui/styles/themes/shared/theme.css";
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/components/label.css" layer(components);
+@import "@heroui/styles/components/progress-bar.css" layer(components);
 
 /* Theme preset styles: these override CSS variables based on the selected data-theme-preset */
 @import "../styles/presets/brutalist.css";
 @import "../styles/presets/soft-pop.css";
 @import "../styles/presets/tangerine.css";
+
+@custom-variant motion-reduce {
+  &:is([data-reduce-motion="true"], [data-reduce-motion="true"] *) {
+    @slot;
+
+    &::before,
+    &::after {
+      @slot;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:not(:is([data-reduce-motion="false"], [data-reduce-motion="false"] *)) {
+      @slot;
+
+      &::before,
+      &::after {
+        @slot;
+      }
+    }
+  }
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -64,6 +90,12 @@
 These serve as the fallback; there is no separate default.css file. */
 :root {
   --radius: 0.625rem;
+  --border-width: 1px;
+  --field-border-width: 0px;
+  --disabled-opacity: 0.5;
+  --ring-offset-width: 2px;
+  --cursor-interactive: pointer;
+  --cursor-disabled: not-allowed;
   --brand-hero: #005f5b;
   --brand-hero-strong: #0b7269;
   --brand-hero-foreground: #f5fbf8;
@@ -75,18 +107,46 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: #17323f;
   --popover: #ffffff;
   --popover-foreground: #17323f;
+  --surface: #ffffff;
+  --surface-foreground: #17323f;
+  --surface-secondary: #f4f7fb;
+  --surface-secondary-foreground: #17323f;
+  --surface-tertiary: #edf2f8;
+  --surface-tertiary-foreground: #17323f;
+  --overlay: #ffffff;
+  --overlay-foreground: #17323f;
   --primary: var(--action-orange);
   --primary-foreground: var(--action-orange-foreground);
   --secondary: #eaf3ff;
   --secondary-foreground: #245b98;
   --muted: #eef5fc;
   --muted-foreground: #62758a;
+  --default: #dce6f0;
+  --default-foreground: #17323f;
   --accent: #e7f3ee;
   --accent-foreground: #1e4d49;
+  --success: #0b7269;
+  --success-foreground: #f5fbf8;
+  --warning: var(--action-orange);
+  --warning-foreground: #201307;
   --destructive: #d94d32;
   --border: #d7e2f0;
   --input: #d8e6f5;
   --ring: rgba(245, 138, 31, 0.24);
+  --danger: var(--destructive);
+  --danger-foreground: #fff8f1;
+  --segment: #ffffff;
+  --segment-foreground: #17323f;
+  --focus: var(--action-orange);
+  --link: var(--brand-hero);
+  --backdrop: rgba(14, 26, 35, 0.28);
+  --field-background: #ffffff;
+  --field-foreground: #17323f;
+  --field-placeholder: #7b8c9a;
+  --field-border: rgba(166, 195, 237, 0.5);
+  --surface-shadow: 0 18px 45px -26px rgba(0, 95, 91, 0.26);
+  --overlay-shadow: 0 22px 54px -28px rgba(23, 50, 63, 0.3);
+  --field-shadow: 0 10px 28px -20px rgba(23, 50, 63, 0.16);
   --chart-1: var(--brand-hero);
   --chart-2: #2f80ed;
   --chart-3: var(--action-orange);
@@ -164,18 +224,46 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: #e6effa;
   --popover: #16212e;
   --popover-foreground: #e6effa;
+  --surface: #16212e;
+  --surface-foreground: #e6effa;
+  --surface-secondary: #1a2737;
+  --surface-secondary-foreground: #e6effa;
+  --surface-tertiary: #213244;
+  --surface-tertiary-foreground: #e6effa;
+  --overlay: #16212e;
+  --overlay-foreground: #e6effa;
   --primary: var(--action-orange);
   --primary-foreground: #201307;
   --secondary: #1b3148;
   --secondary-foreground: #d7e7fc;
   --muted: #172434;
   --muted-foreground: #95a8be;
+  --default: #213244;
+  --default-foreground: #e6effa;
   --accent: #18332f;
   --accent-foreground: #e6f4ef;
+  --success: #66bcb1;
+  --success-foreground: #081312;
+  --warning: var(--action-orange);
+  --warning-foreground: #1b1206;
   --destructive: #ff8c6b;
   --border: rgba(170, 192, 224, 0.16);
   --input: rgba(177, 196, 221, 0.18);
   --ring: rgba(221, 134, 45, 0.3);
+  --danger: var(--destructive);
+  --danger-foreground: #150904;
+  --segment: #213244;
+  --segment-foreground: #e6effa;
+  --focus: var(--action-orange);
+  --link: #8bd8cf;
+  --backdrop: rgba(5, 10, 15, 0.6);
+  --field-background: #16212e;
+  --field-foreground: #e6effa;
+  --field-placeholder: #8ea2b6;
+  --field-border: rgba(170, 192, 224, 0.16);
+  --surface-shadow: 0 0 0 0 transparent;
+  --overlay-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.24) inset;
+  --field-shadow: 0 0 0 0 transparent;
   --chart-1: #73c5bb;
   --chart-2: #6ba8f5;
   --chart-3: #dd862d;
