@@ -14,16 +14,20 @@ import type {
   BlastFeedFilters,
   BlastFeedItem,
   BlastMeta,
+  BlastReferenceStatus,
   CreateBlastActivityPayload,
   CreateBlastActivityResult,
 } from "../types/blast-activity.type";
 
-const INITIAL_FEED_FILTERS: BlastFeedFilters = {
-  platform: "all",
-  search: "",
-  page: 1,
-  limit: 6,
-};
+function createInitialFeedFilters(status: BlastReferenceStatus): BlastFeedFilters {
+  return {
+    platform: "all",
+    status,
+    search: "",
+    page: 1,
+    limit: 6,
+  };
+}
 
 const INITIAL_ACTIVITY_FILTERS: BlastActivityFilters = {
   platform: "all",
@@ -34,8 +38,8 @@ const INITIAL_ACTIVITY_FILTERS: BlastActivityFilters = {
   limit: 20,
 };
 
-export function useBlastActivity(mode: "blast" | "superadmin") {
-  const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(INITIAL_FEED_FILTERS);
+export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus: BlastReferenceStatus = "all") {
+  const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(() => createInitialFeedFilters(initialFeedStatus));
   const [activityFilters, setActivityFilters] = useState<BlastActivityFilters>(INITIAL_ACTIVITY_FILTERS);
   const [feedItems, setFeedItems] = useState<BlastFeedItem[]>([]);
   const [activities, setActivities] = useState<BlastActivityItem[]>([]);
@@ -106,6 +110,7 @@ export function useBlastActivity(mode: "blast" | "superadmin") {
       try {
         const response = await createBlastActivity(payload);
         await fetchActivities();
+        await fetchFeed();
         return response.data;
       } catch (errorValue) {
         if (errorValue instanceof ApiError) {
@@ -117,7 +122,7 @@ export function useBlastActivity(mode: "blast" | "superadmin") {
         setSubmitting(false);
       }
     },
-    [fetchActivities],
+    [fetchActivities, fetchFeed],
   );
 
   const activityTotalPages = useMemo(() => {
@@ -144,6 +149,7 @@ export function useBlastActivity(mode: "blast" | "superadmin") {
     isSubmitting,
     feedError,
     activitiesError,
+    resetFeedFilters: () => setFeedFilters(createInitialFeedFilters(initialFeedStatus)),
     refetchFeed: fetchFeed,
     refetchActivities: fetchActivities,
     create,

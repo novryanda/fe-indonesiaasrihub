@@ -58,7 +58,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/akun-sosmed",
     "/akun/notifikasi",
   ],
-  blast: ["/blast/aktivitas"],
+  blast: ["/blast/aktivitas", "/blast/ulang"],
 };
 
 function normalizePathname(pathname: string) {

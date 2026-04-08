@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -23,7 +23,7 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import { useBlastActivity } from "../hooks/use-blast-activity";
-import type { BlastFeedItem } from "../types/blast-activity.type";
+import type { BlastFeedItem, BlastReferenceStatus } from "../types/blast-activity.type";
 
 function StatsCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
@@ -45,10 +45,12 @@ function FeedReferenceCard({
   item,
   active,
   onSelect,
+  actionLabel,
 }: {
   item: BlastFeedItem;
   active: boolean;
   onSelect: (item: BlastFeedItem) => void;
+  actionLabel: string;
 }) {
   return (
     <Card className={cn("border-foreground/10", active ? "ring-2 ring-emerald-500" : "")}>
@@ -62,8 +64,15 @@ function FeedReferenceCard({
             </div>
           </div>
           <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={() => onSelect(item)}>
-            {active ? "Dipilih" : "Pakai Referensi"}
+            {active ? "Dipilih" : actionLabel}
           </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Badge variant={item.blast_status === "blasted" ? "default" : "secondary"}>
+            {item.blast_status === "blasted" ? "Sudah Pernah Di-blast" : "Belum Di-blast"}
+          </Badge>
+          <Badge variant="outline">{item.blast_count} aktivitas blast</Badge>
         </div>
 
         <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-6">
@@ -101,7 +110,13 @@ function FeedReferenceCard({
   );
 }
 
-export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
+export function BlastActivityView({
+  mode,
+  referenceStatusPreset = "unblasted",
+}: {
+  mode: "blast" | "superadmin";
+  referenceStatusPreset?: Exclude<BlastReferenceStatus, "all">;
+}) {
   const allowedRoles = mode === "blast" ? (["blast"] as const) : (["superadmin"] as const);
   const { isAuthorized, isPending } = useRoleGuard([...allowedRoles]);
   const {
@@ -118,10 +133,12 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
     isSubmitting,
     feedError,
     activitiesError,
+    resetFeedFilters,
     create,
-  } = useBlastActivity(mode);
+  } = useBlastActivity(mode, mode === "blast" ? referenceStatusPreset : "all");
 
   const [selectedReference, setSelectedReference] = useState<BlastFeedItem | null>(null);
+  const blastFormRef = useRef<HTMLDivElement | null>(null);
   const [formState, setFormState] = useState({
     platform: "instagram",
     post_url: "",
@@ -138,11 +155,19 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
   const displayedStats = displayData.stats;
   const displayedActivityMeta = displayData.activityMeta;
 
-  const title = mode === "blast" ? "Aktivitas Blast" : "Monitoring Blast";
-  const subtitle = mode === "blast" ? "Blast / Aktivitas Sosmed" : "Superadmin / Monitoring Blast";
+  const isRepeatMode = mode === "blast" && referenceStatusPreset === "blasted";
+  const title = mode === "blast" ? (isRepeatMode ? "Blast Ulang" : "Aktivitas Blast") : "Monitoring Blast";
+  const subtitle =
+    mode === "blast"
+      ? isRepeatMode
+        ? "Blast / Referensi Yang Sudah Pernah Di-blast"
+        : "Blast / Aktivitas Sosmed"
+      : "Superadmin / Monitoring Blast";
   const description =
     mode === "blast"
-      ? "Pilih referensi posting sosmed, lalu catat hasil blast yang sudah Anda lakukan beserta views, likes, dan comments."
+      ? isRepeatMode
+        ? "Pilih postingan yang sudah pernah di-blast untuk mencatat aktivitas blast lanjutan terhadap referensi yang sama."
+        : "Pilih referensi posting sosmed yang belum di-blast, lalu catat hasil blast yang sudah Anda lakukan beserta views, likes, dan comments."
       : "Pantau seluruh aktivitas blast yang sudah diinput user role blast dari satu halaman monitoring.";
 
   const canSubmit = mode === "blast";
@@ -160,6 +185,9 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
       likes: String(item.likes_count ?? 0),
       comments: String(item.comments_count ?? 0),
       notes: "",
+    });
+    requestAnimationFrame(() => {
+      blastFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
 
@@ -226,6 +254,10 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
     Boolean(activityFilters.date_from?.trim()) ||
     Boolean(activityFilters.date_to?.trim()) ||
     Boolean(activityFilters.search.trim());
+  const hasFeedFilters =
+    feedFilters.platform !== "all" ||
+    feedFilters.status !== referenceStatusPreset ||
+    Boolean(feedFilters.search.trim());
   const activityLoadingLabel = activityFilters.search.trim()
     ? "Mencari aktivitas blast..."
     : hasActivityFilters
@@ -282,10 +314,14 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
           <Card>
             <CardHeader>
               <CardTitle>Referensi Postingan Sosmed</CardTitle>
-              <CardDescription>Pilih postingan referensi yang akan dijadikan dasar input blast.</CardDescription>
+              <CardDescription>
+                {isRepeatMode
+                  ? "Tampilkan postingan yang sudah pernah di-blast untuk membuat aktivitas blast tambahan."
+                  : "Tampilkan postingan referensi yang belum pernah di-blast sebagai dasar input blast pertama."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="grid gap-3 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto]">
                 <Select
                   value={feedFilters.platform}
                   onValueChange={(value) =>
@@ -309,6 +345,26 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
                   </SelectContent>
                 </Select>
 
+                <Select
+                  value={feedFilters.status}
+                  onValueChange={(value) =>
+                    setFeedFilters((previous) => ({
+                      ...previous,
+                      status: value as BlastReferenceStatus,
+                      page: 1,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status Blast" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="unblasted">Belum Di-blast</SelectItem>
+                    <SelectItem value="blasted">Sudah Pernah Di-blast</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 <div className="relative">
                   <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                   <Input
@@ -320,6 +376,14 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
                     }
                   />
                 </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => resetFeedFilters()}
+                  disabled={!hasFeedFilters}
+                >
+                  Reset Filter
+                </Button>
               </div>
 
               {feedError ? (
@@ -333,7 +397,11 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
                 <div className="grid gap-4 xl:grid-cols-2">
                   {feedItems.length === 0 ? (
                     <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
-                      Belum ada postingan referensi yang cocok.
+                      {feedFilters.status === "unblasted"
+                        ? "Belum ada postingan referensi yang belum di-blast."
+                        : feedFilters.status === "blasted"
+                          ? "Belum ada postingan referensi yang sudah pernah di-blast."
+                          : "Belum ada postingan referensi yang cocok."}
                     </div>
                   ) : (
                     feedItems.map((item) => (
@@ -342,6 +410,7 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
                         item={item}
                         active={selectedReference?.id === item.id}
                         onSelect={handleSelectReference}
+                        actionLabel={item.blast_status === "blasted" ? "Blast Ulang" : "Pakai Referensi"}
                       />
                     ))
                   )}
@@ -350,12 +419,12 @@ export function BlastActivityView({ mode }: { mode: "blast" | "superadmin" }) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card ref={blastFormRef}>
             <CardHeader>
               <CardTitle>Input Aktivitas Blast</CardTitle>
               <CardDescription>
                 {selectedReference
-                  ? "Form sudah terisi dari referensi yang dipilih. Anda masih bisa menyesuaikan nilainya."
+                  ? "Form sudah terisi dari referensi yang dipilih dan otomatis diposisikan ke bagian input. Anda masih bisa menyesuaikan nilainya."
                   : "Isi manual jika tidak menggunakan referensi posting yang tersedia."}
               </CardDescription>
             </CardHeader>

@@ -7,6 +7,7 @@ export async function getBlastFeed(filters: BlastFeedFilters) {
     method: "GET",
     params: {
       platform: filters.platform === "all" ? undefined : filters.platform,
+      status: filters.status === "all" ? undefined : filters.status,
       search: filters.search.trim() || undefined,
       page: filters.page,
       limit: filters.limit,
