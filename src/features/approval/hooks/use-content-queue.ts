@@ -19,11 +19,12 @@ import type {
 const INITIAL_FILTERS: ApprovalQueueFilters = {
   search: "",
   platform: "all",
+  topik: "all",
   regional: "all",
   dateFrom: "",
   dateTo: "",
   page: 1,
-  limit: 12,
+  limit: 20,
 };
 
 export function useContentQueue(mode: ApprovalBoardMode, accessToken?: string) {
@@ -57,25 +58,24 @@ export function useContentQueue(mode: ApprovalBoardMode, accessToken?: string) {
     void fetchQueue();
   }, [fetchQueue]);
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (filters.dateFrom && item.created_at < filters.dateFrom) {
-        return false;
-      }
-
-      if (filters.dateTo && item.created_at > `${filters.dateTo}T23:59:59`) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [filters.dateFrom, filters.dateTo, items]);
-
   const availableRegionals = useMemo(() => {
-    return Array.from(
-      new Set(items.map((item) => item.officer.regional).filter((item): item is string => Boolean(item))),
-    );
+    const entries = new Map<string, { id: string; label: string }>();
+
+    for (const item of items) {
+      if (!item.officer.wilayah_id || !item.officer.regional) {
+        continue;
+      }
+
+      entries.set(item.officer.wilayah_id, {
+        id: item.officer.wilayah_id,
+        label: item.officer.regional,
+      });
+    }
+
+    return Array.from(entries.values());
   }, [items]);
+
+  const availableTopics = useMemo(() => Array.from(new Set(items.map((item) => item.topik))), [items]);
 
   const decide = useCallback(
     async (contentId: string, payload: ReviewDecisionPayload): Promise<ReviewDecisionResponse> => {
@@ -119,7 +119,7 @@ export function useContentQueue(mode: ApprovalBoardMode, accessToken?: string) {
   );
 
   return {
-    items: filteredItems,
+    items,
     meta,
     filters,
     setFilters,
@@ -127,6 +127,7 @@ export function useContentQueue(mode: ApprovalBoardMode, accessToken?: string) {
     error,
     isMutatingItemId,
     availableRegionals,
+    availableTopics,
     refetch: fetchQueue,
     decide,
     loadHistory,

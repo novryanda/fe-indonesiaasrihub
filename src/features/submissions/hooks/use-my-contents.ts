@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { getReviewHistory } from "@/features/approval/api/get-review-history";
 import type { ContentItem, PaginatedMeta, ReviewHistoryItem } from "@/features/content-shared/types/content.type";
@@ -16,7 +16,7 @@ const INITIAL_FILTERS: MyContentsFilters = {
   dateFrom: "",
   dateTo: "",
   page: 1,
-  limit: 12,
+  limit: 20,
 };
 
 export function useMyContents(accessToken?: string) {
@@ -49,20 +49,6 @@ export function useMyContents(accessToken?: string) {
     void fetchContents();
   }, [fetchContents]);
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (filters.dateFrom && item.created_at < filters.dateFrom) {
-        return false;
-      }
-
-      if (filters.dateTo && item.created_at > `${filters.dateTo}T23:59:59`) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [filters.dateFrom, filters.dateTo, items]);
-
   const loadHistory = useCallback(
     async (contentId: string): Promise<ReviewHistoryItem[]> => {
       try {
@@ -80,7 +66,7 @@ export function useMyContents(accessToken?: string) {
   );
 
   return {
-    items: filteredItems,
+    items,
     meta,
     filters,
     setFilters,

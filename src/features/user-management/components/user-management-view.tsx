@@ -16,9 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { useSession } from "@/lib/auth-client";
 import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
 
@@ -44,7 +44,8 @@ function normalizeUsername(value: string) {
 
 function UserManagementContent({ accessToken, actorRole }: UserManagementContentProps) {
   const router = useRouter();
-  const { users, stats, meta, isLoading, error, filters, setFilters, refetch } = useUsers(accessToken);
+  const { users, stats, meta, isLoading, isInitialLoading, isSearching, error, filters, setFilters, refetch } =
+    useUsers(accessToken);
   const { create, isSubmitting: isCreating } = useCreateUser(accessToken);
   const { update, isSubmitting: isUpdating } = useUpdateUser(accessToken);
   const { remove, isSubmitting: isDeleting } = useDeleteUser(accessToken);
@@ -68,8 +69,8 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
   const allowedRoles = useMemo(
     () =>
       actorRole === "superadmin"
-        ? (["superadmin", "qcc_wcc", "wcc", "pic_sosmed"] as const)
-        : (["superadmin", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed"] as const),
+        ? (["superadmin", "supervisi", "qcc_wcc", "wcc", "pic_sosmed", "blast"] as const)
+        : (["superadmin", "supervisi", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed", "blast"] as const),
     [actorRole],
   );
 
@@ -236,6 +237,8 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
         <UsersTable
           users={users}
           isLoading={isLoading}
+          loadingLabel={isSearching ? "Mencari user..." : isInitialLoading ? "Memuat data user..." : "Memuat data..."}
+          onView={(user) => router.push(`/pengaturan/manajemen-user/${user.id}`)}
           onEdit={(user) => setEditingUser(user)}
           onDeactivate={(user) => setDeactivatingUser(user)}
           onReactivate={(user) => setReactivatingUser(user)}
@@ -247,38 +250,19 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
       )}
 
       <Card size="sm">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-muted-foreground text-sm">
-            Halaman {filters.page} dari {totalPages} {meta ? `(${meta.total} total user)` : ""}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                updateFilters((previous) => ({
-                  ...previous,
-                  page: Math.max(1, previous.page - 1),
-                }))
-              }
-              disabled={filters.page <= 1 || isLoading}
-            >
-              Sebelumnya
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                updateFilters((previous) => ({
-                  ...previous,
-                  page: previous.page + 1,
-                }))
-              }
-              disabled={filters.page >= totalPages || isLoading}
-            >
-              Berikutnya
-            </Button>
-          </div>
+        <CardContent>
+          <TablePagination
+            summary={`Halaman ${filters.page} dari ${totalPages}${meta ? ` (${meta.total} total user)` : ""}`}
+            page={filters.page}
+            totalPages={totalPages}
+            disabled={isLoading}
+            onPageChange={(nextPage) =>
+              updateFilters((previous) => ({
+                ...previous,
+                page: nextPage,
+              }))
+            }
+          />
         </CardContent>
       </Card>
 

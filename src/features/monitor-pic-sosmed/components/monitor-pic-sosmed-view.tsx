@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import {
@@ -386,23 +387,13 @@ export function MonitorPicSosmedView() {
                 </TableBody>
               </Table>
 
-              <div className="flex items-center justify-between">
-                <p className="text-muted-foreground text-sm">
-                  Menampilkan {(page - 1) * 10 + 1}-{Math.min(page * 10, total)} dari {total} PIC
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
-                    Sebelumnya
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((current) => current + 1)}
-                  >
-                    Berikutnya
-                  </Button>
-                </div>
-              </div>
+              <TablePagination
+                summary={`Menampilkan ${(page - 1) * 10 + 1}-${Math.min(page * 10, total)} dari ${total} PIC`}
+                page={page}
+                totalPages={totalPages}
+                disabled={loading}
+                onPageChange={setPage}
+              />
             </>
           )}
         </CardContent>

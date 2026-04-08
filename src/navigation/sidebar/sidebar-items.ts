@@ -1,5 +1,4 @@
 import {
-  Bell,
   BookOpen,
   ChartColumnIncreasingIcon,
   CheckCircle,
@@ -10,6 +9,8 @@ import {
   MessageSquare,
   MonitorPlay,
   MonitorPlayIcon,
+  Radio,
+  Scroll,
   ScrollText,
   Settings2,
   SquareCheck,
@@ -51,7 +52,6 @@ export interface NavGroup {
 const CONTENT_CREATOR_ROLES: UserRole[] = ["wcc"];
 const SOCIAL_PIC_ROLES: UserRole[] = ["pic_sosmed"];
 const FIELD_TEAM_ROLES: UserRole[] = ["wcc", "pic_sosmed"];
-const REFERENCE_ROLES: UserRole[] = ["qcc_wcc", "wcc", "pic_sosmed"];
 
 export const sidebarItems: NavGroup[] = [
   {
@@ -71,10 +71,10 @@ export const sidebarItems: NavGroup[] = [
         roles: ["qcc_wcc"],
       },
       {
-        title: "Final Approval",
+        title: "Approval",
         url: "/dashboard/approval",
         icon: CheckCircle,
-        roles: ["superadmin"],
+        roles: ["superadmin", "supervisi"],
       },
       {
         title: "Validasi Postingan",
@@ -94,6 +94,12 @@ export const sidebarItems: NavGroup[] = [
         icon: MonitorPlayIcon,
         roles: ["pic_sosmed"],
       },
+      {
+        title: "Aktivitas Blast",
+        url: "/blast/aktivitas",
+        icon: Radio,
+        roles: ["blast"],
+      },
     ],
   },
   {
@@ -104,7 +110,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Bank Konten",
         url: "/konten/bank-konten",
         icon: FolderOpen,
-        roles: ["superadmin", "qcc_wcc"],
+        roles: ["superadmin", "supervisi", "qcc_wcc"],
       },
       {
         title: "Bank Materi",
@@ -131,7 +137,6 @@ export const sidebarItems: NavGroup[] = [
   {
     id: 3,
     label: "Analitik",
-    roles: ["superadmin", "qcc_wcc"],
     items: [
       {
         title: "Monitoring Sosmed",
@@ -149,6 +154,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Laporan & Analitik",
         url: "/analitik/laporan-analitik",
         icon: ChartColumnIncreasingIcon,
+        roles: ["superadmin"],
+      },
+      {
+        title: "Monitoring Blast",
+        url: "/dashboard/blast",
+        icon: Radio,
         roles: ["superadmin"],
       },
     ],
@@ -195,7 +206,7 @@ export const sidebarItems: NavGroup[] = [
     label: "Akun",
     items: [
       {
-        title: "Akun Sosmed Delegasi",
+        title: "PIC Akun Sosmed",
         url: "/akun/akun-sosmed",
         icon: MonitorPlayIcon,
         roles: ["pic_sosmed", "superadmin"],
@@ -205,12 +216,6 @@ export const sidebarItems: NavGroup[] = [
         url: "/akun/daftar-akun",
         roles: ["superadmin"],
         icon: CheckCircle,
-      },
-      {
-        title: "Notifikasi",
-        url: "/akun/notifikasi",
-        icon: Bell,
-        roles: FIELD_TEAM_ROLES,
       },
     ],
   },
@@ -242,6 +247,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Log Scraping",
         url: "/system/log-scrapping",
         icon: ScrollText,
+        roles: ["sysadmin"],
+      },
+      {
+        title: "Log Activity",
+        url: "/system/log-activity",
+        icon: Scroll,
         roles: ["sysadmin"],
       },
       {

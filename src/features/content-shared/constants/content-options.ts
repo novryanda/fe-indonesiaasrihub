@@ -1,10 +1,7 @@
 import type {
   ContentDurasi,
   ContentJenis,
-  ContentJumlahFile,
   ContentPlatform,
-  ContentTargetAudiens,
-  ContentTipe,
   ContentUrgensi,
 } from "../types/content.type";
 
@@ -21,31 +18,31 @@ export const PLATFORM_OPTIONS: Array<OptionItem<ContentPlatform>> = [
     value: "instagram",
     label: "Instagram",
     shortLabel: "IG",
-    accentClassName: "border-pink-200 bg-pink-50 text-pink-700",
+    accentClassName: "border-pink-300 bg-pink-100 text-pink-800",
   },
   {
     value: "tiktok",
     label: "TikTok",
     shortLabel: "TT",
-    accentClassName: "border-slate-200 bg-slate-50 text-slate-700",
+    accentClassName: "border-zinc-950 bg-zinc-950 text-white",
   },
   {
     value: "youtube",
     label: "YouTube",
     shortLabel: "YT",
-    accentClassName: "border-rose-200 bg-rose-50 text-rose-700",
+    accentClassName: "border-rose-300 bg-rose-100 text-rose-800",
   },
   {
     value: "facebook",
     label: "Facebook",
     shortLabel: "FB",
-    accentClassName: "border-blue-200 bg-blue-50 text-blue-700",
+    accentClassName: "border-blue-300 bg-blue-100 text-blue-800",
   },
   {
     value: "x",
     label: "X",
     shortLabel: "X",
-    accentClassName: "border-zinc-200 bg-zinc-50 text-zinc-700",
+    accentClassName: "border-zinc-950 bg-zinc-950 text-white",
   },
 ];
 
@@ -84,27 +81,12 @@ export const CONTENT_TOPIC_LABELS: Record<(typeof CONTENT_TOPIC_OPTIONS)[number]
   pengelolaan_sampah: "Pengelolaan Sampah",
 };
 
-export const FILE_COUNT_OPTIONS: Array<OptionItem<ContentJumlahFile>> = [
-  { value: "1", label: "1 file" },
-  { value: "2-3", label: "2-3 file" },
-  { value: "4-5", label: "4-5 file" },
-  { value: "folder", label: "Folder" },
-];
-
 export const DURATION_OPTIONS: Array<OptionItem<ContentDurasi>> = [
   { value: "kurang_30_detik", label: "Kurang dari 30 detik" },
   { value: "30_60_detik", label: "30-60 detik" },
   { value: "1_3_menit", label: "1-3 menit" },
   { value: "3_10_menit", label: "3-10 menit" },
   { value: "lebih_10_menit", label: "Lebih dari 10 menit" },
-];
-
-export const TARGET_AUDIENCE_OPTIONS: Array<OptionItem<ContentTargetAudiens>> = [
-  { value: "masyarakat_umum", label: "Masyarakat Umum" },
-  { value: "pelajar", label: "Pelajar" },
-  { value: "ibu_rumah_tangga", label: "Ibu Rumah Tangga" },
-  { value: "pelaku_usaha", label: "Pelaku Usaha" },
-  { value: "komunitas", label: "Komunitas" },
 ];
 
 export const URGENCY_OPTIONS: Array<OptionItem<ContentUrgensi>> = [
@@ -126,11 +108,6 @@ export const URGENCY_OPTIONS: Array<OptionItem<ContentUrgensi>> = [
     hint: "Mendesak dan sensitif waktu",
     accentClassName: "border-rose-200 bg-rose-50 text-rose-700",
   },
-];
-
-export const CONTENT_ENTRY_TYPE_OPTIONS: Array<OptionItem<ContentTipe>> = [
-  { value: "baru", label: "Konten Baru" },
-  { value: "revisi_repost", label: "Revisi / Repost" },
 ];
 
 export const ACCESS_STATUS_OPTIONS = [

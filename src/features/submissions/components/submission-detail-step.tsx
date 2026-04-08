@@ -1,17 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { HashtagInput } from "@/features/content-shared/components/hashtag-input";
-import {
-  CONTENT_ENTRY_TYPE_OPTIONS,
-  DURATION_OPTIONS,
-  TARGET_AUDIENCE_OPTIONS,
-  URGENCY_OPTIONS,
-} from "@/features/content-shared/constants/content-options";
+import { DURATION_OPTIONS, URGENCY_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { cn } from "@/lib/utils";
+import { listWilayahOptions, type WilayahOption } from "@/shared/api/wilayah";
 
 import type { ContentSubmissionDraft, FormErrorState } from "./content-submission-form.types";
 
@@ -28,6 +26,14 @@ export function SubmissionDetailStep({
   disableBriefFields = false,
   onFieldChange,
 }: SubmissionDetailStepProps) {
+  const [wilayahOptions, setWilayahOptions] = useState<WilayahOption[]>([]);
+
+  useEffect(() => {
+    void listWilayahOptions()
+      .then(setWilayahOptions)
+      .catch(() => setWilayahOptions([]));
+  }, []);
+
   return (
     <>
       <div className="grid gap-2">
@@ -55,7 +61,7 @@ export function SubmissionDetailStep({
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <div className="grid gap-2">
           <Label>Durasi Konten</Label>
           <Select
@@ -80,42 +86,6 @@ export function SubmissionDetailStep({
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="grid gap-3">
-          <Label>Target Audiens</Label>
-          <div className="grid gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-2">
-            {TARGET_AUDIENCE_OPTIONS.map((option) => {
-              const selected = draft.target_audiens.includes(option.value);
-
-              return (
-                <div
-                  key={option.value}
-                  className={cn(
-                    "flex items-start gap-3 rounded-xl border px-3 py-3 transition",
-                    selected
-                      ? "border-emerald-200 bg-emerald-50"
-                      : "border-border/70 bg-background hover:border-primary/30 hover:bg-primary/5",
-                    disableBriefFields && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <Checkbox
-                    checked={selected}
-                    disabled={disableBriefFields}
-                    onCheckedChange={(checked) =>
-                      onFieldChange(
-                        "target_audiens",
-                        checked
-                          ? [...draft.target_audiens, option.value]
-                          : draft.target_audiens.filter((item) => item !== option.value),
-                      )
-                    }
-                  />
-                  <span className="font-medium text-sm leading-5">{option.label}</span>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -146,30 +116,130 @@ export function SubmissionDetailStep({
         </div>
       </div>
 
-      <div className="space-y-3">
-        <Label>Tipe Konten</Label>
-        <div className="flex flex-wrap gap-3">
-          {CONTENT_ENTRY_TYPE_OPTIONS.map((option) => {
-            const selected = draft.tipe === option.value;
+      <div className="grid gap-4 rounded-2xl border border-border/70 bg-muted/20 p-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2">
+            <Label>Cakupan Visibilitas</Label>
+            <Select
+              value={draft.visibility_scope}
+              onValueChange={(value) =>
+                onFieldChange("visibility_scope", value as ContentSubmissionDraft["visibility_scope"])
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih cakupan visibilitas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="national">Nasional</SelectItem>
+                <SelectItem value="targeted_regions">Wilayah Tertentu</SelectItem>
+                <SelectItem value="internal_only">Internal Saja</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.visibility_scope && <p className="text-destructive text-xs">{errors.visibility_scope}</p>}
+          </div>
 
-            return (
-              <button
-                key={option.value}
-                type="button"
-                disabled={disableBriefFields}
-                className={cn(
-                  "rounded-2xl border px-4 py-3 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60",
-                  selected
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-border bg-background hover:border-primary/30 hover:bg-primary/5",
-                )}
-                onClick={() => onFieldChange("tipe", option.value)}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+          <div className="grid gap-2">
+            <Label>Cakupan Penugasan</Label>
+            <Select
+              value={draft.assignment_scope}
+              onValueChange={(value) =>
+                onFieldChange("assignment_scope", value as ContentSubmissionDraft["assignment_scope"])
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih cakupan penugasan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Tanpa Penugasan</SelectItem>
+                <SelectItem value="national">Nasional</SelectItem>
+                <SelectItem value="targeted_regions">Wilayah Tertentu</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.assignment_scope && <p className="text-destructive text-xs">{errors.assignment_scope}</p>}
+          </div>
         </div>
+
+        {draft.visibility_scope === "targeted_regions" && (
+          <div className="grid gap-3">
+            <Label>Target Wilayah Visibilitas</Label>
+            <div className="grid gap-3 rounded-2xl border border-border/70 bg-background p-4 sm:grid-cols-2">
+              {wilayahOptions.map((wilayah) => {
+                const selected = draft.visibility_target_wilayah_ids.includes(wilayah.id);
+
+                return (
+                  <div
+                    key={`visibility-${wilayah.id}`}
+                    className={cn(
+                      "flex items-start gap-3 rounded-xl border px-3 py-3 transition",
+                      selected
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-border/70 bg-background hover:border-primary/30 hover:bg-primary/5",
+                    )}
+                  >
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        onFieldChange(
+                          "visibility_target_wilayah_ids",
+                          checked === true
+                            ? [...draft.visibility_target_wilayah_ids, wilayah.id]
+                            : draft.visibility_target_wilayah_ids.filter((item) => item !== wilayah.id),
+                        )
+                      }
+                    />
+                    <span className="font-medium text-sm leading-5">
+                      {wilayah.nama} ({wilayah.kode})
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {errors.visibility_target_wilayah_ids && (
+              <p className="text-destructive text-xs">{errors.visibility_target_wilayah_ids}</p>
+            )}
+          </div>
+        )}
+
+        {draft.assignment_scope === "targeted_regions" && (
+          <div className="grid gap-3">
+            <Label>Target Wilayah Penugasan</Label>
+            <div className="grid gap-3 rounded-2xl border border-border/70 bg-background p-4 sm:grid-cols-2">
+              {wilayahOptions.map((wilayah) => {
+                const selected = draft.assignment_target_wilayah_ids.includes(wilayah.id);
+
+                return (
+                  <div
+                    key={`assignment-${wilayah.id}`}
+                    className={cn(
+                      "flex items-start gap-3 rounded-xl border px-3 py-3 transition",
+                      selected
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-border/70 bg-background hover:border-primary/30 hover:bg-primary/5",
+                    )}
+                  >
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        onFieldChange(
+                          "assignment_target_wilayah_ids",
+                          checked === true
+                            ? [...draft.assignment_target_wilayah_ids, wilayah.id]
+                            : draft.assignment_target_wilayah_ids.filter((item) => item !== wilayah.id),
+                        )
+                      }
+                    />
+                    <span className="font-medium text-sm leading-5">
+                      {wilayah.nama} ({wilayah.kode})
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {errors.assignment_target_wilayah_ids && (
+              <p className="text-destructive text-xs">{errors.assignment_target_wilayah_ids}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-2">

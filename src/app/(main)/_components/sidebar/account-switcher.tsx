@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Bell, CreditCard, LogOut } from "lucide-react";
+import { CreditCard, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,9 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
-import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut, useSession } from "@/lib/auth-client";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { cn, getInitials } from "@/lib/utils";
 
 export function AccountSwitcher() {
@@ -82,10 +82,6 @@ export function AccountSwitcher() {
             <DropdownMenuItem onClick={() => router.push("/akun/profil")}>
               <CreditCard />
               Akun
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell />
-              Notifications
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

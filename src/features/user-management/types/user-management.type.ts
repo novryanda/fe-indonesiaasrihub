@@ -1,4 +1,4 @@
-export type UserRole = "superadmin" | "sysadmin" | "qcc_wcc" | "wcc" | "pic_sosmed";
+export type UserRole = "superadmin" | "supervisi" | "sysadmin" | "qcc_wcc" | "wcc" | "pic_sosmed" | "blast";
 
 export type UserStatus = "aktif" | "nonaktif";
 
@@ -18,12 +18,59 @@ export interface UserItem {
   created_at: string;
 }
 
+export interface UserDetailActivityItem {
+  id: string;
+  action: string;
+  entity_name: string;
+  entity_id: string;
+  source: string;
+  method: string | null;
+  path: string | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface UserDetailSessionItem {
+  id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  last_seen_at: string;
+  expires_at: string;
+}
+
+export interface UserDetailData {
+  user: UserItem & {
+    display_username: string | null;
+    image: string | null;
+    wilayah: {
+      id: string;
+      nama: string;
+      kode: string;
+      level: string;
+    } | null;
+    updated_at: string;
+  };
+  summary: {
+    session_count: number;
+    audit_log_count: number;
+    delegated_social_account_count: number;
+    created_content_count: number;
+    posting_proof_count: number;
+    notification_count: number;
+  };
+  recent_sessions: UserDetailSessionItem[];
+  recent_activities: UserDetailActivityItem[];
+}
+
 export interface UsersStats {
   total: number;
   wcc: number;
   pic_sosmed: number;
+  supervisi: number;
   sysadmin: number;
   qcc_wcc: number;
+  blast: number;
   nonaktif: number;
 }
 

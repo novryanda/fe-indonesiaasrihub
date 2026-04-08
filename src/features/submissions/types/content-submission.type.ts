@@ -1,10 +1,9 @@
 import type {
+  BankContentAssignmentScope,
+  BankContentVisibilityScope,
   ContentDurasi,
   ContentJenis,
-  ContentJumlahFile,
   ContentPlatform,
-  ContentTargetAudiens,
-  ContentTipe,
   ContentUrgensi,
 } from "@/features/content-shared/types/content.type";
 
@@ -15,15 +14,15 @@ export interface ContentSubmissionPayload {
   topik: string;
   tanggal_posting: string;
   drive_link: string;
-  jumlah_file: ContentJumlahFile;
   caption: string;
   hashtags: string[];
   durasi_konten?: ContentDurasi | null;
-  target_audiens?: ContentTargetAudiens[];
   urgensi: ContentUrgensi;
-  tipe: ContentTipe;
+  visibility_scope: BankContentVisibilityScope;
+  assignment_scope: BankContentAssignmentScope;
+  visibility_target_wilayah_ids: string[];
+  assignment_target_wilayah_ids: string[];
   catatan_reviewer?: string | null;
-  thumbnail?: File | null;
 }
 
 export interface ValidateDriveLinkResponse {

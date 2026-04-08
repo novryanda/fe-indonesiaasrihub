@@ -26,7 +26,6 @@ import {
   formatDate,
   formatDateTime,
   formatJenisKontenLabel,
-  formatJumlahFileLabel,
   formatNumber,
   formatPlatformLabel,
   formatTopikLabel,
@@ -71,7 +70,13 @@ function formatAccessLabel(value: BankContentDetail["status_akses"]) {
 export function BankContentDetailView() {
   const params = useParams<{ id: string }>();
   const contentId = typeof params?.id === "string" ? params.id : "";
-  const { accessToken, isAuthorized, isPending } = useRoleGuard(["qcc_wcc", "wcc", "pic_sosmed", "superadmin"]);
+  const { accessToken, isAuthorized, isPending } = useRoleGuard([
+    "qcc_wcc",
+    "wcc",
+    "pic_sosmed",
+    "superadmin",
+    "supervisi",
+  ]);
 
   const [detail, setDetail] = useState<BankContentDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -157,7 +162,7 @@ export function BankContentDetailView() {
             <div className="space-y-3">
               <Badge
                 variant="outline"
-                className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
+                className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
               >
                 Konten / Detail Bank Konten
               </Badge>
@@ -227,57 +232,41 @@ export function BankContentDetailView() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="space-y-6">
           <Card className="overflow-hidden border-foreground/10">
-            <CardContent className="grid gap-5 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-              <div className="app-bg-media relative aspect-[16/10] overflow-hidden rounded-3xl">
-                {detail.thumbnail_url ? (
-                  // biome-ignore lint/performance/noImgElement: remote URL preview is acceptable for bank content detail
-                  <img src={detail.thumbnail_url} alt={detail.judul} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-                    <div className="flex size-16 items-center justify-center rounded-full border border-emerald-200 bg-background/75 dark:bg-card/75 font-semibold text-2xl text-emerald-700">
-                      {detail.judul.slice(0, 1).toUpperCase()}
-                    </div>
-                    <p className="px-6 text-xs">Preview thumbnail belum tersedia</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-5">
-                <div className="flex flex-wrap gap-2">
-                  {detail.platform.map((platform) => (
-                    <Badge
-                      key={platform}
-                      variant="outline"
-                      className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
-                    >
-                      {formatPlatformLabel(platform)}
-                    </Badge>
-                  ))}
-                  <Badge variant="outline" className="rounded-full px-3 py-1">
-                    {formatTopikLabel(detail.topik)}
+            <CardContent className="space-y-5 py-6">
+              <div className="flex flex-wrap gap-2">
+                {detail.platform.map((platform) => (
+                  <Badge
+                    key={platform}
+                    variant="outline"
+                    className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
+                  >
+                    {formatPlatformLabel(platform)}
                   </Badge>
-                </div>
-
-                <div className="rounded-3xl bg-muted/30 p-4">
-                  <p className="font-medium text-sm">Deskripsi</p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
-                    {detail.deskripsi?.trim() || "Deskripsi belum tersedia."}
-                  </p>
-                </div>
-
-                {detail.hashtags.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="font-medium text-sm">Hashtag</p>
-                    <div className="flex flex-wrap gap-2">
-                      {detail.hashtags.map((hashtag) => (
-                        <Badge key={hashtag} variant="secondary" className="rounded-full px-3 py-1">
-                          {hashtag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                ))}
+                <Badge variant="outline" className="rounded-full px-3 py-1">
+                  {formatTopikLabel(detail.topik)}
+                </Badge>
               </div>
+
+              <div className="rounded-3xl bg-muted/30 p-4">
+                <p className="font-medium text-sm">Deskripsi</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
+                  {detail.deskripsi?.trim() || "Deskripsi belum tersedia."}
+                </p>
+              </div>
+
+              {detail.hashtags.length > 0 && (
+                <div className="space-y-2">
+                  <p className="font-medium text-sm">Hashtag</p>
+                  <div className="flex flex-wrap gap-2">
+                    {detail.hashtags.map((hashtag) => (
+                      <Badge key={hashtag} variant="secondary" className="rounded-full px-3 py-1">
+                        {hashtag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -288,7 +277,6 @@ export function BankContentDetailView() {
             </CardHeader>
             <CardContent className="space-y-4">
               <DetailRow label="Jenis Konten" value={formatJenisKontenLabel(detail.jenis_konten as never)} />
-              <DetailRow label="Jumlah File" value={formatJumlahFileLabel(detail.jumlah_file)} />
               <DetailRow label="Regional Asal" value={detail.regional_asal} />
               <DetailRow label="Status Akses" value={formatAccessLabel(detail.status_akses)} />
               <DetailRow label="Uploader" value={detail.uploaded_by} />

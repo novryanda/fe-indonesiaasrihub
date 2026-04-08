@@ -23,12 +23,13 @@ function toSocialAccountQuery(filters: SocialAccountFilters) {
       filters.verification_status && filters.verification_status !== "all" ? filters.verification_status : undefined,
     delegation_status:
       filters.delegation_status && filters.delegation_status !== "all" ? filters.delegation_status : undefined,
+    search: filters.search?.trim() || undefined,
     page: filters.page ?? 1,
     limit: filters.limit ?? 20,
   };
 }
 
-export async function listSocialAccounts(filters: SocialAccountFilters) {
+export async function listSocialAccounts(filters: SocialAccountFilters, signal?: AbortSignal) {
   const response = await apiClient<
     Array<{
       id: string;
@@ -71,6 +72,8 @@ export async function listSocialAccounts(filters: SocialAccountFilters) {
       eselon_1: SocialAccountItem["eselon_1"];
       eselon_2: SocialAccountItem["eselon_2"];
       followers: number;
+      post_count: number | null;
+      following_count: number | null;
       description: string | null;
       is_verified: boolean;
       verification_status: SocialAccountItem["verification_status"];
@@ -81,6 +84,7 @@ export async function listSocialAccounts(filters: SocialAccountFilters) {
     }>,
     SocialAccountListMeta
   >("/v1/akun-sosmed", {
+    signal,
     params: toSocialAccountQuery(filters),
   });
 
@@ -111,6 +115,8 @@ export async function listSocialAccounts(filters: SocialAccountFilters) {
       eselon_1: item.eselon_1,
       eselon_2: item.eselon_2,
       followers: item.followers,
+      post_count: item.post_count,
+      following_count: item.following_count,
       description: item.description,
       is_verified: item.is_verified,
       verification_status: item.verification_status,

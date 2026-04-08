@@ -8,11 +8,9 @@ import type { ContentPlatform } from "@/features/content-shared/types/content.ty
 import {
   formatDate,
   formatJenisKontenLabel,
-  formatJumlahFileLabel,
   formatPlatformLabel,
   formatUrgensiLabel,
   getPlatformAccentClassName,
-  getUrgencyAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 
@@ -25,8 +23,6 @@ interface SubmissionSidebarSummaryProps {
   jenisKonten: string;
   tanggalPosting: string;
   urgensi: string;
-  hashtagCount: number;
-  jumlahFile: string;
 }
 
 export function SubmissionSidebarSummary({
@@ -36,8 +32,6 @@ export function SubmissionSidebarSummary({
   jenisKonten,
   tanggalPosting,
   urgensi,
-  hashtagCount,
-  jumlahFile,
 }: SubmissionSidebarSummaryProps) {
   return (
     <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -114,32 +108,6 @@ export function SubmissionSidebarSummary({
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Tip Reviewer</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            Tambahkan konteks singkat pada catatan reviewer jika konten memiliki angle sensitif, data pendukung, atau
-            tenggat khusus.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className={cn("rounded-full px-3 py-1", getUrgencyAccentClassName(urgensi as never))}
-            >
-              {formatUrgensiLabel(urgensi as never)}
-            </Badge>
-            <Badge variant="outline" className="rounded-full px-3 py-1">
-              {hashtagCount} hashtag
-            </Badge>
-            <Badge variant="outline" className="rounded-full px-3 py-1">
-              {formatJumlahFileLabel(jumlahFile as never)}
-            </Badge>
-          </div>
         </CardContent>
       </Card>
     </div>

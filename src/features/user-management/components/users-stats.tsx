@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import type { UsersStats } from "../types/user-management.type";
-import type { UserRole } from "../types/user-management.type";
+import type { UserRole, UsersStats } from "../types/user-management.type";
 
 interface UsersStatsProps {
   stats?: UsersStats;
@@ -12,8 +11,10 @@ const FALLBACK_STATS: UsersStats = {
   total: 0,
   wcc: 0,
   pic_sosmed: 0,
+  supervisi: 0,
   sysadmin: 0,
   qcc_wcc: 0,
+  blast: 0,
   nonaktif: 0,
 };
 
@@ -21,7 +22,7 @@ export function UsersStatsCards({ stats = FALLBACK_STATS, actorRole }: UsersStat
   const showSysadmin = actorRole !== "superadmin";
 
   return (
-    <div className={`grid gap-3 sm:grid-cols-2 ${showSysadmin ? "xl:grid-cols-6" : "xl:grid-cols-5"}`}>
+    <div className={`grid gap-3 sm:grid-cols-2 ${showSysadmin ? "xl:grid-cols-8" : "xl:grid-cols-7"}`}>
       <Card size="sm">
         <CardHeader>
           <CardTitle>Total User</CardTitle>
@@ -49,6 +50,15 @@ export function UsersStatsCards({ stats = FALLBACK_STATS, actorRole }: UsersStat
         </CardContent>
       </Card>
 
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Supervisi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-semibold text-2xl">{stats.supervisi}</p>
+        </CardContent>
+      </Card>
+
       {showSysadmin ? (
         <Card size="sm">
           <CardHeader>
@@ -66,6 +76,15 @@ export function UsersStatsCards({ stats = FALLBACK_STATS, actorRole }: UsersStat
         </CardHeader>
         <CardContent>
           <p className="font-semibold text-2xl">{stats.qcc_wcc}</p>
+        </CardContent>
+      </Card>
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Blast</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-semibold text-2xl">{stats.blast}</p>
         </CardContent>
       </Card>
 

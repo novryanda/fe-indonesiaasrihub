@@ -51,10 +51,10 @@ export function ReviewDecisionDialog({
   const actionLabel = isReject
     ? mode === "regional-review"
       ? "Tolak dan minta revisi"
-      : "Tolak final approval"
+      : "Tolak approval"
     : mode === "regional-review"
       ? "Setujui review regional"
-      : "Setujui final approval";
+      : "Setuju";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

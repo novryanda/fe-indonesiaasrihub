@@ -11,6 +11,7 @@ export type ApprovalBoardMode = "regional-review" | "final-approval";
 export interface ApprovalQueueFilters {
   search: string;
   platform: "all" | ContentPlatform;
+  topik: "all" | string;
   regional: "all" | string;
   dateFrom: string;
   dateTo: string;
@@ -41,6 +42,7 @@ export interface ApprovalQueueState {
   error: string | null;
   isMutatingItemId?: string;
   availableRegionals: string[];
+  availableTopics: string[];
 }
 
 export type ReviewHistoryState = {

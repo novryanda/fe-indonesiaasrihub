@@ -50,15 +50,15 @@ function createInitialDraft(): ContentSubmissionDraft {
     topik: "",
     tanggal_posting: "",
     drive_link: "",
-    jumlah_file: "1",
     caption: "",
     hashtags: [],
     durasi_konten: null,
-    target_audiens: [],
     urgensi: "normal",
-    tipe: "baru",
+    visibility_scope: "national",
+    assignment_scope: "none",
+    visibility_target_wilayah_ids: [],
+    assignment_target_wilayah_ids: [],
     catatan_reviewer: "",
-    thumbnail: null,
     review_confirmation: false,
   };
 }
@@ -71,15 +71,15 @@ function createDraftFromContent(content: ContentItem): ContentSubmissionDraft {
     topik: content.topik,
     tanggal_posting: content.tanggal_posting,
     drive_link: content.drive_link,
-    jumlah_file: content.jumlah_file,
     caption: content.caption ?? "",
     hashtags: content.hashtags ?? [],
     durasi_konten: content.durasi_konten ?? null,
-    target_audiens: content.target_audiens ?? [],
     urgensi: content.urgensi,
-    tipe: content.tipe,
+    visibility_scope: content.visibility_scope,
+    assignment_scope: content.assignment_scope,
+    visibility_target_wilayah_ids: content.visibility_target_wilayah_ids,
+    assignment_target_wilayah_ids: content.assignment_target_wilayah_ids,
     catatan_reviewer: "",
-    thumbnail: null,
     review_confirmation: false,
   };
 }
@@ -155,8 +155,6 @@ export function ContentSubmissionWizard({
       setDraft({
         ...baseDraft,
         ...parsed,
-        target_audiens: Array.isArray(parsed.target_audiens) ? parsed.target_audiens : baseDraft.target_audiens,
-        thumbnail: null,
         review_confirmation: false,
       });
     } catch {
@@ -326,12 +324,12 @@ export function ContentSubmissionWizard({
     <>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-6">
-          <Card className="overflow-hidden app-bg-hero app-border-soft">
+          <Card className="app-bg-hero app-border-soft overflow-hidden">
             <CardContent className="space-y-8 px-6 py-8 md:px-8">
               <div className="space-y-4">
                 <Badge
                   variant="outline"
-                  className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
+                  className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
                 >
                   {isResubmitMode ? "WCC / Resubmit Konten" : "WCC / Submit Konten Baru"}
                 </Badge>
@@ -351,7 +349,7 @@ export function ContentSubmissionWizard({
             </CardContent>
           </Card>
 
-          {isResubmitMode && (
+          {/* {isResubmitMode && (
             <Alert className="border-amber-200 bg-amber-50 text-amber-900">
               <AlertCircle className="size-4" />
               <AlertTitle>Resubmit harus lewat wizard penuh</AlertTitle>
@@ -360,7 +358,7 @@ export function ContentSubmissionWizard({
                 dikirim ulang ke final approval.
               </AlertDescription>
             </Alert>
-          )}
+          )} */}
 
           {isResubmitMode && initialContent?.catatan_reviewer && (
             <Alert className="border-amber-200 bg-amber-50/70 text-amber-900">
@@ -419,10 +417,7 @@ export function ContentSubmissionWizard({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    window.localStorage.setItem(
-                      storageKey,
-                      JSON.stringify({ ...draft, thumbnail: null, review_confirmation: false }),
-                    );
+                    window.localStorage.setItem(storageKey, JSON.stringify({ ...draft, review_confirmation: false }));
                     toast.success("Draft lokal berhasil disimpan di browser ini.");
                   }}
                   disabled={isSubmitting}
@@ -465,8 +460,6 @@ export function ContentSubmissionWizard({
           jenisKonten={draft.jenis_konten}
           tanggalPosting={draft.tanggal_posting}
           urgensi={draft.urgensi}
-          hashtagCount={draft.hashtags.length}
-          jumlahFile={draft.jumlah_file}
         />
       </div>
 

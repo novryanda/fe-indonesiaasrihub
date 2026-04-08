@@ -38,31 +38,52 @@ export function useUsers(accessToken?: string) {
   const [data, setData] = useState<ListUsersData | null>(null);
   const [meta, setMeta] = useState<ListUsersMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const query = useMemo(() => toQuery(filters), [filters]);
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const fetchUsers = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await getUsers(query, accessToken);
-      setData(response.data);
-      setMeta(response.meta ?? null);
-    } catch (errorValue) {
-      if (errorValue instanceof ApiError) {
-        setError(errorValue.message);
-      } else {
-        setError("Gagal memuat data user");
+      try {
+        const response = await getUsers(query, accessToken, signal);
+
+        if (signal?.aborted) {
+          return;
+        }
+
+        setData(response.data);
+        setMeta(response.meta ?? null);
+      } catch (errorValue) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        if (errorValue instanceof ApiError) {
+          setError(errorValue.message);
+        } else {
+          setError("Gagal memuat data user");
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setHasFetchedOnce(true);
+          setIsLoading(false);
+        }
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [accessToken, query]);
+    },
+    [accessToken, query],
+  );
 
   useEffect(() => {
-    void fetchUsers();
+    const controller = new AbortController();
+    void fetchUsers(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [fetchUsers]);
 
   const updateFilters = useCallback((updater: (previous: UsersFilterState) => UsersFilterState) => {
@@ -74,9 +95,11 @@ export function useUsers(accessToken?: string) {
     stats: data?.stats,
     meta,
     isLoading,
+    isInitialLoading: isLoading && !hasFetchedOnce,
+    isSearching: isLoading && hasFetchedOnce && Boolean(filters.search.trim()),
     error,
     filters,
     setFilters: updateFilters,
-    refetch: fetchUsers,
+    refetch: () => fetchUsers(),
   };
 }

@@ -18,9 +18,12 @@ import type {
 const INITIAL_FILTERS: BankContentFilters = {
   platform: "all",
   topik: "all",
+  wilayah_id: "all",
+  date_from: "",
+  date_to: "",
   search: "",
   page: 1,
-  limit: 12,
+  limit: 20,
 };
 
 export function useContentLibrary(accessToken?: string) {

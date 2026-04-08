@@ -1,9 +1,4 @@
-export type AnalyticsPlatform =
-  | "instagram"
-  | "tiktok"
-  | "youtube"
-  | "facebook"
-  | "x";
+export type AnalyticsPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | "x";
 
 export type AnalyticsFilterParams = {
   month: number;
@@ -126,7 +121,6 @@ export type RegionalDetailResponse = {
   }>;
   top_content: Array<{
     id: string;
-    thumbnailUrl: string | null;
     title: string;
     wccName: string;
     platform: AnalyticsPlatform;

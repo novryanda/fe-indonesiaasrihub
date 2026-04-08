@@ -13,18 +13,49 @@ function resolveAuthErrorMessage(payload: unknown, fallback = "Gagal mengubah pa
   }
 
   const payloadRecord = payload as Record<string, unknown>;
-  if (typeof payloadRecord.message === "string") {
-    return payloadRecord.message;
-  }
+  const directMessage = typeof payloadRecord.message === "string" ? payloadRecord.message : null;
+  const directCode = typeof payloadRecord.code === "string" ? payloadRecord.code : null;
 
   if (payloadRecord.error && typeof payloadRecord.error === "object") {
     const errorRecord = payloadRecord.error as Record<string, unknown>;
-    if (typeof errorRecord.message === "string") {
-      return errorRecord.message;
+    const nestedMessage = typeof errorRecord.message === "string" ? errorRecord.message : null;
+    const nestedCode = typeof errorRecord.code === "string" ? errorRecord.code : null;
+
+    const resolved = mapAuthErrorMessage(nestedMessage, nestedCode);
+    if (resolved) {
+      return resolved;
     }
   }
 
+  const resolved = mapAuthErrorMessage(directMessage, directCode);
+  if (resolved) {
+    return resolved;
+  }
+
   return fallback;
+}
+
+function mapAuthErrorMessage(message: string | null, code: string | null) {
+  const normalizedMessage = message?.toLowerCase() ?? "";
+  const normalizedCode = code?.toLowerCase() ?? "";
+
+  if (
+    normalizedCode.includes("username_is_already_taken") ||
+    normalizedMessage.includes("username is already taken") ||
+    normalizedMessage.includes("username already exists")
+  ) {
+    return "Username sudah digunakan, gunakan yang lain.";
+  }
+
+  if (
+    normalizedCode.includes("user_already_exists") ||
+    normalizedMessage.includes("user already exists. use another email") ||
+    normalizedMessage.includes("email already exists")
+  ) {
+    return "Email sudah digunakan, gunakan email yang lain.";
+  }
+
+  return message;
 }
 
 export async function getMyAccountProfile() {

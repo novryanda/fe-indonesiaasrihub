@@ -2,6 +2,11 @@
 
 import type { NextRequest } from "next/server";
 
+import {
+  DEVICE_LOCATION_COOKIE_NAME,
+  isDeviceLocationSnapshotFresh,
+  parseDeviceLocationSnapshot,
+} from "@/lib/device-location";
 import { getRequiredEnv, normalizeBaseUrl } from "@/lib/env";
 
 const BACKEND_BASE_URL = normalizeBaseUrl(getRequiredEnv("API_BASE_URL"));
@@ -34,6 +39,8 @@ function buildForwardHeaders(request: NextRequest, hasBody: boolean) {
   const forwardedProtoHeader = request.headers.get("x-forwarded-proto");
   const realIpHeader = request.headers.get("x-real-ip");
   const userAgentHeader = request.headers.get("user-agent");
+  const deviceLocationCookie = request.cookies.get(DEVICE_LOCATION_COOKIE_NAME)?.value;
+  const deviceLocation = parseDeviceLocationSnapshot(deviceLocationCookie);
 
   if (cookieHeader) {
     headers.set("cookie", cookieHeader);
@@ -77,6 +84,17 @@ function buildForwardHeaders(request: NextRequest, hasBody: boolean) {
     headers.set("user-agent", userAgentHeader);
   }
 
+  if (deviceLocation && isDeviceLocationSnapshotFresh(deviceLocation)) {
+    headers.set("x-device-latitude", String(deviceLocation.latitude));
+    headers.set("x-device-longitude", String(deviceLocation.longitude));
+
+    if (deviceLocation.accuracy !== null) {
+      headers.set("x-device-accuracy", String(deviceLocation.accuracy));
+    }
+
+    headers.set("x-device-located-at", deviceLocation.capturedAt);
+  }
+
   headers.set(INTERNAL_API_HEADER_NAME, INTERNAL_API_HEADER_VALUE);
   return headers;
 }
@@ -106,13 +124,13 @@ export async function forwardRequestToBackend(
 
   const responseBody = await response.arrayBuffer();
   const responseHeaders = new Headers(response.headers);
-  
+
   // Clean up problematic headers that fetch node might have decompressed
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
   responseHeaders.delete("transfer-encoding");
 
-  return new Response(responseBody.byteLength > 0 ? responseBody : undefined, { 
+  return new Response(responseBody.byteLength > 0 ? responseBody : undefined, {
     status: response.status,
     headers: responseHeaders,
   });

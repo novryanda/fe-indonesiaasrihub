@@ -1,15 +1,5 @@
 import { z } from "zod";
 
-const fileSchema = z
-  .custom<File | null | undefined>((value) => value == null || value instanceof File, {
-    message: "File thumbnail tidak valid",
-  })
-  .refine((value) => !value || value.size <= 2 * 1024 * 1024, "Ukuran thumbnail maksimal 2MB")
-  .refine(
-    (value) => !value || ["image/jpeg", "image/png", "image/webp"].includes(value.type),
-    "Thumbnail harus berformat JPG, PNG, atau WebP",
-  );
-
 export const bankContentSchema = z
   .object({
     judul: z.string().trim().min(3, "Judul minimal 3 karakter").max(120, "Judul maksimal 120 karakter"),
@@ -31,22 +21,30 @@ export const bankContentSchema = z
       .string()
       .url("Link Google Drive tidak valid")
       .refine((value) => value.includes("drive.google.com"), "Gunakan link Google Drive"),
-    jumlah_file: z.enum(["1", "2-3", "4-5", "folder"], {
-      message: "Jumlah file wajib dipilih",
+    visibility_scope: z.enum(["national", "targeted_regions", "internal_only"], {
+      message: "Cakupan visibilitas wajib dipilih",
     }),
-    status_akses: z.enum(["publik", "terbatas"], {
-      message: "Status akses wajib dipilih",
+    assignment_scope: z.enum(["none", "national", "targeted_regions"], {
+      message: "Cakupan penugasan wajib dipilih",
     }),
-    regional_terbatas: z.array(z.string()).default([]),
+    visibility_target_wilayah_ids: z.array(z.string()).default([]),
+    assignment_target_wilayah_ids: z.array(z.string()).default([]),
     hashtags: z.array(z.string()).default([]),
-    thumbnail: fileSchema.optional(),
   })
   .superRefine((value, context) => {
-    if (value.status_akses === "terbatas" && value.regional_terbatas.length === 0) {
+    if (value.visibility_scope === "targeted_regions" && value.visibility_target_wilayah_ids.length === 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["regional_terbatas"],
-        message: "Isi minimal satu regional jika akses dibatasi.",
+        path: ["visibility_target_wilayah_ids"],
+        message: "Isi minimal satu target visibility jika visibility scope targeted.",
+      });
+    }
+
+    if (value.assignment_scope === "targeted_regions" && value.assignment_target_wilayah_ids.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["assignment_target_wilayah_ids"],
+        message: "Isi minimal satu target assignment jika assignment scope targeted.",
       });
     }
   });

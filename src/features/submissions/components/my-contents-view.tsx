@@ -4,19 +4,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import {
-  CalendarClock,
-  Clock3,
-  ExternalLink,
-  FileStack,
-  FolderOpen,
-  History,
-  ImageOff,
-  Plus,
-  RefreshCcw,
-  Search,
-  Send,
-} from "lucide-react";
+import { CalendarClock, FolderOpen, History, Plus, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,18 +13,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { ReviewHistoryDialog } from "@/features/approval/components/review-history-dialog";
+import { PlatformIconList } from "@/features/content-shared/components/platform-icon";
 import type { ContentItem, ContentStatus } from "@/features/content-shared/types/content.type";
 import {
   formatContentStatusLabel,
   formatDate,
   formatPlatformLabel,
-  formatTimeAgo,
   formatTopikLabel,
-  formatUrgensiLabel,
-  getPlatformAccentClassName,
   getStatusAccentClassName,
-  getUrgencyAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
@@ -104,140 +91,6 @@ function getStatusSummary(items: ContentItem[]) {
   );
 }
 
-function getStatusHeadline(status: ContentStatus) {
-  switch (status) {
-    case "menunggu_final":
-      return "Konten sedang menunggu keputusan final dari superadmin.";
-    case "disetujui":
-      return "Konten sudah disetujui dan masuk ke alur distribusi bank konten.";
-    case "revisi":
-      return "Konten perlu disesuaikan kembali sebelum diajukan ulang.";
-    case "ditolak":
-      return "Konten ditolak pada proses review terakhir.";
-    default:
-      return "Konten masih berada pada tahap draft.";
-  }
-}
-
-function SubmissionCard({ item, onOpenHistory }: { item: ContentItem; onOpenHistory: (item: ContentItem) => void }) {
-  return (
-    <Card className="overflow-hidden border-foreground/10">
-      <CardContent className="grid gap-5 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="app-bg-media relative aspect-[4/3] overflow-hidden rounded-3xl border">
-          {item.thumbnail_url ? (
-            // biome-ignore lint/performance/noImgElement: preview thumbnail comes from backend file path or remote URL
-            <img src={item.thumbnail_url} alt={item.judul} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground">
-              <div className="flex size-14 items-center justify-center rounded-full bg-background/75 text-emerald-700 dark:bg-card/75">
-                <ImageOff className="size-6" />
-              </div>
-              <p className="text-xs">Thumbnail belum tersedia</p>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="rounded-full px-3 py-1">
-                  {item.submission_code}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn("rounded-full px-3 py-1", getStatusAccentClassName(item.status))}
-                >
-                  {formatContentStatusLabel(item.status)}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn("rounded-full px-3 py-1", getUrgencyAccentClassName(item.urgensi))}
-                >
-                  {formatUrgensiLabel(item.urgensi)}
-                </Badge>
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="font-semibold text-xl tracking-tight">{item.judul}</h2>
-                <p className="max-w-3xl text-muted-foreground text-sm leading-6">{getStatusHeadline(item.status)}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-muted-foreground text-xs">
-              <p className="inline-flex items-center gap-2">
-                <Clock3 className="size-3.5" />
-                Disubmit {formatTimeAgo(item.created_at)}
-              </p>
-              <p className="inline-flex items-center gap-2">
-                <CalendarClock className="size-3.5" />
-                Target posting {formatDate(item.tanggal_posting)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {item.platform.map((platform) => (
-              <Badge
-                key={platform}
-                variant="outline"
-                className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
-              >
-                {formatPlatformLabel(platform)}
-              </Badge>
-            ))}
-            <Badge variant="outline" className="rounded-full px-3 py-1">
-              {formatTopikLabel(item.topik)}
-            </Badge>
-          </div>
-
-          <div className="rounded-3xl bg-muted/30 p-4">
-            <p className="line-clamp-3 text-sm leading-6">{item.caption || "Caption belum tersedia."}</p>
-          </div>
-
-          {item.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {item.hashtags.slice(0, 5).map((hashtag) => (
-                <Badge key={hashtag} variant="secondary" className="rounded-full px-3 py-1">
-                  {hashtag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {item.catatan_reviewer && (
-            <div className="rounded-2xl border border-dashed bg-amber-50/50 px-4 py-3">
-              <p className="font-medium text-sm">Catatan review terakhir</p>
-              <p className="mt-1 text-muted-foreground text-sm leading-6">{item.catatan_reviewer}</p>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2 border-border/60 border-t pt-4">
-            {["revisi", "ditolak"].includes(item.status) && (
-              <Button asChild>
-                <Link href={`/aksi/submit-konten?mode=resubmit&contentId=${item.id}`}>
-                  <RefreshCcw className="mr-2 size-4" />
-                  Resubmit
-                </Link>
-              </Button>
-            )}
-            <Button variant="outline" asChild>
-              <Link href={item.drive_link} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-2 size-4" />
-                Buka Drive
-              </Link>
-            </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenHistory(item)}>
-              <History className="mr-2 size-4" />
-              Riwayat Review
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function MyContentsView() {
   const { isAuthorized, isPending } = useRoleGuard(["wcc"]);
   const { items, meta, filters, setFilters, isLoading, error, loadHistory } = useMyContents();
@@ -287,15 +140,15 @@ export function MyContentsView() {
               <div className="space-y-3">
                 <Badge
                   variant="outline"
-                  className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
+                  className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
                 >
                   WCC / Konten Saya
                 </Badge>
                 <div className="space-y-2">
                   <h1 className="font-semibold text-3xl tracking-tight">Daftar Submission Konten</h1>
                   <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                    Pantau semua konten yang sudah Anda kirim, cek status review terbaru, dan buka ulang folder kerja
-                    dari satu tempat.
+                    Pantau seluruh submission Anda, lihat status review terakhir, dan buka riwayat approval dari satu
+                    tabel operasional.
                   </p>
                 </div>
               </div>
@@ -306,15 +159,6 @@ export function MyContentsView() {
                   Submit Konten Baru
                 </Link>
               </Button>
-            </div>
-
-            <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
-              <p className="font-medium text-emerald-800 text-sm">
-                {meta?.total ?? items.length} submission tercatat untuk akun Anda.
-              </p>
-              <p className="mt-1 text-emerald-700/80 text-sm">
-                Gunakan filter untuk fokus ke konten yang masih direview, perlu revisi, atau sudah lolos ke bank konten.
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -329,14 +173,14 @@ export function MyContentsView() {
           <SummaryCard
             title="Sedang Direview"
             value={`${summary.inReview}`}
-            hint="Berdasarkan hasil filter halaman ini"
+            hint="Konten menunggu final approval"
             icon={<Send className="size-5" />}
           />
           <SummaryCard
             title="Perlu Tindak Lanjut"
             value={`${summary.needsAttention}`}
-            hint="Konten revisi atau ditolak"
-            icon={<FileStack className="size-5" />}
+            hint="Status revisi atau ditolak"
+            icon={<History className="size-5" />}
           />
           <SummaryCard
             title="Sudah Disetujui"
@@ -409,92 +253,124 @@ export function MyContentsView() {
           </CardContent>
         </Card>
 
-        {error ? (
-          <Card>
-            <CardContent className="py-6 text-destructive">{error}</CardContent>
-          </Card>
-        ) : isLoading ? (
-          <Card>
-            <CardContent className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-              <Spinner />
-              <span>Memuat daftar submission...</span>
-            </CardContent>
-          </Card>
-        ) : items.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="space-y-4 py-14 text-center">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
-                <FolderOpen className="size-7" />
+        <Card>
+          <CardContent className="space-y-4 py-6">
+            {error ? (
+              <div className="text-destructive text-sm">{error}</div>
+            ) : isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Spinner />
+                <span>Memuat daftar submission...</span>
               </div>
-              <div className="space-y-2">
-                <h2 className="font-semibold text-lg">Belum ada submission yang cocok</h2>
-                <p className="mx-auto max-w-md text-muted-foreground text-sm leading-6">
-                  Ubah filter pencarian atau kirim konten baru agar daftar submission WCC mulai terisi.
-                </p>
-              </div>
-              <Button asChild>
-                <Link href="/aksi/submit-konten">
-                  <Plus className="mr-2 size-4" />
-                  Submit Konten Baru
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {items.map((item) => (
-              <SubmissionCard
-                key={item.id}
-                item={item}
-                onOpenHistory={async (selectedItem) => {
-                  setHistoryState({ open: true, title: selectedItem.judul, loading: true, items: [] });
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Submission</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Platform</TableHead>
+                    <TableHead>Topik</TableHead>
+                    <TableHead>Tanggal Posting</TableHead>
+                    <TableHead>Catatan Review</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                        Belum ada submission yang cocok dengan filter saat ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="max-w-80 align-top">
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="rounded-full px-3 py-1">
+                              {item.submission_code}
+                            </Badge>
+                            <p className="line-clamp-2 whitespace-normal font-medium">{item.judul}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge
+                            variant="outline"
+                            className={cn("rounded-full px-3 py-1", getStatusAccentClassName(item.status))}
+                          >
+                            {formatContentStatusLabel(item.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <PlatformIconList platforms={item.platform} className="max-w-48" />
+                        </TableCell>
+                        <TableCell className="align-top">{formatTopikLabel(item.topik)}</TableCell>
+                        <TableCell className="align-top">{formatDate(item.tanggal_posting)}</TableCell>
+                        <TableCell className="max-w-72 align-top">
+                          <p className="line-clamp-2 whitespace-normal text-muted-foreground text-sm">
+                            {item.catatan_reviewer || "-"}
+                          </p>
+                        </TableCell>
+                        <TableCell className="align-top">{formatDate(item.updated_at)}</TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex justify-end gap-2">
+                            {["revisi", "ditolak"].includes(item.status) ? (
+                              <Button asChild size="sm">
+                                <Link href={`/aksi/submit-konten?mode=resubmit&contentId=${item.id}`}>Resubmit</Link>
+                              </Button>
+                            ) : null}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                setHistoryState({ open: true, title: item.judul, loading: true, items: [] });
 
-                  try {
-                    const historyItems = await loadHistory(selectedItem.id);
-                    setHistoryState({
-                      open: true,
-                      title: selectedItem.judul,
-                      loading: false,
-                      items: historyItems,
-                    });
-                  } catch (errorValue) {
-                    toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat riwayat review");
-                    setHistoryState({
-                      open: true,
-                      title: selectedItem.judul,
-                      loading: false,
-                      items: [],
-                    });
-                  }
-                }}
-              />
-            ))}
-          </div>
-        )}
+                                try {
+                                  const historyItems = await loadHistory(item.id);
+                                  setHistoryState({
+                                    open: true,
+                                    title: item.judul,
+                                    loading: false,
+                                    items: historyItems,
+                                  });
+                                } catch (errorValue) {
+                                  toast.error(
+                                    errorValue instanceof Error ? errorValue.message : "Gagal memuat riwayat review",
+                                  );
+                                  setHistoryState({
+                                    open: true,
+                                    title: item.judul,
+                                    loading: false,
+                                    items: [],
+                                  });
+                                }
+                              }}
+                            >
+                              <History className="mr-2 size-4" />
+                              Riwayat
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
         <Card size="sm">
-          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm">
-              Halaman {filters.page} dari {totalPages} {meta ? `(${meta.total} total submission)` : ""}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters((previous) => ({ ...previous, page: Math.max(1, previous.page - 1) }))}
-                disabled={filters.page <= 1 || isLoading}
-              >
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters((previous) => ({ ...previous, page: previous.page + 1 }))}
-                disabled={filters.page >= totalPages || isLoading}
-              >
-                Berikutnya
-              </Button>
-            </div>
+          <CardContent>
+            <TablePagination
+              summary={`Halaman ${filters.page} dari ${totalPages}${meta ? ` (${meta.total} total submission)` : ""}`}
+              page={filters.page}
+              totalPages={totalPages}
+              disabled={isLoading}
+              onPageChange={(nextPage) => setFilters((previous) => ({ ...previous, page: nextPage }))}
+            />
           </CardContent>
         </Card>
       </div>

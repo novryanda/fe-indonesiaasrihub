@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { Clock3, ExternalLink, FileText, History, Search, ShieldCheck } from "lucide-react";
+import { ExternalLink, FileText, History, Search, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { PlatformIconList } from "@/features/content-shared/components/platform-icon";
 import {
   formatContentStatusLabel,
   formatDate,
@@ -20,12 +23,12 @@ import {
   formatTimeAgo,
   formatTopikLabel,
   formatUrgensiLabel,
-  getPlatformAccentClassName,
   getStatusAccentClassName,
   getUrgencyAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
+import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import { useContentQueue } from "../hooks/use-content-queue";
 import type { ApprovalBoardMode, ReviewDecisionPayload } from "../types/content-approval.type";
@@ -37,42 +40,20 @@ function getBoardConfig(mode: ApprovalBoardMode) {
     ? {
         title: "Review Konten",
         subtitle: "Admin Regional / Review Konten",
-        description: "Halaman ini hanya dipakai untuk backlog lama yang masih berada di tahap review regional.",
+        description: "Backlog lama yang masih membutuhkan review regional sebelum maju ke approval final.",
         allowedRoles: ["qcc_wcc"] as const,
         primaryActionLabel: "Setujui Review",
         detailHref: (contentId: string) => `/dashboard/review-konten/${contentId}`,
       }
     : {
-        title: "Final Approval",
-        subtitle: "Superadmin / Final Approval",
-        description: "Setujui konten yang diajukan oleh WCC.",
-        allowedRoles: ["superadmin"] as const,
-        primaryActionLabel: "Setujui Final",
+        title: "Approval",
+        subtitle: "Superadmin & Supervisi / Approval",
+        description:
+          "Setujui konten WCC berdasarkan brief dan konfigurasi distribusi yang sudah ditentukan saat submit.",
+        allowedRoles: ["superadmin", "supervisi"] as const,
+        primaryActionLabel: "Setuju",
         detailHref: (contentId: string) => `/dashboard/approval/${contentId}`,
       };
-}
-
-function StageBadges({ mode }: { mode: ApprovalBoardMode }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      <Badge className="rounded-full bg-emerald-600 px-3 py-1 text-white">WCC</Badge>
-      {mode === "regional-review" && (
-        <Badge className="rounded-full bg-emerald-600 px-3 py-1 text-white">QCC/WCC</Badge>
-      )}
-      <Badge
-        className={
-          mode === "final-approval"
-            ? "rounded-full bg-emerald-600 px-3 py-1 text-white"
-            : "rounded-full border border-border px-3 py-1"
-        }
-      >
-        Superadmin
-      </Badge>
-      <Badge variant="outline" className="rounded-full px-3 py-1">
-        Bank Konten
-      </Badge>
-    </div>
-  );
 }
 
 export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
@@ -87,10 +68,10 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
     error,
     isMutatingItemId,
     availableRegionals,
+    availableTopics,
     decide,
     loadHistory,
   } = useContentQueue(mode, accessToken);
-
   const [decisionState, setDecisionState] = useState<{
     itemId: string;
     title: string;
@@ -107,14 +88,31 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
     loading: false,
     items: [],
   });
+  const tableState = useMemo(() => ({ items, meta }), [items, meta]);
+  const { displayData, isInitialLoading, isRefreshing } = useSmoothTableData(tableState, isLoading);
+  const displayedItems = displayData.items;
+  const displayedMeta = displayData.meta;
 
   const totalPages = useMemo(() => {
-    if (!meta) {
+    if (!displayedMeta) {
       return 1;
     }
 
-    return Math.max(1, Math.ceil(meta.total / meta.limit));
-  }, [meta]);
+    return Math.max(1, Math.ceil(displayedMeta.total / displayedMeta.limit));
+  }, [displayedMeta]);
+
+  const hasActiveFilters =
+    Boolean(filters.search.trim()) ||
+    filters.topik !== "all" ||
+    filters.platform !== "all" ||
+    filters.regional !== "all" ||
+    Boolean(filters.dateFrom) ||
+    Boolean(filters.dateTo);
+  const loadingLabel = filters.search.trim()
+    ? "Mencari konten..."
+    : hasActiveFilters
+      ? "Memuat hasil filter..."
+      : "Memuat antrian konten...";
 
   if (isPending) {
     return (
@@ -133,10 +131,13 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
 
   return (
     <>
-      <div className="space-y-6">
-        <Card className="app-bg-hero app-border-soft">
-          <CardContent className="space-y-4 px-6 py-8 md:px-8">
-            <Badge variant="outline" className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700">
+      <section className="min-w-0 space-y-6">
+        <Card className="app-bg-hero app-border-soft overflow-hidden">
+          <CardContent className="min-w-0 space-y-4 px-6 py-8 md:px-8">
+            <Badge
+              variant="outline"
+              className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+            >
               {config.subtitle}
             </Badge>
             <div className="space-y-2">
@@ -145,15 +146,15 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
             </div>
             <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
               <p className="font-medium text-emerald-800 text-sm">
-                {meta?.total ?? items.length} konten menunggu{" "}
-                {mode === "final-approval" ? "final approval" : "final approval"}.
+                {displayedMeta?.total ?? displayedItems.length} konten menunggu{" "}
+                {mode === "final-approval" ? "approval" : "review"}.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="grid gap-3 py-6 lg:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,0.8fr))_repeat(2,minmax(0,0.7fr))]">
+        <Card className="overflow-hidden border-foreground/10">
+          <CardContent className="grid min-w-0 gap-3 py-6 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.8fr))_repeat(2,minmax(0,0.7fr))]">
             <div className="relative">
               <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
               <Input
@@ -169,6 +170,23 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
                 }
               />
             </div>
+
+            <Select
+              value={filters.topik}
+              onValueChange={(value) => setFilters((previous) => ({ ...previous, topik: value, page: 1 }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Semua Topik" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Topik</SelectItem>
+                {availableTopics.map((topic) => (
+                  <SelectItem key={topic} value={topic}>
+                    {formatTopikLabel(topic)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select
               value={filters.platform}
@@ -195,13 +213,13 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
                 onValueChange={(value) => setFilters((previous) => ({ ...previous, regional: value, page: 1 }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Semua Regional" />
+                  <SelectValue placeholder="Semua Wilayah" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Semua Regional</SelectItem>
+                  <SelectItem value="all">Semua Wilayah</SelectItem>
                   {availableRegionals.map((regional) => (
-                    <SelectItem key={regional} value={regional}>
-                      {regional}
+                    <SelectItem key={regional.id} value={regional.id}>
+                      {regional.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,166 +241,216 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
           </CardContent>
         </Card>
 
-        {error ? (
-          <Card>
-            <CardContent className="py-6 text-destructive">{error}</CardContent>
-          </Card>
-        ) : isLoading ? (
-          <Card>
-            <CardContent className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-              <Spinner />
-              <span>Memuat antrian konten...</span>
-            </CardContent>
-          </Card>
-        ) : items.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground text-sm">
-              Tidak ada konten yang cocok dengan filter saat ini.
-            </CardContent>
-          </Card>
-        ) : (
-          items.map((item) => (
-            <Card key={item.id} className="overflow-hidden border-foreground/10">
-              <CardContent className="space-y-5 py-6">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold text-xl">{item.judul}</h2>
-                      {item.platform.map((platform) => (
-                        <Badge
-                          key={platform}
-                          variant="outline"
-                          className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
-                        >
-                          {formatPlatformLabel(platform)}
-                        </Badge>
-                      ))}
-                      <Badge
-                        variant="outline"
-                        className={cn("rounded-full px-3 py-1", getStatusAccentClassName(item.status))}
-                      >
-                        {formatContentStatusLabel(item.status)}
-                      </Badge>
+        <Card className="overflow-hidden border-foreground/10">
+          <CardContent className="min-w-0 space-y-4 py-6">
+            {error ? (
+              <div className="text-destructive text-sm">{error}</div>
+            ) : isInitialLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Spinner />
+                <span>Memuat antrian konten...</span>
+              </div>
+            ) : (
+              <div className="relative">
+                {isRefreshing ? (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
+                    <div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
+                      <Spinner />
+                      <span>{loadingLabel}</span>
                     </div>
-                    <p className="text-muted-foreground text-sm">
-                      {item.officer.name} • {item.officer.regional ?? "Regional belum tersedia"} •{" "}
-                      {formatTimeAgo(item.created_at)}
-                    </p>
                   </div>
+                ) : null}
 
-                  <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                    <Clock3 className="size-3.5" />
-                    {formatDate(item.created_at)}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-muted/30 p-4 text-sm leading-6">
-                  {item.caption || "Caption belum tersedia."}
-                </div>
-
-                <div className="flex flex-wrap gap-2 text-sm">
-                  <Badge variant="outline" className="rounded-full px-3 py-1">
-                    {formatTopikLabel(item.topik)}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn("rounded-full px-3 py-1", getUrgencyAccentClassName(item.urgensi))}
-                  >
-                    {formatUrgensiLabel(item.urgensi)}
-                  </Badge>
-                  <Badge variant="outline" className="rounded-full px-3 py-1">
-                    Posting {formatDate(item.tanggal_posting)}
-                  </Badge>
-                </div>
-
-                {item.catatan_reviewer && (
-                  <div className="rounded-2xl border border-dashed px-4 py-3 text-sm">
-                    <p className="font-medium">Catatan WCC</p>
-                    <p className="mt-1 text-muted-foreground">{item.catatan_reviewer}</p>
-                  </div>
-                )}
-
-                <StageBadges mode={mode} />
-
-                <div className="flex flex-wrap gap-2 border-border/60 border-t pt-4">
-                  <Button
-                    type="button"
-                    onClick={() => setDecisionState({ itemId: item.id, title: item.judul, action: "approved" })}
-                    disabled={isMutatingItemId === item.id}
-                  >
-                    {isMutatingItemId === item.id && <Spinner className="mr-2" />}
-                    <ShieldCheck className="mr-2 size-4" />
-                    {config.primaryActionLabel}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => setDecisionState({ itemId: item.id, title: item.judul, action: "rejected" })}
-                    disabled={isMutatingItemId === item.id}
-                  >
-                    Tolak
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href={config.detailHref(item.id)}>
-                      <FileText className="mr-2 size-4" />
-                      Detail
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href={item.drive_link} target="_blank" rel="noreferrer">
-                      <ExternalLink className="mr-2 size-4" />
-                      Buka Drive
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={async () => {
-                      setHistoryState({ open: true, title: item.judul, loading: true, items: [] });
-                      try {
-                        const historyItems = await loadHistory(item.id);
-                        setHistoryState({ open: true, title: item.judul, loading: false, items: historyItems });
-                      } catch (errorValue) {
-                        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat riwayat review");
-                        setHistoryState({ open: true, title: item.judul, loading: false, items: [] });
-                      }
-                    }}
-                  >
-                    <History className="mr-2 size-4" />
-                    Riwayat Review
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-
-        <Card size="sm">
-          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm">
-              Halaman {filters.page} dari {totalPages} {meta ? `(${meta.total} total konten)` : ""}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters((previous) => ({ ...previous, page: Math.max(1, previous.page - 1) }))}
-                disabled={filters.page <= 1 || isLoading}
-              >
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters((previous) => ({ ...previous, page: previous.page + 1 }))}
-                disabled={filters.page >= totalPages || isLoading}
-              >
-                Berikutnya
-              </Button>
-            </div>
+                <Table className={isRefreshing ? "opacity-60" : undefined}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[7.5rem]">Nomor</TableHead>
+                      <TableHead className="min-w-[14rem]">Judul</TableHead>
+                      <TableHead className="min-w-[9.5rem]">WCC / Wilayah</TableHead>
+                      <TableHead className="min-w-[8.5rem]">Platform</TableHead>
+                      <TableHead className="min-w-[6.5rem]">Topik</TableHead>
+                      <TableHead className="min-w-[6.5rem]">Urgensi</TableHead>
+                      <TableHead className="min-w-[6rem]">Posting</TableHead>
+                      <TableHead className="min-w-[8rem]">Status</TableHead>
+                      <TableHead className="min-w-[7rem]">Dibuat</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                          Tidak ada konten yang cocok dengan filter saat ini.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      displayedItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="py-3 align-top">
+                            <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px]">
+                              {item.submission_code}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-72 py-3 align-top">
+                            <div className="space-y-1">
+                              <Link
+                                href={config.detailHref(item.id)}
+                                className="line-clamp-2 block whitespace-normal font-medium underline-offset-4 hover:text-primary hover:underline"
+                              >
+                                {item.judul}
+                              </Link>
+                              {item.catatan_reviewer ? (
+                                <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
+                                  Catatan: {item.catatan_reviewer}
+                                </p>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[9.5rem] whitespace-normal py-3 align-top">
+                            <div className="space-y-1 text-sm">
+                              <p>{item.officer.name}</p>
+                              <p className="text-muted-foreground">{item.officer.regional ?? "-"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3 align-top">
+                            <PlatformIconList platforms={item.platform} className="max-w-32" />
+                          </TableCell>
+                          <TableCell className="max-w-[8rem] whitespace-normal py-3 align-top">
+                            {formatTopikLabel(item.topik)}
+                          </TableCell>
+                          <TableCell className="py-3 align-top">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[11px]",
+                                getUrgencyAccentClassName(item.urgensi),
+                              )}
+                            >
+                              {formatUrgensiLabel(item.urgensi)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3 align-top">{formatDate(item.tanggal_posting)}</TableCell>
+                          <TableCell className="py-3 align-top">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[11px]",
+                                getStatusAccentClassName(item.status),
+                              )}
+                            >
+                              {formatContentStatusLabel(item.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3 align-top">
+                            <div className="space-y-1 text-sm">
+                              <p>{formatDate(item.created_at)}</p>
+                              <p className="text-muted-foreground">{formatTimeAgo(item.created_at)}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3 align-top">
+                            <div className="flex min-w-[13.5rem] flex-wrap justify-end gap-1.5">
+                              <Button
+                                type="button"
+                                size="icon"
+                                className="size-8"
+                                onClick={() =>
+                                  setDecisionState({ itemId: item.id, title: item.judul, action: "approved" })
+                                }
+                                disabled={isMutatingItemId === item.id}
+                                aria-label={`${config.primaryActionLabel} ${item.judul}`}
+                                title={config.primaryActionLabel}
+                              >
+                                {isMutatingItemId === item.id ? (
+                                  <Spinner className="size-4" />
+                                ) : (
+                                  <ShieldCheck className="size-4" />
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="size-8"
+                                onClick={() =>
+                                  setDecisionState({ itemId: item.id, title: item.judul, action: "rejected" })
+                                }
+                                disabled={isMutatingItemId === item.id}
+                                aria-label={`Tolak ${item.judul}`}
+                                title="Tolak"
+                              >
+                                <X className="size-4" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="size-8" asChild>
+                                <Link
+                                  href={config.detailHref(item.id)}
+                                  aria-label={`Detail ${item.judul}`}
+                                  title="Detail"
+                                >
+                                  <FileText className="size-4" />
+                                </Link>
+                              </Button>
+                              <Button variant="outline" size="icon" className="size-8" asChild>
+                                <Link
+                                  href={item.drive_link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={`Buka drive ${item.judul}`}
+                                  title="Drive"
+                                >
+                                  <ExternalLink className="size-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-8"
+                                onClick={async () => {
+                                  setHistoryState({ open: true, title: item.judul, loading: true, items: [] });
+                                  try {
+                                    const historyItems = await loadHistory(item.id);
+                                    setHistoryState({
+                                      open: true,
+                                      title: item.judul,
+                                      loading: false,
+                                      items: historyItems,
+                                    });
+                                  } catch (errorValue) {
+                                    toast.error(
+                                      errorValue instanceof Error ? errorValue.message : "Gagal memuat riwayat review",
+                                    );
+                                    setHistoryState({ open: true, title: item.judul, loading: false, items: [] });
+                                  }
+                                }}
+                                aria-label={`Riwayat ${item.judul}`}
+                                title="Riwayat"
+                              >
+                                <History className="size-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+
+        <Card size="sm" className="overflow-hidden border-foreground/10">
+          <CardContent className="px-6 py-4">
+            <TablePagination
+              summary={`Halaman ${filters.page} dari ${totalPages}${displayedMeta ? ` (${displayedMeta.total} total konten)` : ""}`}
+              page={filters.page}
+              totalPages={totalPages}
+              disabled={isLoading}
+              onPageChange={(nextPage) => setFilters((previous) => ({ ...previous, page: nextPage }))}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
       <ReviewDecisionDialog
         open={Boolean(decisionState)}

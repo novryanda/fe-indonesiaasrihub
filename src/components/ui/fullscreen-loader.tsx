@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import Image from "next/image";
 
@@ -18,11 +19,37 @@ interface FullScreenLoaderProps {
 const INITIAL_PROGRESS = 16;
 const VISIBLE_PROGRESS_CAP = 94;
 
+function normalizeSvgMarkup(markup: string) {
+  if (typeof DOMParser === "undefined") {
+    return markup;
+  }
+
+  const documentValue = new DOMParser().parseFromString(markup, "image/svg+xml");
+  const svg = documentValue.querySelector("svg");
+
+  if (!svg) {
+    return markup;
+  }
+
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Indonesia ASRI Hub");
+
+  if (!svg.getAttribute("viewBox")) {
+    svg.setAttribute("viewBox", "620 1330 2580 640");
+  }
+
+  return svg.outerHTML;
+}
+
 function AnimatedBrandLogo() {
   const svgId = useId().replace(/:/g, "");
   const logoRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const [svgMarkup, setSvgMarkup] = useState<string | null>(null);
+  const [isSvgReady, setIsSvgReady] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,7 +64,7 @@ function AnimatedBrandLogo() {
       })
       .then((markup) => {
         if (isMounted) {
-          setSvgMarkup(markup);
+          setSvgMarkup(normalizeSvgMarkup(markup));
         }
       })
       .catch(() => {
@@ -57,6 +84,8 @@ function AnimatedBrandLogo() {
     if (!container || !svgMarkup) {
       return;
     }
+
+    setIsSvgReady(false);
 
     const svg = container.querySelector("svg");
 
@@ -138,6 +167,7 @@ function AnimatedBrandLogo() {
     }
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setIsSvgReady(true);
       return;
     }
 
@@ -147,6 +177,7 @@ function AnimatedBrandLogo() {
       gsap.set(asriGroup, { opacity: 0, scale: 0.96, transformOrigin: "50% 50%" });
       gsap.set(hubGroup, { opacity: 0, x: 12, y: -10, rotation: -4, transformOrigin: "50% 50%" });
       gsap.set(glowRef.current, { opacity: 0.12, scale: 0.88 });
+      setIsSvgReady(true);
 
       const intro = gsap.timeline({
         defaults: {
@@ -254,36 +285,58 @@ function AnimatedBrandLogo() {
   }, [svgMarkup]);
 
   return (
-    <div className="relative flex min-h-[6.5rem] w-full items-center justify-center bg-transparent px-2 py-2">
+    <div className="relative flex min-h-[6.5rem] w-full items-center justify-center overflow-hidden bg-transparent px-2 py-2">
       <div
         ref={glowRef}
-        className="pointer-events-none absolute inset-x-[14%] top-1/2 h-16 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,_rgba(28,209,191,0.24)_0%,_rgba(245,138,31,0.14)_45%,_transparent_78%)] blur-3xl"
+        className={cn(
+          "pointer-events-none absolute inset-x-[14%] top-1/2 h-16 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,_rgba(28,209,191,0.24)_0%,_rgba(245,138,31,0.14)_45%,_transparent_78%)] blur-3xl transition-opacity duration-300",
+          isSvgReady ? "opacity-100" : "opacity-0",
+        )}
       />
-      {svgMarkup ? (
+      <div className="relative mx-auto aspect-[4/1] w-full max-w-[17.5rem] overflow-hidden">
         <div
-          ref={logoRef}
-          className="relative mx-auto w-full max-w-[17.5rem]"
-          dangerouslySetInnerHTML={{ __html: svgMarkup }}
-        />
-      ) : (
-        <div className="relative mx-auto w-full max-w-[17.5rem]">
+          className={cn(
+            "absolute inset-0 transition-opacity duration-300",
+            isSvgReady && svgMarkup ? "opacity-100" : "opacity-0",
+          )}
+        >
+          {svgMarkup ? (
+            <div
+              ref={logoRef}
+              className="h-full w-full"
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          ) : null}
+        </div>
+        <div
+          className={cn(
+            "absolute inset-0 transition-opacity duration-200",
+            isSvgReady && svgMarkup ? "opacity-0" : "opacity-100",
+          )}
+        >
           <Image
             src="/logo-indonesiaasrihub.svg"
             alt="Indonesia ASRI Hub"
             width={320}
             height={80}
             className="h-auto w-full"
+            sizes="280px"
             priority
           />
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 export function FullScreenLoader({ isLoading, text = "Loading ...", className }: FullScreenLoaderProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(isLoading);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isLoading) {
@@ -320,14 +373,14 @@ export function FullScreenLoader({ isLoading, text = "Loading ...", className }:
     return () => window.clearInterval(timer);
   }, [isLoading, show]);
 
-  if (!show) {
+  if (!show || !isMounted) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-white/92 px-6 transition-opacity duration-300",
+        "fixed inset-0 isolate z-[1000] flex items-center justify-center overflow-hidden bg-white/92 px-6 transition-opacity duration-300",
         isLoading ? "opacity-100" : "pointer-events-none opacity-0",
         className,
       )}
@@ -335,7 +388,7 @@ export function FullScreenLoader({ isLoading, text = "Loading ...", className }:
       aria-busy={isLoading}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(0,95,91,0.14),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(245,138,31,0.12),_transparent_30%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(247,250,252,0.98))]" />
-      <div className="relative flex w-full max-w-[30rem] flex-col items-center gap-5 rounded-[2rem] border border-[rgba(11,114,105,0.1)] bg-white/88 px-6 py-8 shadow-[0_30px_80px_-32px_rgba(0,95,91,0.4)]">
+      <div className="relative flex w-full max-w-[30rem] flex-col items-center gap-5 rounded-[2rem] bg-transparent px-6 py-8">
         <AnimatedBrandLogo />
         <div className="space-y-2 text-center">
           <p className="text-balance font-semibold text-[1.05rem] text-[#17323f]">{text}</p>
@@ -351,6 +404,7 @@ export function FullScreenLoader({ isLoading, text = "Loading ...", className }:
           </ProgressBar>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

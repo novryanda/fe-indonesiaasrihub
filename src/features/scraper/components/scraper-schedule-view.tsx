@@ -35,6 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
+import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
@@ -287,7 +288,7 @@ export function ScraperScheduleView() {
                     items.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <Badge variant="outline">{formatPlatformLabel(item.platform)}</Badge>
+                          <PlatformIcon platform={item.platform} />
                         </TableCell>
                         <TableCell>{getFrequencyLabel(item.frequency)}</TableCell>
                         <TableCell>{item.runAt}</TableCell>

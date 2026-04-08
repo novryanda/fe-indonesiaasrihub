@@ -2,19 +2,15 @@ import {
   CONTENT_TOPIC_LABELS,
   CONTENT_TYPE_OPTIONS,
   DURATION_OPTIONS,
-  FILE_COUNT_OPTIONS,
   PLATFORM_OPTIONS,
   REVIEW_STEP_LABELS,
-  TARGET_AUDIENCE_OPTIONS,
   URGENCY_OPTIONS,
 } from "../constants/content-options";
 import type {
   ContentDurasi,
   ContentJenis,
-  ContentJumlahFile,
   ContentPlatform,
   ContentStatus,
-  ContentTargetAudiens,
   ContentUrgensi,
   ReviewStep,
 } from "../types/content.type";
@@ -38,20 +34,8 @@ export function formatJenisKontenLabel(value: ContentJenis | null | undefined) {
   return getOptionLabel(CONTENT_TYPE_OPTIONS, value ?? undefined);
 }
 
-export function formatJumlahFileLabel(value: ContentJumlahFile | null | undefined) {
-  return getOptionLabel(FILE_COUNT_OPTIONS, value ?? undefined);
-}
-
 export function formatDurasiLabel(value: ContentDurasi | null | undefined) {
   return getOptionLabel(DURATION_OPTIONS, value ?? undefined);
-}
-
-export function formatTargetAudiensLabel(value: ContentTargetAudiens[] | null | undefined) {
-  if (!value || value.length === 0) {
-    return "-";
-  }
-
-  return value.map((item) => getOptionLabel(TARGET_AUDIENCE_OPTIONS, item)).join(", ");
 }
 
 export function formatUrgensiLabel(value: ContentUrgensi | null | undefined) {

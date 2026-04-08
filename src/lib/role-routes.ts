@@ -4,16 +4,19 @@ const COMMON_EXACT_ROUTES = new Set(["/dashboard", "/akun/profil"]);
 
 const ROLE_HOME_ROUTES: Record<UserRole, string> = {
   superadmin: "/dashboard/nasional",
+  supervisi: "/dashboard/approval",
   sysadmin: "/system/jadwal-scrapping",
   qcc_wcc: "/dashboard/regional",
   wcc: "/dashboard/konten-saya",
   pic_sosmed: "/akun/akun-sosmed",
+  blast: "/blast/aktivitas",
 };
 
 const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
   superadmin: [
     "/dashboard/nasional",
     "/dashboard/approval",
+    "/dashboard/blast",
     "/konten/bank-konten",
     "/konten/bank-materi",
     "/analitik/monitoring-sosmed",
@@ -23,7 +26,14 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/verifikasi-akun",
     "/pengaturan/manajemen-user",
   ],
-  sysadmin: ["/system/jadwal-scrapping", "/system/log-scrapping", "/system/konfigurasi", "/pengaturan/manajemen-user"],
+  supervisi: ["/dashboard/approval", "/konten/bank-konten"],
+  sysadmin: [
+    "/system/jadwal-scrapping",
+    "/system/log-scrapping",
+    "/system/log-activity",
+    "/system/konfigurasi",
+    "/pengaturan/manajemen-user",
+  ],
   qcc_wcc: [
     "/dashboard/regional",
     "/dashboard/validasi-posting",
@@ -48,6 +58,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/akun-sosmed",
     "/akun/notifikasi",
   ],
+  blast: ["/blast/aktivitas"],
 };
 
 function normalizePathname(pathname: string) {

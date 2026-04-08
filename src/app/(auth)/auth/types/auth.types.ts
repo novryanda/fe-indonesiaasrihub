@@ -1,4 +1,4 @@
-export type UserRole = "superadmin" | "sysadmin" | "qcc_wcc" | "wcc" | "pic_sosmed";
+export type UserRole = "superadmin" | "supervisi" | "sysadmin" | "qcc_wcc" | "wcc" | "pic_sosmed" | "blast";
 export type UserStatus = "aktif" | "nonaktif";
 
 /** Role tabs shown on login page */

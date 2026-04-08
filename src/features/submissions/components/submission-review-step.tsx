@@ -3,15 +3,12 @@
 import { ClipboardCheck } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   formatDate,
   formatDurasiLabel,
   formatJenisKontenLabel,
-  formatJumlahFileLabel,
-  formatTargetAudiensLabel,
   formatTopikLabel,
   formatUrgensiLabel,
 } from "@/features/content-shared/utils/content-formatters";
@@ -65,23 +62,8 @@ export function SubmissionReviewStep({
             value={draft.tanggal_posting ? formatDate(draft.tanggal_posting) : "-"}
           />
           <PreviewListRow label="Drive Link" value={draft.drive_link || "-"} />
-          <PreviewListRow label="Jumlah File" value={formatJumlahFileLabel(draft.jumlah_file)} />
           <PreviewListRow label="Urgensi" value={formatUrgensiLabel(draft.urgensi)} />
           <PreviewListRow label="Durasi" value={formatDurasiLabel(draft.durasi_konten)} />
-          <PreviewListRow label="Audiens" value={formatTargetAudiensLabel(draft.target_audiens)} />
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="font-medium text-sm">Alur Persetujuan</p>
-        <div className="flex flex-wrap gap-2">
-          <Badge className="rounded-full bg-emerald-600 px-3 py-1 text-white">WCC</Badge>
-          <Badge variant="outline" className="rounded-full px-3 py-1">
-            Superadmin
-          </Badge>
-          <Badge variant="outline" className="rounded-full px-3 py-1">
-            Bank Konten
-          </Badge>
         </div>
       </div>
 

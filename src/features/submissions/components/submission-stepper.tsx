@@ -8,7 +8,7 @@ export type WizardStep = 1 | 2 | 3 | 4;
 
 export const WIZARD_STEPS = [
   { step: 1 as const, title: "Info", description: "Judul, platform, dan jadwal." },
-  { step: 2 as const, title: "Drive", description: "Link drive dan thumbnail." },
+  { step: 2 as const, title: "Drive", description: "Link drive konten." },
   { step: 3 as const, title: "Detail", description: "Caption dan kebutuhan review." },
   { step: 4 as const, title: "Review", description: "Periksa lagi sebelum submit." },
 ];

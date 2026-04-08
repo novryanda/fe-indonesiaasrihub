@@ -2,7 +2,7 @@ import { apiClient } from "@/shared/api/api-client";
 
 import type { ListUsersData, ListUsersMeta, ListUsersQuery } from "../types/user-management.type";
 
-export async function getUsers(query: ListUsersQuery, _accessToken?: string) {
+export async function getUsers(query: ListUsersQuery, _accessToken?: string, signal?: AbortSignal) {
   const response = await apiClient<
     {
       stats: ListUsersData["stats"];
@@ -30,6 +30,7 @@ export async function getUsers(query: ListUsersQuery, _accessToken?: string) {
     ListUsersMeta
   >("/v1/users", {
     method: "GET",
+    signal,
     params: {
       role: query.role,
       status: query.status,

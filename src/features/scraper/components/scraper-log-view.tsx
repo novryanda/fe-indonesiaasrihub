@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
+import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
@@ -322,7 +323,9 @@ export function ScraperLogView() {
                       <TableRow key={log.id}>
                         <TableCell>{formatDateTime(log.startedAt)}</TableCell>
                         <TableCell>{getTriggerLabel(log.triggerType)}</TableCell>
-                        <TableCell>{formatPlatformLabel(log.platform)}</TableCell>
+                        <TableCell>
+                          <PlatformIcon platform={log.platform} />
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getStatusClass(log.status)}>
                             {log.status}

@@ -38,6 +38,7 @@ export interface PostingProofItem {
   bank_content_judul: string;
   bank_content_drive_link: string;
   evidence_drive_link: string | null;
+  submitted_at: string | null;
   pic: {
     id: string;
     name: string;

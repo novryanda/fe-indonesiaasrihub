@@ -9,10 +9,11 @@ import { toast } from "sonner";
 
 import type { UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
-import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { authClient, signIn, signOut } from "@/lib/auth-client";
+import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { resolveRouteForRole } from "@/lib/role-routes";
 
+import { LoginDeviceInfo } from "../_components/login-device-info";
 import { LoginForm } from "../_components/login-form";
 
 type AuthUserPayload = {
@@ -196,50 +197,55 @@ function LoginPageContent() {
   return (
     <>
       <FullScreenLoader isLoading={isRedirecting} text="Sedang masuk ke sistem..." />
-      <div className="app-bg-canvas flex h-dvh overflow-hidden">
+      <div className="app-bg-canvas flex min-h-dvh flex-col overflow-y-auto xl:h-dvh xl:flex-row xl:overflow-hidden">
         {/* Left Decoration Panel */}
-        <div className="relative hidden overflow-hidden lg:block lg:w-1/3">
+        <div className="relative hidden overflow-hidden xl:block xl:w-[40%] 2xl:w-[36%]">
           <div
             className="absolute inset-0 bg-center bg-cover bg-no-repeat"
             style={{ backgroundImage: "url('/silas-baisch-PvBECXDZw84-unsplash.png')" }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/70 via-emerald-900/60 to-emerald-950/75" />
-          <div className="relative z-10 flex h-full flex-col items-center justify-center p-12 text-center">
-            <div className="fade-in slide-in-from-bottom-4 animate-in space-y-6 duration-700">
-              <div className="space-y-2">
-                <h1 className="font-bold text-4xl text-white tracking-tight">Indonesia ASRI Hub</h1>
-                <p className="font-medium text-lg text-primary-foreground/70">Waste Crisis Centre (WCC)</p>
-                <p className="text-sm text-white/80">Kementrian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup</p>
-              </div>
+          <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 2xl:p-12">
+            <div />
 
-              <div className="space-y-4 pt-12 text-left">
-                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="h-2 w-2 rounded-full bg-emerald-300" />
-                  <p className="text-sm text-white/80">Sistem terintegrasi KLHK</p>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="h-2 w-2 rounded-full bg-orange-300" />
-                  <p className="text-sm text-white/80">Platform Pendukung KIE</p>
-                </div>
-              </div>
+            <div className="fade-in slide-in-from-bottom-4 animate-in space-y-2.5 text-center duration-700 xl:space-y-3">
+              <h1 className="font-bold text-3xl text-white tracking-tight 2xl:text-4xl">Indonesia ASRI Hub</h1>
+              <p className="font-medium text-base text-primary-foreground/75 2xl:text-lg">Waste Crisis Centre (WCC)</p>
+              <p className="mx-auto max-w-md text-sm text-white/85 2xl:max-w-lg">
+                Kementrian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup
+              </p>
+            </div>
+
+            <div className="fade-in slide-in-from-bottom-4 animate-in delay-150 duration-700">
+              <LoginDeviceInfo />
             </div>
           </div>
         </div>
 
         {/* Right Login Section */}
-        <div className="app-bg-canvas flex w-full items-center justify-center p-6 lg:w-2/3 lg:p-12">
-          <div className="fade-in slide-in-from-right-4 w-full max-w-md animate-in space-y-8 duration-500">
-            <div className="space-y-5">
+        <div className="app-bg-canvas flex w-full flex-1 items-center justify-center px-5 py-8 sm:px-6 sm:py-10 lg:px-8 xl:w-[60%] xl:px-12 xl:py-12 2xl:w-[64%]">
+          <div className="fade-in slide-in-from-right-4 w-full max-w-[26rem] animate-in space-y-6 duration-500 sm:space-y-7">
+            <div className="space-y-4 sm:space-y-5">
               <div className="flex flex-col items-center gap-3">
-                <div className="relative h-24 w-24 sm:h-28 sm:w-28">
-                  <Image src="/logo-klhk.png" alt="KLHK Logo" fill className="object-contain" priority />
-                </div>
-                <div className="relative h-12 w-[13.5rem] overflow-hidden sm:h-14 sm:w-[15rem]">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden sm:h-24 sm:w-24">
                   <Image
-                    src="/logo-indonesiaasrihub.png"
+                    src="/logo-klhk.png"
+                    alt="KLHK Logo"
+                    width={1155}
+                    height={1147}
+                    sizes="(min-width: 640px) 96px, 80px"
+                    className="h-full w-full object-contain"
+                    priority
+                  />
+                </div>
+                <div className="flex h-11 w-[12.5rem] shrink-0 items-center justify-center overflow-hidden sm:h-12 sm:w-[13.5rem]">
+                  <Image
+                    src="/logo-indonesiaasrihub.svg"
                     alt="Indonesia ASRI Hub"
-                    fill
-                    className="scale-[1.18] object-cover object-center"
+                    width={320}
+                    height={80}
+                    sizes="(min-width: 640px) 216px, 200px"
+                    className="h-auto w-full object-contain"
                     priority
                   />
                 </div>
@@ -251,7 +257,7 @@ function LoginPageContent() {
               </div>
             </div>
 
-            <div className="app-bg-surface app-border-soft rounded-2xl border p-8 shadow-xl">
+            <div className="app-bg-surface app-border-soft rounded-2xl border p-5 shadow-xl sm:p-6 xl:p-8">
               <LoginForm
                 identifier={identifier}
                 password={password}

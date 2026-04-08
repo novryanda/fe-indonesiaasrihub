@@ -259,7 +259,9 @@ export function UserFormDialog({
               id="user-phone-number"
               value={draft.phone_number}
               onChange={(event) => handleFieldChange("phone_number", event.target.value)}
-              onBlur={(event) => handleFieldChange("phone_number", normalizeIndonesianPhoneNumber(event.target.value) ?? "")}
+              onBlur={(event) =>
+                handleFieldChange("phone_number", normalizeIndonesianPhoneNumber(event.target.value) ?? "")
+              }
               placeholder="+6281234567890"
             />
             {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number}</p>}
@@ -273,10 +275,12 @@ export function UserFormDialog({
               </SelectTrigger>
               <SelectContent>
                 {allowedRoles.includes("superadmin") ? <SelectItem value="superadmin">Superadmin</SelectItem> : null}
+                {allowedRoles.includes("supervisi") ? <SelectItem value="supervisi">Supervisi</SelectItem> : null}
                 {allowedRoles.includes("sysadmin") ? <SelectItem value="sysadmin">Sysadmin</SelectItem> : null}
                 {allowedRoles.includes("qcc_wcc") ? <SelectItem value="qcc_wcc">QCC/WCC</SelectItem> : null}
                 {allowedRoles.includes("wcc") ? <SelectItem value="wcc">WCC</SelectItem> : null}
                 {allowedRoles.includes("pic_sosmed") ? <SelectItem value="pic_sosmed">PIC Sosmed</SelectItem> : null}
+                {allowedRoles.includes("blast") ? <SelectItem value="blast">Blast</SelectItem> : null}
               </SelectContent>
             </Select>
             {errors.role && <p className="text-destructive text-xs">{errors.role}</p>}

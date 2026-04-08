@@ -11,6 +11,7 @@ import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES } from "@/lib/prefer
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
+import { NotificationCenter } from "./_components/header/notification-center";
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
@@ -57,13 +58,14 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
               />
             </div>
             <div className="flex items-center gap-2">
+              <NotificationCenter />
               <LayoutControls />
               <ThemeSwitcher />
               <AccountSwitcher />
             </div>
           </div>
         </header>
-        <div className="h-full p-4 md:p-6">{children}</div>
+        <div className="h-full min-w-0 p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

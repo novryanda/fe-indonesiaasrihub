@@ -6,10 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { FileDropzone } from "@/features/content-shared/components/file-dropzone";
-import { FILE_COUNT_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { cn } from "@/lib/utils";
 
 import type { ValidateDriveLinkResponse } from "../types/content-submission.type";
@@ -20,7 +17,6 @@ interface SubmissionDriveStepProps {
   errors: FormErrorState;
   driveValidation: ValidateDriveLinkResponse | null;
   isValidatingDrive: boolean;
-  readOnlyFileCount?: boolean;
   onFieldChange: <TKey extends keyof ContentSubmissionDraft>(field: TKey, value: ContentSubmissionDraft[TKey]) => void;
   onValidateDrive: () => void;
 }
@@ -30,7 +26,6 @@ export function SubmissionDriveStep({
   errors,
   driveValidation,
   isValidatingDrive,
-  readOnlyFileCount = false,
   onFieldChange,
   onValidateDrive,
 }: SubmissionDriveStepProps) {
@@ -94,37 +89,6 @@ export function SubmissionDriveStep({
           </AlertDescription>
         </Alert>
       )}
-
-      <div className="grid gap-3">
-        <Label>Thumbnail (opsional)</Label>
-        <FileDropzone
-          value={draft.thumbnail ?? null}
-          onChange={(value) => onFieldChange("thumbnail", value)}
-          description="JPG, PNG, WebP - maksimal 2MB"
-        />
-        {errors.thumbnail && <p className="text-destructive text-xs">{errors.thumbnail}</p>}
-      </div>
-
-      <div className="grid gap-2 md:max-w-sm">
-        <Label>Jumlah File dalam Paket</Label>
-        <Select
-          value={draft.jumlah_file}
-          disabled={readOnlyFileCount}
-          onValueChange={(value) => onFieldChange("jumlah_file", value as ContentSubmissionDraft["jumlah_file"])}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Pilih jumlah file" />
-          </SelectTrigger>
-          <SelectContent>
-            {FILE_COUNT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.jumlah_file && <p className="text-destructive text-xs">{errors.jumlah_file}</p>}
-      </div>
     </>
   );
 }

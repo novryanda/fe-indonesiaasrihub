@@ -1,7 +1,8 @@
 import type { BankContentAccessStatus } from "@/features/content-shared/constants/content-options";
 import type {
+  BankContentAssignmentScope,
+  BankContentVisibilityScope,
   ContentJenis,
-  ContentJumlahFile,
   ContentPlatform,
   PaginatedMeta,
 } from "@/features/content-shared/types/content.type";
@@ -15,16 +16,26 @@ export interface BankContentStats {
 
 export interface BankContentItem {
   id: string;
+  submission_code: string | null;
   judul: string;
   platform: ContentPlatform[];
   wilayah_id?: string;
+  source_wilayah_id?: string;
   topik: string;
   regional_asal: string;
   tahun_kampanye: number;
   drive_link: string;
-  thumbnail_url: string | null;
   hashtags: string[];
   status_akses: BankContentAccessStatus;
+  visibility_scope: BankContentVisibilityScope;
+  assignment_scope: BankContentAssignmentScope;
+  visibility_targets: Array<{ id: string; nama: string; kode: string; level: string }>;
+  assignment_targets: Array<{ id: string; nama: string; kode: string; level: string }>;
+  task_summary: {
+    assigned_pic_count: number;
+    assignment_generated_at: string | null;
+    approval_at: string | null;
+  };
   uploaded_by: string;
   created_at: string;
 }
@@ -56,7 +67,6 @@ export interface BankContentUsageItem {
 export interface BankContentDetail extends BankContentItem {
   deskripsi: string | null;
   jenis_konten: string;
-  jumlah_file: ContentJumlahFile;
   regional_terbatas: string[];
   updated_at: string;
   jumlah_posting_digunakan: number;
@@ -77,6 +87,9 @@ export interface ListBankContentData {
 export interface BankContentFilters {
   platform: "all" | ContentPlatform;
   topik: "all" | string;
+  wilayah_id: "all" | string;
+  date_from?: string;
+  date_to?: string;
   search: string;
   page: number;
   limit: number;
@@ -91,11 +104,11 @@ export interface UploadBankContentPayload {
   regional_asal: string;
   tahun_kampanye: number;
   drive_link: string;
-  jumlah_file: ContentJumlahFile;
-  status_akses: BankContentAccessStatus;
-  regional_terbatas?: string[];
+  visibility_scope: BankContentVisibilityScope;
+  assignment_scope: BankContentAssignmentScope;
+  visibility_target_wilayah_ids?: string[];
+  assignment_target_wilayah_ids?: string[];
   hashtags: string[];
-  thumbnail?: File | null;
 }
 
 export interface UploadBankContentResponse {

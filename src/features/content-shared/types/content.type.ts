@@ -2,22 +2,11 @@ export type ContentPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | 
 
 export type ContentJenis = "foto_poster" | "video_reels" | "infografis" | "carousel" | "thread_teks" | "live";
 
-export type ContentJumlahFile = "1" | "2-3" | "4-5" | "folder";
-
 export type ContentDurasi = "kurang_30_detik" | "30_60_detik" | "1_3_menit" | "3_10_menit" | "lebih_10_menit";
-
-export type ContentTargetAudiens = "masyarakat_umum" | "pelajar" | "ibu_rumah_tangga" | "pelaku_usaha" | "komunitas";
 
 export type ContentUrgensi = "normal" | "prioritas" | "urgent";
 
-export type ContentTipe = "baru" | "revisi_repost";
-
-export type ContentStatus =
-  | "draft"
-  | "menunggu_final"
-  | "disetujui"
-  | "ditolak"
-  | "revisi";
+export type ContentStatus = "draft" | "menunggu_final" | "disetujui" | "ditolak" | "revisi";
 
 export type ReviewStep = "wcc" | "superadmin";
 
@@ -26,6 +15,37 @@ export interface ContentOfficer {
   name: string;
   wilayah_id?: string | null;
   regional: string | null;
+}
+
+export type BankContentVisibilityScope = "national" | "targeted_regions" | "internal_only";
+export type BankContentAssignmentScope = "none" | "national" | "targeted_regions";
+
+export interface ContentDistributionPreview {
+  source_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  };
+  visibility_scope: BankContentVisibilityScope;
+  visibility_targets: Array<{
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  }>;
+  assignment_scope: BankContentAssignmentScope;
+  assignment_targets: Array<{
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  }>;
+  task_summary: {
+    assigned_pic_count: number;
+    assignment_generated_at: string | null;
+    approval_at: string | null;
+  };
 }
 
 export interface ContentItem {
@@ -37,17 +57,18 @@ export interface ContentItem {
   topik: string;
   tanggal_posting: string;
   drive_link: string;
-  jumlah_file: ContentJumlahFile;
-  thumbnail_url: string | null;
   status: ContentStatus;
   urgensi: ContentUrgensi;
   caption: string;
   hashtags: string[];
   durasi_konten: ContentDurasi | null;
-  target_audiens: ContentTargetAudiens[];
-  tipe: ContentTipe;
   catatan_reviewer: string | null;
+  visibility_scope: BankContentVisibilityScope;
+  assignment_scope: BankContentAssignmentScope;
+  visibility_target_wilayah_ids: string[];
+  assignment_target_wilayah_ids: string[];
   officer: ContentOfficer;
+  distribution_preview?: ContentDistributionPreview | null;
   created_at: string;
   updated_at: string;
 }

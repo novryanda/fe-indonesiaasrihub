@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Check, ChevronsUpDown, Globe, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
+
+import { Spinner as HeroSpinner } from "@heroui/react";
+import { Check, ChevronsUpDown, ExternalLink, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Dialog,
@@ -32,11 +35,15 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Textarea } from "@/components/ui/textarea";
+import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 import { formatPlatformLabel, formatTimeAgo } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 import { listWilayahOptions, type WilayahOption } from "@/shared/api/wilayah";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
+import { useSmoothLoadingState, useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import {
   createSocialAccount,
@@ -52,7 +59,9 @@ import {
 } from "../constants/social-account-eselon";
 import type {
   CreateSocialAccountPayload,
+  SocialAccountDelegationStatus,
   SocialAccountItem,
+  SocialAccountVerificationStatus,
   UpdateSocialAccountPayload,
 } from "../types/social-account.type";
 
@@ -62,6 +71,31 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: "bisnis", label: "Bisnis" },
   { value: "personal", label: "Personal" },
 ] as const;
+const VERIFICATION_FILTER_OPTIONS: Array<{
+  value: "all" | SocialAccountVerificationStatus;
+  label: string;
+}> = [
+  { value: "all", label: "Semua Verifikasi" },
+  { value: "verified", label: "Verified" },
+  { value: "pending", label: "Pending" },
+  { value: "rejected", label: "Rejected" },
+];
+const DELEGATION_FILTER_OPTIONS: Array<{
+  value: "all" | SocialAccountDelegationStatus;
+  label: string;
+}> = [
+  { value: "all", label: "Semua Delegasi" },
+  { value: "sudah_didelegasikan", label: "Sudah Didelegasikan" },
+  { value: "belum_didelegasikan", label: "Belum Didelegasikan" },
+  { value: "delegasi_dicabut", label: "Delegasi Dicabut" },
+];
+
+const numberFormatter = new Intl.NumberFormat("id-ID");
+const compactNumberFormatter = new Intl.NumberFormat("id-ID", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+const PAGE_SIZE = 10;
 
 function SearchableSelect({
   label,
@@ -141,6 +175,25 @@ function getDelegationBadge(status: SocialAccountItem["delegation_status"]) {
   }
 }
 
+function formatDate(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 type SocialAccountFormState = Omit<CreateSocialAccountPayload, "eselon_1" | "eselon_2"> & {
   eselon_1: SocialAccountEselon1 | "";
   eselon_2: SocialAccountEselon2 | "";
@@ -163,13 +216,24 @@ export function SocialAccountDirectoryView() {
   const { isAuthorized, isPending } = useRoleGuard(["superadmin"]);
   const [items, setItems] = useState<SocialAccountItem[]>([]);
   const [wilayahOptions, setWilayahOptions] = useState<WilayahOption[]>([]);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<SocialAccountItem | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<SocialAccountItem | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [platformFilter, setPlatformFilter] = useState<"all" | SocialAccountItem["platform"]>("all");
+  const [verificationFilter, setVerificationFilter] = useState<"all" | SocialAccountVerificationStatus>("all");
+  const [delegationFilter, setDelegationFilter] = useState<"all" | SocialAccountDelegationStatus>("all");
   const [form, setForm] = useState(initialForm);
+  const tableState = useMemo(() => ({ items, meta }), [items, meta]);
+  const { displayData, isInitialLoading, isRefreshing } = useSmoothTableData(tableState, isLoading);
+  const displayedItems = displayData.items;
+  const displayedMeta = displayData.meta;
 
   const resetFormState = () => {
     setForm(initialForm);
@@ -286,6 +350,10 @@ export function SocialAccountDirectoryView() {
       await deleteSocialAccount(deletingAccount.id);
       toast.success("Akun sosmed berhasil dihapus.");
       setDeletingAccount(null);
+      if (items.length === 1 && page > 1) {
+        setPage((currentPage) => currentPage - 1);
+        return;
+      }
       await loadAccounts();
     } catch (errorValue) {
       toast.error(errorValue instanceof Error ? errorValue.message : "Gagal menghapus akun sosmed");
@@ -294,30 +362,116 @@ export function SocialAccountDirectoryView() {
     }
   };
 
-  const loadAccounts = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [response, wilayahList] = await Promise.all([
-        listSocialAccounts({
-          page: 1,
-          limit: 50,
-        }),
-        listWilayahOptions(),
-      ]);
-      setItems(response.data);
-      setWilayahOptions(wilayahList);
-    } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat daftar akun sosmed");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadAccounts = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true);
+      try {
+        const [response, wilayahList] = await Promise.all([
+          listSocialAccounts(
+            {
+              page,
+              limit: PAGE_SIZE,
+              search,
+              platform: platformFilter,
+              verification_status: verificationFilter,
+              delegation_status: delegationFilter,
+            },
+            signal,
+          ),
+          listWilayahOptions(),
+        ]);
+
+        if (signal?.aborted) {
+          return;
+        }
+
+        setItems(response.data);
+        setWilayahOptions(wilayahList);
+        setMeta(response.meta ?? { page, limit: PAGE_SIZE, total: response.data.length });
+      } catch (errorValue) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat daftar akun sosmed");
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [delegationFilter, page, platformFilter, search, verificationFilter],
+  );
 
   useEffect(() => {
-    if (!isPending && isAuthorized) {
-      void loadAccounts();
+    const timer = window.setTimeout(() => {
+      const nextSearch = searchInput.trim();
+
+      if (nextSearch === search) {
+        return;
+      }
+
+      setPage(1);
+      setSearch(nextSearch);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [search, searchInput]);
+
+  useEffect(() => {
+    if (isPending || !isAuthorized) {
+      return;
     }
+
+    const controller = new AbortController();
+    void loadAccounts(controller.signal);
+
+    return () => controller.abort();
   }, [isAuthorized, isPending, loadAccounts]);
+
+  const summaryCards = useMemo(() => {
+    const verifiedCount = displayedItems.filter((item) => item.verification_status === "verified").length;
+    const delegatedCount = displayedItems.filter((item) => item.delegation_status === "sudah_didelegasikan").length;
+    const totalFollowers = displayedItems.reduce((total, item) => total + item.followers, 0);
+
+    return [
+      {
+        label: "Total Akun",
+        value: numberFormatter.format(displayedItems.length),
+        helper: "Akun aktif yang sudah terdaftar",
+      },
+      {
+        label: "Akun Terverifikasi",
+        value: numberFormatter.format(verifiedCount),
+        helper: "Sudah lolos validasi akun",
+      },
+      {
+        label: "Sudah Didelegasikan",
+        value: numberFormatter.format(delegatedCount),
+        helper: "Sudah punya PIC sosmed",
+      },
+      {
+        label: "Total Followers",
+        value: compactNumberFormatter.format(totalFollowers),
+        helper: "Akumulasi follower seluruh akun",
+      },
+    ];
+  }, [displayedItems]);
+
+  const totalPages = Math.max(1, Math.ceil(displayedMeta.total / displayedMeta.limit));
+  const summaryText =
+    displayedMeta.total === 0
+      ? "Halaman 1 dari 1 (0 total akun)"
+      : `Halaman ${page} dari ${totalPages} (${displayedMeta.total} total akun)`;
+  const hasActiveFilters =
+    Boolean(search) || platformFilter !== "all" || verificationFilter !== "all" || delegationFilter !== "all";
+  const isSearchPending = searchInput.trim() !== search || (isLoading && searchInput.trim().length > 0);
+  const showSearchIndicator = useSmoothLoadingState(isSearchPending, { delayMs: 100, minVisibleMs: 260 });
+  const loadingLabel = search
+    ? "Mencari akun sosmed..."
+    : hasActiveFilters
+      ? "Memuat hasil filter..."
+      : "Memuat akun sosmed...";
 
   if (isPending) {
     return (
@@ -336,146 +490,314 @@ export function SocialAccountDirectoryView() {
 
   return (
     <>
-      <div className="space-y-6">
-        <Card className="app-bg-hero app-border-soft">
-          <CardContent className="space-y-5 px-6 py-8 md:px-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <section className="min-w-0 space-y-6">
+        <Card className="app-bg-hero app-border-soft overflow-hidden">
+          <CardContent className="min-w-0 space-y-6 px-6 py-8 md:px-8">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="space-y-3">
                 <Badge
                   variant="outline"
-                  className="rounded-full border-emerald-200 bg-background/75 dark:bg-card/75 px-3 py-1 text-emerald-700"
+                  className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
                 >
-                  Akun Sosmed / Registrasi
+                  Akun / Daftar Akun Sosmed
                 </Badge>
                 <div className="space-y-2">
                   <h1 className="font-semibold text-3xl tracking-tight">Daftar Akun Sosmed</h1>
-                  <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                    Superadmin membuat akun sosmed, menetapkan wilayah pemilik akun, lalu mendelegasikannya ke PIC
-                    sosmed yang sesuai.
-                  </p>
                 </div>
               </div>
+            </div>
 
-              <Button type="button" onClick={openCreateDialog}>
-                <Plus className="mr-2 size-4" />
-                Daftarkan Akun
-              </Button>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {summaryCards.map((item) => (
+                <div key={item.label} className="rounded-3xl border border-white/70 bg-white/70 px-5 py-4 shadow-sm">
+                  <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">{item.label}</p>
+                  <p className="mt-3 font-semibold text-3xl tracking-tight">{item.value}</p>
+                  <p className="mt-2 text-muted-foreground text-sm">{item.helper}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        {isLoading ? (
-          <Card>
-            <CardContent className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-              <Spinner />
-              <span>Memuat akun sosmed...</span>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {items.map((item) => (
-              <Card key={item.id} className="border-foreground/10">
-                <CardContent className="space-y-4 py-6">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-semibold text-xl">{item.nama_profil}</h2>
-                        <Badge
-                          variant="outline"
-                          className={cn("rounded-full px-3 py-1", getVerificationBadge(item.verification_status))}
-                        >
-                          {item.verification_status}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={cn("rounded-full px-3 py-1", getDelegationBadge(item.delegation_status))}
-                        >
-                          {item.delegation_status.replaceAll("_", " ")}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground text-sm">
-                        {item.username} • {formatPlatformLabel(item.platform)}
-                      </p>
-                      {item.description && (
-                        <p className="max-w-2xl text-muted-foreground text-sm leading-6">{item.description}</p>
-                      )}
+        <Card className="overflow-hidden border-foreground/10">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+                <div className="relative min-w-0 md:w-[22rem] md:flex-none">
+                  <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                  <Input
+                    className="pr-10 pl-9"
+                    placeholder="Cari nama profil, username, wilayah, atau PIC"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                  />
+                  {showSearchIndicator ? (
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+                      <HeroSpinner size="sm" />
                     </div>
+                  ) : null}
+                </div>
 
-                    <div className="flex flex-col items-end gap-3">
-                      <p className="text-muted-foreground text-xs">Ditambahkan {formatTimeAgo(item.created_at)}</p>
-                      <div className="flex items-center gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(item)}>
-                          <Pencil className="mr-2 size-4" />
-                          Edit
-                        </Button>
-                        <Button type="button" variant="destructive" size="sm" onClick={() => setDeletingAccount(item)}>
-                          <Trash2 className="mr-2 size-4" />
-                          Hapus
-                        </Button>
-                      </div>
+                <Select
+                  value={platformFilter}
+                  onValueChange={(value) => {
+                    setPlatformFilter(value as typeof platformFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="md:w-[11rem]">
+                    <SelectValue placeholder="Semua Platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Platform</SelectItem>
+                    {PLATFORM_OPTIONS.map((platform) => (
+                      <SelectItem key={platform} value={platform}>
+                        {formatPlatformLabel(platform)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={verificationFilter}
+                  onValueChange={(value) => {
+                    setVerificationFilter(value as typeof verificationFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="md:w-[12rem]">
+                    <SelectValue placeholder="Semua Verifikasi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VERIFICATION_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={delegationFilter}
+                  onValueChange={(value) => {
+                    setDelegationFilter(value as typeof delegationFilter);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="md:w-[12rem]">
+                    <SelectValue placeholder="Semua Delegasi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELEGATION_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 xl:flex-none xl:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!hasActiveFilters && !isLoading}
+                  onClick={() => {
+                    setSearchInput("");
+                    setSearch("");
+                    setPlatformFilter("all");
+                    setVerificationFilter("all");
+                    setDelegationFilter("all");
+                    setPage(1);
+                  }}
+                >
+                  Reset Filter
+                </Button>
+                <Button type="button" onClick={openCreateDialog}>
+                  <Plus className="mr-2 size-4" />
+                  Daftarkan Akun
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card className="overflow-hidden border-foreground/10">
+          <CardContent className="min-w-0">
+            {isInitialLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Spinner />
+                <span>Memuat akun sosmed...</span>
+              </div>
+            ) : (
+              <div className="relative">
+                {isRefreshing ? (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-[1px]">
+                    <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+                      <HeroSpinner size="lg" />
+                      <span>{loadingLabel}</span>
                     </div>
                   </div>
+                ) : null}
 
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Wilayah Akun</p>
-                      <p className="mt-2 font-medium text-sm">{item.wilayah_name}</p>
-                      <p className="text-muted-foreground text-xs">Scope delegasi dan analitik akun</p>
-                    </div>
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Eselon 1</p>
-                      <p className="mt-2 font-medium text-sm">{item.eselon_1 ?? "-"}</p>
-                      <p className="text-muted-foreground text-xs">Unit utama pemilik akun</p>
-                    </div>
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Eselon 2</p>
-                      <p className="mt-2 font-medium text-sm">{item.eselon_2 ?? "-"}</p>
-                      <p className="text-muted-foreground text-xs">Unit kerja pengelola akun</p>
-                    </div>
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Added By</p>
-                      <p className="mt-2 font-medium text-sm">{item.added_by.name}</p>
-                      <p className="text-muted-foreground text-xs">{item.added_by.regional ?? "Nasional"}</p>
-                    </div>
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">PIC Sosmed</p>
-                      <p className="mt-2 font-medium text-sm">{item.officer_name ?? "Belum didelegasikan"}</p>
-                      <p className="text-muted-foreground text-xs">{item.officer_regional ?? "-"}</p>
-                    </div>
-                    <div className="rounded-2xl border bg-muted/20 p-4">
-                      <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Followers</p>
-                      <p className="mt-2 font-medium text-sm">{item.followers.toLocaleString("id-ID")}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {item.verification_note ?? "Tanpa catatan verifikasi"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-muted-foreground text-sm">
-                    <Globe className="size-4" />
-                    <a
-                      href={item.profile_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {item.profile_url}
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {items.length === 0 && (
-              <Card className="border-dashed">
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  Belum ada akun sosmed yang terdaftar.
-                </CardContent>
-              </Card>
+                <Table className={isRefreshing ? "opacity-60" : undefined}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[260px]">Akun</TableHead>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>Wilayah</TableHead>
+                      <TableHead>PIC Sosmed</TableHead>
+                      <TableHead>Followers</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Delegasi</TableHead>
+                      <TableHead>Update</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="h-28 text-center text-muted-foreground">
+                          {search
+                            ? "Tidak ada akun sosmed yang cocok dengan pencarian."
+                            : "Belum ada akun sosmed yang terdaftar."}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      displayedItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="max-w-[20rem] whitespace-normal align-top">
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium">{item.nama_profil}</p>
+                                <PlatformIcon platform={item.platform} />
+                              </div>
+                              <div className="space-y-1 text-muted-foreground text-sm">
+                                <p>{item.username}</p>
+                                <p className="line-clamp-1">{item.profile_url}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="space-y-1 text-sm">
+                              <PlatformIcon platform={item.platform} />
+                              <p className="text-muted-foreground capitalize">{item.tipe_akun}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-normal align-top">
+                            <div className="space-y-1 text-sm">
+                              <p className="font-medium">{item.wilayah_name}</p>
+                              <p className="text-muted-foreground">{item.eselon_2 ?? item.eselon_1 ?? "-"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[14rem] whitespace-normal align-top">
+                            <div className="space-y-1 text-sm">
+                              <p className="font-medium">{item.officer_name ?? "Belum didelegasikan"}</p>
+                              <p className="text-muted-foreground">
+                                {item.officer_regional ?? item.added_by.regional ?? "-"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="space-y-1 text-sm">
+                              <p className="font-medium">{numberFormatter.format(item.followers)}</p>
+                              <p className="text-muted-foreground">
+                                {item.last_stat_update
+                                  ? `Update ${formatTimeAgo(item.last_stat_update)}`
+                                  : "Belum ada snapshot"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[13rem] whitespace-normal align-top">
+                            <div className="flex flex-col items-start gap-2">
+                              <Badge
+                                variant="outline"
+                                className={cn("rounded-full px-3 py-1", getVerificationBadge(item.verification_status))}
+                              >
+                                {item.verification_status}
+                              </Badge>
+                              {item.verification_note ? (
+                                <p className="max-w-48 whitespace-normal text-muted-foreground text-xs leading-5">
+                                  {item.verification_note}
+                                </p>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[13rem] whitespace-normal align-top">
+                            <div className="space-y-2">
+                              <Badge
+                                variant="outline"
+                                className={cn("rounded-full px-3 py-1", getDelegationBadge(item.delegation_status))}
+                              >
+                                {item.delegation_status.replaceAll("_", " ")}
+                              </Badge>
+                              <p className="max-w-44 whitespace-normal text-muted-foreground text-xs leading-5">
+                                {item.delegated_by ? `Oleh ${item.delegated_by.name}` : "Belum ada history delegasi"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-normal align-top">
+                            <div className="space-y-1 text-sm">
+                              <p className="font-medium">{formatDate(item.created_at)}</p>
+                              <p className="text-muted-foreground">Ditambahkan {formatTimeAgo(item.created_at)}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button asChild variant="outline" size="sm">
+                                <Link href={`/akun/daftar-akun/${item.id}`}>Detail</Link>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-8"
+                                onClick={() => openEditDialog(item)}
+                                aria-label={`Edit ${item.nama_profil}`}
+                                title="Edit"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button asChild type="button" variant="outline" size="icon" className="size-8">
+                                <a href={item.profile_url} target="_blank" rel="noreferrer" aria-label="Buka profil">
+                                  <ExternalLink className="size-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="size-8"
+                                onClick={() => setDeletingAccount(item)}
+                                aria-label={`Hapus ${item.nama_profil}`}
+                                title="Hapus"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+
+        <Card size="sm" className="overflow-hidden border-foreground/10">
+          <CardContent className="px-6">
+            <TablePagination
+              summary={summaryText}
+              page={page}
+              totalPages={totalPages}
+              disabled={isLoading}
+              onPageChange={setPage}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
       <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-2xl">

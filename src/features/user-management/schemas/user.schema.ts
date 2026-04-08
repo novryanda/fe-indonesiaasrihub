@@ -1,7 +1,8 @@
 import { z } from "zod";
+
 import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
 
-export const userRoleSchema = z.enum(["superadmin", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed"]);
+export const userRoleSchema = z.enum(["superadmin", "supervisi", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed", "blast"]);
 export const userStatusSchema = z.enum(["aktif", "nonaktif"]);
 const usernameSchema = z
   .string()
@@ -48,7 +49,7 @@ export const createUserSchema = z
     password: z.string().min(8, "Password minimal 8 karakter").max(128, "Password maksimal 128 karakter"),
   })
   .superRefine((value, context) => {
-    if (value.role !== "superadmin" && value.role !== "sysadmin" && !value.wilayah_id) {
+    if (value.role !== "superadmin" && value.role !== "supervisi" && value.role !== "sysadmin" && !value.wilayah_id) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["wilayah_id"],
@@ -67,7 +68,7 @@ export const updateUserSchema = z
     status: userStatusSchema,
   })
   .superRefine((value, context) => {
-    if (value.role !== "superadmin" && value.role !== "sysadmin" && !value.wilayah_id) {
+    if (value.role !== "superadmin" && value.role !== "supervisi" && value.role !== "sysadmin" && !value.wilayah_id) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["wilayah_id"],

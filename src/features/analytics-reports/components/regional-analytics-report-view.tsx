@@ -545,7 +545,6 @@ export function RegionalAnalyticsReportView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Thumbnail</TableHead>
                 <TableHead>Judul Konten</TableHead>
                 <TableHead>Dibuat oleh</TableHead>
                 <TableHead>Platform</TableHead>
@@ -558,15 +557,6 @@ export function RegionalAnalyticsReportView() {
             <TableBody>
               {(regionalDetail?.top_content ?? []).map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell>
-                    {row.thumbnailUrl ? (
-                      <img src={row.thumbnailUrl} alt={row.title} className="h-14 w-20 rounded-md object-cover" />
-                    ) : (
-                      <div className="flex h-14 w-20 items-center justify-center rounded-md bg-muted text-muted-foreground text-xs">
-                        No Image
-                      </div>
-                    )}
-                  </TableCell>
                   <TableCell className="max-w-64 whitespace-normal font-medium">{row.title}</TableCell>
                   <TableCell>{row.wccName}</TableCell>
                   <TableCell>

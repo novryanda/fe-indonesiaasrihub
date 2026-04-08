@@ -1,10 +1,8 @@
-import { getBankContent } from "@/features/content-library/api/get-bank-content";
-import type { BankContentItem } from "@/features/content-library/types/content-library.type";
 import { apiClient } from "@/shared/api/api-client";
 
 import type {
-  PostingProofFilters,
   PostingProofDetail,
+  PostingProofFilters,
   PostingProofItem,
   PostingProofListMeta,
   SubmitPostingLinksPayload,
@@ -12,25 +10,7 @@ import type {
   ValidatePostingLinkPayloadItem,
 } from "../types/posting-proof.type";
 
-export async function listPostableBankContents() {
-  const response = await getBankContent({
-    platform: "all",
-    topik: "all",
-    search: "",
-    page: 1,
-    limit: 100,
-  });
-
-  return {
-    data: response.data.items as BankContentItem[],
-    meta: response.meta,
-  };
-}
-
-export async function submitPostingLinksFromBankContent(
-  bankContentId: string,
-  payload: SubmitPostingLinksPayload,
-) {
+export async function submitPostingLinksFromBankContent(bankContentId: string, payload: SubmitPostingLinksPayload) {
   return apiClient<{ id: string; message: string }>(`/v1/bukti-posting/bank-konten/${bankContentId}/links`, {
     method: "POST",
     body: payload,
@@ -45,6 +25,7 @@ export async function listPostingProofs(filters: PostingProofFilters) {
       bank_content_judul: string;
       bank_content_drive_link: string;
       evidence_drive_link: string | null;
+      submitted_at: string | null;
       pic: {
         id: string;
         name: string;
@@ -81,6 +62,7 @@ export async function listPostingProofs(filters: PostingProofFilters) {
       bank_content_judul: item.bank_content_judul,
       bank_content_drive_link: item.bank_content_drive_link,
       evidence_drive_link: item.evidence_drive_link,
+      submitted_at: item.submitted_at,
       pic: {
         id: item.pic.id,
         name: item.pic.name,

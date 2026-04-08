@@ -1,10 +1,10 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 import { PLATFORM_OPTIONS } from "../constants/content-options";
 import type { ContentPlatform } from "../types/content.type";
+import { PlatformLogo } from "./platform-logo";
 
 interface PlatformMultiSelectProps {
   value: ContentPlatform[];
@@ -43,18 +43,16 @@ export function PlatformMultiSelect({ value, onChange, disabled = false }: Platf
                 ? (platform.accentClassName ?? "border-primary bg-primary/10 text-primary")
                 : "border-border bg-background text-foreground hover:border-primary/30 hover:bg-primary/5",
             )}
+            aria-pressed={selected}
           >
-            <Badge
-              variant="outline"
+            <span
               className={cn(
-                "h-7 min-w-7 justify-center rounded-full px-2 font-semibold",
-                selected
-                  ? "border-current/40 bg-white/60 text-current"
-                  : "border-border bg-muted text-muted-foreground",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition",
+                selected ? "border-current/20 bg-white/70 shadow-sm" : "border-border bg-muted/70",
               )}
             >
-              {platform.shortLabel ?? platform.label.slice(0, 2)}
-            </Badge>
+              <PlatformLogo platform={platform.value} className="h-[18px] w-[18px]" />
+            </span>
             <span className="font-medium text-sm">{platform.label}</span>
           </button>
         );

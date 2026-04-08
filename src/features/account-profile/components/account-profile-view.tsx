@@ -30,19 +30,23 @@ import {
 } from "../api/account-profile-api";
 import type { AccountProfileData } from "../types/account-profile.type";
 
-const ALL_ROLES: UserRole[] = ["superadmin", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed"];
+const ALL_ROLES: UserRole[] = ["superadmin", "supervisi", "sysadmin", "qcc_wcc", "wcc", "pic_sosmed", "blast"];
 const USERNAME_REGEX = /^[a-zA-Z0-9_.]+$/;
 
 function formatRoleLabel(role: UserRole) {
   switch (role) {
     case "superadmin":
       return "Superadmin";
+    case "supervisi":
+      return "Supervisi";
     case "sysadmin":
       return "Sysadmin";
     case "qcc_wcc":
       return "QCC/WCC";
     case "pic_sosmed":
       return "PIC Sosmed";
+    case "blast":
+      return "Blast";
     default:
       return "WCC";
   }

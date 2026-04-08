@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 
 import type { AnalyticsFilterParams, AnalyticsPlatform } from "../types/analytics-report.type";
 
@@ -266,19 +266,5 @@ export function ErrorAlert(props: { title?: string; message: string }) {
 }
 
 export function PlatformPill(props: { platform: AnalyticsPlatform; className?: string }) {
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        props.platform === "instagram" && "border-rose-200 bg-rose-50 text-rose-700",
-        props.platform === "tiktok" && "border-cyan-200 bg-cyan-50 text-cyan-700",
-        props.platform === "youtube" && "border-red-200 bg-red-50 text-red-700",
-        props.platform === "facebook" && "border-blue-200 bg-blue-50 text-blue-700",
-        props.platform === "x" && "border-slate-200 bg-slate-100 text-slate-700",
-        props.className,
-      )}
-    >
-      {props.platform}
-    </Badge>
-  );
+  return <PlatformIcon platform={props.platform} className={props.className} />;
 }

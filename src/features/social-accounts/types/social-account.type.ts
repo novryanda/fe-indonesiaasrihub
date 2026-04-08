@@ -34,6 +34,8 @@ export interface SocialAccountItem {
   eselon_1: SocialAccountEselon1 | null;
   eselon_2: SocialAccountEselon2 | null;
   followers: number;
+  post_count: number | null;
+  following_count: number | null;
   description?: string | null;
   is_verified: boolean;
   verification_status: SocialAccountVerificationStatus;
@@ -54,6 +56,7 @@ export interface SocialAccountFilters {
   platform?: ContentPlatform | "all";
   verification_status?: SocialAccountVerificationStatus | "all";
   delegation_status?: SocialAccountDelegationStatus | "all";
+  search?: string;
   page?: number;
   limit?: number;
 }

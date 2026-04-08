@@ -2,16 +2,6 @@ import { z } from "zod";
 
 import { CONTENT_TOPIC_OPTIONS } from "@/features/content-shared/constants/content-options";
 
-const fileSchema = z
-  .custom<File | null | undefined>((value) => value == null || value instanceof File, {
-    message: "File thumbnail tidak valid",
-  })
-  .refine((value) => !value || value.size <= 2 * 1024 * 1024, "Ukuran thumbnail maksimal 2MB")
-  .refine(
-    (value) => !value || ["image/jpeg", "image/png", "image/webp"].includes(value.type),
-    "Thumbnail harus berformat JPG, PNG, atau WebP",
-  );
-
 const topikSchema = z
   .string({ message: "Topik kampanye wajib dipilih" })
   .trim()
@@ -22,7 +12,7 @@ const topikSchema = z
     "Topik kampanye wajib dipilih",
   );
 
-export const contentSubmissionSchema = z.object({
+const contentSubmissionSchemaBase = z.object({
   judul: z
     .string({ message: "Judul konten wajib diisi" })
     .trim()
@@ -40,9 +30,6 @@ export const contentSubmissionSchema = z.object({
     .string({ message: "Link Google Drive wajib diisi" })
     .url("Link Google Drive tidak valid")
     .refine((value) => value.includes("drive.google.com"), "Gunakan link Google Drive"),
-  jumlah_file: z.enum(["1", "2-3", "4-5", "folder"], {
-    message: "Jumlah file wajib dipilih",
-  }),
   caption: z
     .string({ message: "Caption wajib diisi" })
     .trim()
@@ -53,18 +40,39 @@ export const contentSubmissionSchema = z.object({
     .enum(["kurang_30_detik", "30_60_detik", "1_3_menit", "3_10_menit", "lebih_10_menit"])
     .nullable()
     .optional(),
-  target_audiens: z.array(z.enum(["masyarakat_umum", "pelajar", "ibu_rumah_tangga", "pelaku_usaha", "komunitas"])),
   urgensi: z.enum(["normal", "prioritas", "urgent"], {
     message: "Tingkat urgensi wajib dipilih",
   }),
-  tipe: z.enum(["baru", "revisi_repost"], {
-    message: "Tipe konten wajib dipilih",
+  visibility_scope: z.enum(["national", "targeted_regions", "internal_only"], {
+    message: "Cakupan visibilitas wajib dipilih",
   }),
+  assignment_scope: z.enum(["none", "national", "targeted_regions"], {
+    message: "Cakupan penugasan wajib dipilih",
+  }),
+  visibility_target_wilayah_ids: z.array(z.string()).default([]),
+  assignment_target_wilayah_ids: z.array(z.string()).default([]),
   catatan_reviewer: z.string().trim().max(500, "Catatan untuk reviewer maksimal 500 karakter").optional().nullable(),
-  thumbnail: fileSchema.optional(),
 });
 
-export const contentSubmissionInfoSchema = contentSubmissionSchema.pick({
+export const contentSubmissionSchema = contentSubmissionSchemaBase.superRefine((value, context) => {
+  if (value.visibility_scope === "targeted_regions" && value.visibility_target_wilayah_ids.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["visibility_target_wilayah_ids"],
+      message: "Pilih minimal satu wilayah target untuk visibility targeted",
+    });
+  }
+
+  if (value.assignment_scope === "targeted_regions" && value.assignment_target_wilayah_ids.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["assignment_target_wilayah_ids"],
+      message: "Pilih minimal satu wilayah target untuk assignment targeted",
+    });
+  }
+});
+
+export const contentSubmissionInfoSchema = contentSubmissionSchemaBase.pick({
   judul: true,
   platform: true,
   jenis_konten: true,
@@ -72,19 +80,19 @@ export const contentSubmissionInfoSchema = contentSubmissionSchema.pick({
   tanggal_posting: true,
 });
 
-export const contentSubmissionDriveSchema = contentSubmissionSchema.pick({
+export const contentSubmissionDriveSchema = contentSubmissionSchemaBase.pick({
   drive_link: true,
-  jumlah_file: true,
-  thumbnail: true,
 });
 
-export const contentSubmissionDetailSchema = contentSubmissionSchema.pick({
+export const contentSubmissionDetailSchema = contentSubmissionSchemaBase.pick({
   caption: true,
   hashtags: true,
   durasi_konten: true,
-  target_audiens: true,
   urgensi: true,
-  tipe: true,
+  visibility_scope: true,
+  assignment_scope: true,
+  visibility_target_wilayah_ids: true,
+  assignment_target_wilayah_ids: true,
   catatan_reviewer: true,
 });
 
