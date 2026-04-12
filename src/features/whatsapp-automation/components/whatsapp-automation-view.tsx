@@ -258,8 +258,8 @@ export function WhatsappAutomationView() {
                     </div>
                     <div className="space-y-4 p-5">
                       <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-muted-foreground text-xs leading-5">
-                        Pesan di sini akan dirender oleh backend Asrihub, lalu n8n hanya meneruskan hasil final ke
-                        WAHA. Jadi kualitas copy utama ditentukan dari template ini.
+                        Pesan di sini akan dirender oleh backend Asrihub lalu dikirim langsung ke WAHA. Jadi kualitas
+                        copy utama ditentukan dari template ini.
                       </div>
                       <Textarea
                         id="automation-template-body"

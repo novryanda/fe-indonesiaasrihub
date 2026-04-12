@@ -439,7 +439,7 @@ export function WhatsappGatewayView() {
                   </div>
                 </div>
                 <div className="rounded-2xl border border-emerald-200/80 bg-white/70 px-4 py-4 text-emerald-900 text-sm leading-6">
-                  Session aktif dan siap dipakai untuk pengiriman notifikasi task PIC melalui WAHA + n8n.
+                  Session aktif dan siap dipakai untuk pengiriman notifikasi task PIC langsung melalui WAHA.
                 </div>
               </div>
             ) : (
@@ -567,7 +567,7 @@ export function WhatsappGatewayView() {
                 </div>
               </div>
               <div className="rounded-2xl border border-emerald-200/80 bg-white/70 px-4 py-4 text-emerald-900 text-sm leading-6">
-                Session aktif. Anda bisa menutup dialog ini dan lanjut memakai gateway untuk n8n dan Asrihub.
+                Session aktif. Anda bisa menutup dialog ini dan lanjut memakai gateway untuk Asrihub.
               </div>
             </div>
           ) : (

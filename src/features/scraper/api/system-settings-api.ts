@@ -40,25 +40,11 @@ function mapSettings(data: {
     source: WhatsappIntegrationSettings["wahaSessionName"]["source"];
     value?: string | null;
   };
-  n8n_whatsapp_webhook_url: {
-    is_secret: boolean;
-    has_value: boolean;
-    source: WhatsappIntegrationSettings["n8nWhatsappWebhookUrl"]["source"];
-    value?: string | null;
-  };
-  n8n_whatsapp_webhook_token: {
-    is_secret: boolean;
-    has_value: boolean;
-    source: WhatsappIntegrationSettings["n8nWhatsappWebhookToken"]["source"];
-    masked_preview?: string | null;
-  };
 }): WhatsappIntegrationSettings {
   return {
     wahaApiBaseUrl: mapField(data.waha_api_base_url),
     wahaApiKey: mapField(data.waha_api_key),
     wahaSessionName: mapField(data.waha_session_name),
-    n8nWhatsappWebhookUrl: mapField(data.n8n_whatsapp_webhook_url),
-    n8nWhatsappWebhookToken: mapField(data.n8n_whatsapp_webhook_token),
   };
 }
 
@@ -82,18 +68,6 @@ export async function getWhatsappIntegrationSettings() {
       source: WhatsappIntegrationSettings["wahaSessionName"]["source"];
       value?: string | null;
     };
-    n8n_whatsapp_webhook_url: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookUrl"]["source"];
-      value?: string | null;
-    };
-    n8n_whatsapp_webhook_token: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookToken"]["source"];
-      masked_preview?: string | null;
-    };
   }>("/v1/system-settings/whatsapp-integration");
 
   return {
@@ -106,8 +80,6 @@ export async function updateWhatsappIntegrationSettings(payload: {
   wahaApiBaseUrl?: string;
   wahaApiKey?: string;
   wahaSessionName?: string;
-  n8nWhatsappWebhookUrl?: string;
-  n8nWhatsappWebhookToken?: string;
 }) {
   const response = await apiClient<{
     waha_api_base_url: {
@@ -128,26 +100,12 @@ export async function updateWhatsappIntegrationSettings(payload: {
       source: WhatsappIntegrationSettings["wahaSessionName"]["source"];
       value?: string | null;
     };
-    n8n_whatsapp_webhook_url: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookUrl"]["source"];
-      value?: string | null;
-    };
-    n8n_whatsapp_webhook_token: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookToken"]["source"];
-      masked_preview?: string | null;
-    };
   }>("/v1/system-settings/whatsapp-integration", {
     method: "PATCH",
     body: {
       waha_api_base_url: payload.wahaApiBaseUrl,
       waha_api_key: payload.wahaApiKey,
       waha_session_name: payload.wahaSessionName,
-      n8n_whatsapp_webhook_url: payload.n8nWhatsappWebhookUrl,
-      n8n_whatsapp_webhook_token: payload.n8nWhatsappWebhookToken,
     },
   });
 
@@ -176,18 +134,6 @@ export async function resetWhatsappIntegrationSettings(keys: WhatsappIntegration
       has_value: boolean;
       source: WhatsappIntegrationSettings["wahaSessionName"]["source"];
       value?: string | null;
-    };
-    n8n_whatsapp_webhook_url: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookUrl"]["source"];
-      value?: string | null;
-    };
-    n8n_whatsapp_webhook_token: {
-      is_secret: boolean;
-      has_value: boolean;
-      source: WhatsappIntegrationSettings["n8nWhatsappWebhookToken"]["source"];
-      masked_preview?: string | null;
     };
   }>("/v1/system-settings/whatsapp-integration/reset", {
     method: "POST",

@@ -12,13 +12,9 @@ export type WhatsappIntegrationSettings = {
   wahaApiBaseUrl: WhatsappIntegrationSettingField;
   wahaApiKey: WhatsappIntegrationSettingField;
   wahaSessionName: WhatsappIntegrationSettingField;
-  n8nWhatsappWebhookUrl: WhatsappIntegrationSettingField;
-  n8nWhatsappWebhookToken: WhatsappIntegrationSettingField;
 };
 
 export type WhatsappIntegrationSettingKey =
   | "waha_api_base_url"
   | "waha_api_key"
-  | "waha_session_name"
-  | "n8n_whatsapp_webhook_url"
-  | "n8n_whatsapp_webhook_token";
+  | "waha_session_name";

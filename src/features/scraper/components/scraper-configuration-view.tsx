@@ -11,7 +11,6 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
-  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -78,17 +77,13 @@ function getSourceBadge(source: SystemSettingSource) {
 type IntegrationFormState = {
   wahaApiBaseUrl: string;
   wahaSessionName: string;
-  n8nWhatsappWebhookUrl: string;
   wahaApiKey: string;
-  n8nWhatsappWebhookToken: string;
 };
 
 const INITIAL_INTEGRATION_FORM: IntegrationFormState = {
   wahaApiBaseUrl: "",
   wahaSessionName: "",
-  n8nWhatsappWebhookUrl: "",
   wahaApiKey: "",
-  n8nWhatsappWebhookToken: "",
 };
 
 export function ScraperConfigurationView() {
@@ -99,7 +94,6 @@ export function ScraperConfigurationView() {
   const [initialNonSecretValues, setInitialNonSecretValues] = useState({
     wahaApiBaseUrl: "",
     wahaSessionName: "",
-    n8nWhatsappWebhookUrl: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingScraper, setIsRefreshingScraper] = useState(false);
@@ -107,7 +101,7 @@ export function ScraperConfigurationView() {
   const [isSavingIntegration, setIsSavingIntegration] = useState(false);
   const [resettingKey, setResettingKey] = useState<WhatsappIntegrationSettingKey | null>(null);
   const [visibleSecretPreviews, setVisibleSecretPreviews] = useState<
-    Partial<Record<"wahaApiKey" | "n8nWhatsappWebhookToken", boolean>>
+    Partial<Record<"wahaApiKey", boolean>>
   >({});
   const redisDashboardUrl = process.env.NEXT_PUBLIC_REDIS_DASHBOARD_URL?.trim() ?? "";
   const bullBoardUrl = process.env.NEXT_PUBLIC_BULL_BOARD_URL?.trim() ?? "";
@@ -117,14 +111,11 @@ export function ScraperConfigurationView() {
     setIntegrationForm({
       wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
       wahaSessionName: settings.wahaSessionName.value ?? "",
-      n8nWhatsappWebhookUrl: settings.n8nWhatsappWebhookUrl.value ?? "",
       wahaApiKey: "",
-      n8nWhatsappWebhookToken: "",
     });
     setInitialNonSecretValues({
       wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
       wahaSessionName: settings.wahaSessionName.value ?? "",
-      n8nWhatsappWebhookUrl: settings.n8nWhatsappWebhookUrl.value ?? "",
     });
   };
 
@@ -196,10 +187,8 @@ export function ScraperConfigurationView() {
 
   const hasNonSecretChanges =
     integrationForm.wahaApiBaseUrl.trim() !== initialNonSecretValues.wahaApiBaseUrl ||
-    integrationForm.wahaSessionName.trim() !== initialNonSecretValues.wahaSessionName ||
-    integrationForm.n8nWhatsappWebhookUrl.trim() !== initialNonSecretValues.n8nWhatsappWebhookUrl;
-  const hasSecretChanges =
-    integrationForm.wahaApiKey.trim().length > 0 || integrationForm.n8nWhatsappWebhookToken.trim().length > 0;
+    integrationForm.wahaSessionName.trim() !== initialNonSecretValues.wahaSessionName;
+  const hasSecretChanges = integrationForm.wahaApiKey.trim().length > 0;
   const canSubmitIntegration = hasNonSecretChanges || hasSecretChanges;
 
   const handleSaveIntegration = async () => {
@@ -209,12 +198,10 @@ export function ScraperConfigurationView() {
 
     const nextWahaApiBaseUrl = integrationForm.wahaApiBaseUrl.trim();
     const nextWahaSessionName = integrationForm.wahaSessionName.trim();
-    const nextWebhookUrl = integrationForm.n8nWhatsappWebhookUrl.trim();
 
     if (
       (integrationForm.wahaApiBaseUrl !== initialNonSecretValues.wahaApiBaseUrl && nextWahaApiBaseUrl.length === 0) ||
-      (integrationForm.wahaSessionName !== initialNonSecretValues.wahaSessionName && nextWahaSessionName.length === 0) ||
-      (integrationForm.n8nWhatsappWebhookUrl !== initialNonSecretValues.n8nWhatsappWebhookUrl && nextWebhookUrl.length === 0)
+      (integrationForm.wahaSessionName !== initialNonSecretValues.wahaSessionName && nextWahaSessionName.length === 0)
     ) {
       toast.error("Untuk menghapus override field non-secret, gunakan tombol Reset Override.");
       return;
@@ -224,8 +211,6 @@ export function ScraperConfigurationView() {
       wahaApiBaseUrl?: string;
       wahaApiKey?: string;
       wahaSessionName?: string;
-      n8nWhatsappWebhookUrl?: string;
-      n8nWhatsappWebhookToken?: string;
     } = {};
 
     if (nextWahaApiBaseUrl !== initialNonSecretValues.wahaApiBaseUrl) {
@@ -236,16 +221,8 @@ export function ScraperConfigurationView() {
       payload.wahaSessionName = nextWahaSessionName;
     }
 
-    if (nextWebhookUrl !== initialNonSecretValues.n8nWhatsappWebhookUrl) {
-      payload.n8nWhatsappWebhookUrl = nextWebhookUrl;
-    }
-
     if (integrationForm.wahaApiKey.trim().length > 0) {
       payload.wahaApiKey = integrationForm.wahaApiKey.trim();
-    }
-
-    if (integrationForm.n8nWhatsappWebhookToken.trim().length > 0) {
-      payload.n8nWhatsappWebhookToken = integrationForm.n8nWhatsappWebhookToken.trim();
     }
 
     if (Object.keys(payload).length === 0) {
@@ -278,7 +255,7 @@ export function ScraperConfigurationView() {
     }
   };
 
-  const toggleSecretPreview = (key: "wahaApiKey" | "n8nWhatsappWebhookToken") => {
+  const toggleSecretPreview = (key: "wahaApiKey") => {
     setVisibleSecretPreviews((previous) => ({
       ...previous,
       [key]: !previous[key],
@@ -302,15 +279,10 @@ export function ScraperConfigurationView() {
 
   const badge = getConnectionBadge(connectionStatus);
   const wahaReady = Boolean(integrationSettings?.wahaApiBaseUrl.hasValue && integrationSettings?.wahaApiKey.hasValue);
-  const n8nReady = Boolean(
-    integrationSettings?.n8nWhatsappWebhookUrl.hasValue && integrationSettings?.n8nWhatsappWebhookToken.hasValue,
-  );
 
   const wahaBaseUrlBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaApiBaseUrl.source) : null;
   const wahaSessionBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaSessionName.source) : null;
   const wahaApiKeyBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaApiKey.source) : null;
-  const n8nWebhookUrlBadge = integrationSettings ? getSourceBadge(integrationSettings.n8nWhatsappWebhookUrl.source) : null;
-  const n8nWebhookTokenBadge = integrationSettings ? getSourceBadge(integrationSettings.n8nWhatsappWebhookToken.source) : null;
 
   return (
     <div className="space-y-6">
@@ -338,12 +310,6 @@ export function ScraperConfigurationView() {
                   className={wahaReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}
                 >
                   {wahaReady ? "WAHA siap" : "WAHA belum lengkap"}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={n8nReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}
-                >
-                  {n8nReady ? "n8n siap" : "n8n belum lengkap"}
                 </Badge>
               </div>
               <div className="space-y-1">
@@ -390,8 +356,7 @@ export function ScraperConfigurationView() {
               </div>
               <div className="space-y-2">
                 {wahaBaseUrlBadge ? <Badge variant="outline" className={wahaBaseUrlBadge.className}>{wahaBaseUrlBadge.label}</Badge> : null}
-                <p className="text-xs text-muted-foreground">Override database akan mengalahkan env deploy.</p>
-              </div>
+               </div>
               <div className="flex justify-start lg:justify-end">
                 <Button
                   variant="ghost"
@@ -511,117 +476,6 @@ export function ScraperConfigurationView() {
               </div>
             </div>
 
-            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
-              <div className="space-y-2">
-                <p className="font-medium text-sm">n8n Webhook URL</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="n8n-webhook-url" className="sr-only">
-                  n8n Webhook URL
-                </Label>
-                <Input
-                  id="n8n-webhook-url"
-                  placeholder="https://n8n.example.com/webhook/asrihub-whatsapp"
-                  value={integrationForm.n8nWhatsappWebhookUrl}
-                  onChange={(event) => handleIntegrationFormChange("n8nWhatsappWebhookUrl", event.target.value)}
-                  disabled={isLoading || isSavingIntegration}
-                  className="font-mono text-sm"
-                />
-                <p className="text-xs text-muted-foreground">Aktif sekarang: {integrationSettings?.n8nWhatsappWebhookUrl.value ?? "-"}</p>
-              </div>
-              <div className="space-y-2">
-                {n8nWebhookUrlBadge ? <Badge variant="outline" className={n8nWebhookUrlBadge.className}>{n8nWebhookUrlBadge.label}</Badge> : null}
-                <p className="text-xs text-muted-foreground">Backend akan kirim payload final ke endpoint ini.</p>
-              </div>
-              <div className="flex justify-start lg:justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleResetIntegrationField("n8n_whatsapp_webhook_url")}
-                  disabled={
-                    integrationSettings?.n8nWhatsappWebhookUrl.source !== "database" ||
-                    resettingKey === "n8n_whatsapp_webhook_url"
-                  }
-                >
-                  {resettingKey === "n8n_whatsapp_webhook_url" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
-                  Reset
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
-              <div className="space-y-2">
-                <p className="font-medium text-sm">n8n Webhook Token</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="n8n-webhook-token" className="sr-only">
-                  n8n Webhook Token
-                </Label>
-                <Input
-                  id="n8n-webhook-token"
-                  type="password"
-                  placeholder="Tempel nilai baru hanya jika ingin mengganti"
-                  value={integrationForm.n8nWhatsappWebhookToken}
-                  onChange={(event) => handleIntegrationFormChange("n8nWhatsappWebhookToken", event.target.value)}
-                  disabled={isLoading || isSavingIntegration}
-                  className="font-mono text-sm"
-                />
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {integrationSettings?.n8nWhatsappWebhookToken.hasValue ? (
-                    <>
-                      <span>
-                        {visibleSecretPreviews.n8nWhatsappWebhookToken
-                          ? integrationSettings.n8nWhatsappWebhookToken.maskedPreview ?? "Preview tidak tersedia."
-                          : "Secret aktif tersimpan aman."}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => toggleSecretPreview("n8nWhatsappWebhookToken")}
-                      >
-                        {visibleSecretPreviews.n8nWhatsappWebhookToken ? (
-                          <EyeOff className="mr-1 size-3.5" />
-                        ) : (
-                          <Eye className="mr-1 size-3.5" />
-                        )}
-                        {visibleSecretPreviews.n8nWhatsappWebhookToken ? "Sembunyikan" : "Lihat preview"}
-                      </Button>
-                    </>
-                  ) : (
-                    <span>Belum ada secret aktif.</span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                {n8nWebhookTokenBadge ? <Badge variant="outline" className={n8nWebhookTokenBadge.className}>{n8nWebhookTokenBadge.label}</Badge> : null}
-                <Badge
-                  variant="outline"
-                  className={
-                    integrationSettings?.n8nWhatsappWebhookToken.hasValue
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
-                  }
-                >
-                  {integrationSettings?.n8nWhatsappWebhookToken.hasValue ? "Stored" : "Missing"}
-                </Badge>
-              </div>
-              <div className="flex justify-start lg:justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleResetIntegrationField("n8n_whatsapp_webhook_token")}
-                  disabled={
-                    integrationSettings?.n8nWhatsappWebhookToken.source !== "database" ||
-                    resettingKey === "n8n_whatsapp_webhook_token"
-                  }
-                >
-                  {resettingKey === "n8n_whatsapp_webhook_token" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
-                  Reset
-                </Button>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -630,8 +484,8 @@ export function ScraperConfigurationView() {
         <KeyRound className="size-4" />
         <AlertTitle>Secret bersifat replace-only</AlertTitle>
         <AlertDescription>
-          API key WAHA dan token webhook n8n tidak akan pernah ditampilkan ulang dari server. Isi field secret hanya
-          saat ingin mengganti nilainya.
+          API key WAHA tidak akan pernah ditampilkan ulang dari server. Isi field secret hanya saat ingin mengganti
+          nilainya.
         </AlertDescription>
       </Alert>
 
