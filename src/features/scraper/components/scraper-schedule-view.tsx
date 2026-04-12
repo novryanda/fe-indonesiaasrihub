@@ -34,9 +34,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
-import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
+import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
+import { formatDateTime } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import {
@@ -47,12 +47,18 @@ import {
   toggleScraperSchedule,
   updateScraperSchedule,
 } from "../api/scraper-api";
-import type { CreateScraperSchedulePayload, ScraperFrequency, ScraperScheduleItem } from "../types/scraper.type";
+import type {
+  CreateScraperSchedulePayload,
+  ScraperFrequency,
+  ScraperScheduleItem,
+  ScraperScheduleMode,
+} from "../types/scraper.type";
 
 type ScheduleFormState = CreateScraperSchedulePayload;
 
 const INITIAL_FORM: ScheduleFormState = {
   platform: "instagram",
+  mode: "profile_monitoring",
   frequency: "harian",
   runAt: "02:00",
   cronExpression: "",
@@ -67,6 +73,17 @@ function getFrequencyLabel(value: ScraperFrequency) {
       return "Mingguan";
     case "custom":
       return "Custom";
+    default:
+      return value;
+  }
+}
+
+function getModeLabel(value: ScraperScheduleMode) {
+  switch (value) {
+    case "profile_monitoring":
+      return "Monitor Profil";
+    case "posting_metrics":
+      return "Refresh Link PIC";
     default:
       return value;
   }
@@ -97,9 +114,23 @@ export function ScraperScheduleView() {
   };
 
   useEffect(() => {
-    if (!isPending && isAuthorized) {
-      void loadSchedules();
+    if (isPending || !isAuthorized) {
+      return;
     }
+
+    const loadInitialSchedules = async () => {
+      setIsLoading(true);
+      try {
+        const response = await listScraperSchedules();
+        setItems(response.data);
+      } catch (errorValue) {
+        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat jadwal scraping");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadInitialSchedules();
   }, [isAuthorized, isPending]);
 
   const openCreateDialog = () => {
@@ -112,6 +143,7 @@ export function ScraperScheduleView() {
     setEditingItem(item);
     setForm({
       platform: item.platform,
+      mode: item.mode,
       frequency: item.frequency,
       runAt: item.runAt,
       cronExpression: item.frequency === "custom" ? item.cronExpression : "",
@@ -142,6 +174,7 @@ export function ScraperScheduleView() {
       if (editingItem) {
         await updateScraperSchedule(editingItem.id, {
           platform: form.platform,
+          mode: form.mode,
           frequency: form.frequency,
           runAt: form.runAt,
           cronExpression: form.frequency === "custom" ? form.cronExpression?.trim() : undefined,
@@ -151,6 +184,7 @@ export function ScraperScheduleView() {
       } else {
         await createScraperSchedule({
           platform: form.platform,
+          mode: form.mode,
           frequency: form.frequency,
           runAt: form.runAt,
           cronExpression: form.frequency === "custom" ? form.cronExpression?.trim() : undefined,
@@ -269,6 +303,7 @@ export function ScraperScheduleView() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Platform</TableHead>
+                    <TableHead>Mode</TableHead>
                     <TableHead>Frekuensi</TableHead>
                     <TableHead>Jam Eksekusi</TableHead>
                     <TableHead>Status</TableHead>
@@ -280,7 +315,7 @@ export function ScraperScheduleView() {
                 <TableBody>
                   {items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                         Belum ada jadwal scraping yang dikonfigurasi.
                       </TableCell>
                     </TableRow>
@@ -290,6 +325,11 @@ export function ScraperScheduleView() {
                         <TableCell>
                           <PlatformIcon platform={item.platform} />
                         </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-slate-200 bg-slate-100 text-slate-700">
+                            {getModeLabel(item.mode)}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{getFrequencyLabel(item.frequency)}</TableCell>
                         <TableCell>{item.runAt}</TableCell>
                         <TableCell>
@@ -298,7 +338,7 @@ export function ScraperScheduleView() {
                               checked={item.isActive}
                               onCheckedChange={(checked) => void handleToggle(item, checked)}
                             />
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-muted-foreground text-sm">
                               {item.isActive ? "Aktif" : "Nonaktif"}
                             </span>
                           </div>
@@ -367,6 +407,37 @@ export function ScraperScheduleView() {
             </div>
 
             <div className="grid gap-3">
+              <Label>Mode Jadwal</Label>
+              <RadioGroup
+                value={form.mode}
+                onValueChange={(value) => setForm((previous) => ({ ...previous, mode: value as ScraperScheduleMode }))}
+                className="grid gap-3 md:grid-cols-2"
+              >
+                {(["profile_monitoring", "posting_metrics"] as const).map((option) => {
+                  const optionId = `schedule-mode-${option}`;
+
+                  return (
+                    <Label
+                      key={option}
+                      htmlFor={optionId}
+                      className="flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3"
+                    >
+                      <RadioGroupItem id={optionId} value={option} />
+                      <div className="space-y-1">
+                        <span className="block font-medium text-sm">{getModeLabel(option)}</span>
+                        <span className="block text-muted-foreground text-xs">
+                          {option === "profile_monitoring"
+                            ? "Refresh perkembangan akun dan data profil tanpa fokus ke seluruh histori lama."
+                            : "Prioritaskan akun yang punya link posting PIC yang belum pernah atau belum selesai di-refresh."}
+                        </span>
+                      </div>
+                    </Label>
+                  );
+                })}
+              </RadioGroup>
+            </div>
+
+            <div className="grid gap-3">
               <Label>Frekuensi</Label>
               <RadioGroup
                 value={form.frequency}
@@ -375,12 +446,20 @@ export function ScraperScheduleView() {
                 }
                 className="grid gap-3 md:grid-cols-3"
               >
-                {(["harian", "mingguan", "custom"] as const).map((option) => (
-                  <label key={option} className="flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3">
-                    <RadioGroupItem value={option} />
-                    <span className="font-medium text-sm">{getFrequencyLabel(option)}</span>
-                  </label>
-                ))}
+                {(["harian", "mingguan", "custom"] as const).map((option) => {
+                  const optionId = `schedule-frequency-${option}`;
+
+                  return (
+                    <Label
+                      key={option}
+                      htmlFor={optionId}
+                      className="flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3"
+                    >
+                      <RadioGroupItem id={optionId} value={option} />
+                      <span className="font-medium text-sm">{getFrequencyLabel(option)}</span>
+                    </Label>
+                  );
+                })}
               </RadioGroup>
             </div>
 

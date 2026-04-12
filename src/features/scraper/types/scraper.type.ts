@@ -2,12 +2,14 @@ import type { ContentPlatform } from "@/features/content-shared/types/content.ty
 
 export type ScraperPlatform = ContentPlatform;
 export type ScraperFrequency = "harian" | "mingguan" | "custom";
+export type ScraperScheduleMode = "profile_monitoring" | "posting_metrics";
 export type ScraperRunStatus = "running" | "success" | "failed" | "partial";
 export type ScraperTriggerType = "scheduled" | "on_register" | "manual";
 
 export interface ScraperScheduleItem {
   id: string;
   platform: ScraperPlatform;
+  mode: ScraperScheduleMode;
   frequency: ScraperFrequency;
   runAt: string;
   cronExpression: string;
@@ -25,6 +27,7 @@ export interface ScraperScheduleItem {
 
 export interface CreateScraperSchedulePayload {
   platform: ScraperPlatform;
+  mode: ScraperScheduleMode;
   frequency: ScraperFrequency;
   runAt: string;
   cronExpression?: string;
@@ -33,6 +36,7 @@ export interface CreateScraperSchedulePayload {
 
 export interface UpdateScraperSchedulePayload {
   platform?: ScraperPlatform;
+  mode?: ScraperScheduleMode;
   frequency?: ScraperFrequency;
   runAt?: string;
   cronExpression?: string;
@@ -44,6 +48,7 @@ export interface ScraperLogItem {
   scheduleId: string | null;
   triggerType: ScraperTriggerType;
   platform: ScraperPlatform;
+  mode: "bootstrap_history" | ScraperScheduleMode;
   status: ScraperRunStatus;
   totalAccounts: number;
   successCount: number;
@@ -57,6 +62,7 @@ export interface ScraperLogItem {
   createdAt: string;
   schedule: {
     id: string;
+    mode: ScraperScheduleMode;
     runAt: string;
     frequency: ScraperFrequency;
   } | null;
@@ -84,6 +90,7 @@ export interface ScraperLogDetail extends ScraperLogItem {
 export interface ScraperLogsQuery {
   status?: ScraperRunStatus | "all";
   platform?: ScraperPlatform | "all";
+  mode?: "bootstrap_history" | ScraperScheduleMode | "all";
   dateFrom?: string;
   dateTo?: string;
   page?: number;

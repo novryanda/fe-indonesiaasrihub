@@ -3,19 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Activity, Clock3, Trophy, Users2 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,13 +13,11 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 import {
   getKpiSummary,
   getRegionalLeaderboard,
-  getRegionalTrend,
   getSocialAccountLeaderboard,
 } from "../api/analytics-report-api";
 import type {
   AnalyticsFilterParams,
   RegionalLeaderboardRow,
-  RegionalTrendPoint,
   SocialAccountLeaderboardRow,
 } from "../types/analytics-report.type";
 import {
@@ -48,8 +33,6 @@ import {
   SortHeader,
   TrendBadge,
 } from "./report-ui";
-
-const REGION_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#db2777", "#7c3aed", "#0f766e", "#ea580c", "#0891b2"];
 
 type RegionalSortKey = "rank" | "wilayah_nama" | "score_timeliness" | "score_engagement" | "score_final";
 
@@ -124,7 +107,6 @@ export function SuperadminAnalyticsReportView() {
   const [kpiData, setKpiData] = useState<Awaited<ReturnType<typeof getKpiSummary>>["data"] | null>(null);
   const [regionalRows, setRegionalRows] = useState<RegionalLeaderboardRow[]>([]);
   const [socialRows, setSocialRows] = useState<SocialAccountLeaderboardRow[]>([]);
-  const [trendRows, setTrendRows] = useState<RegionalTrendPoint[]>([]);
   const [regionalSort, setRegionalSort] = useState<{
     key: RegionalSortKey;
     direction: "asc" | "desc";
@@ -137,12 +119,6 @@ export function SuperadminAnalyticsReportView() {
   const [accountPage, setAccountPage] = useState(1);
   const [accountRegionFilter, setAccountRegionFilter] = useState<string>("all");
   const [accountPlatformFilter, setAccountPlatformFilter] = useState<string>("all");
-  const [barVisibility, setBarVisibility] = useState({
-    timeliness: true,
-    engagement: true,
-    final: true,
-  });
-  const [hiddenRegions, setHiddenRegions] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isAuthorized || isPending) {
@@ -156,13 +132,11 @@ export function SuperadminAnalyticsReportView() {
       getKpiSummary(filters),
       getRegionalLeaderboard(filters),
       getSocialAccountLeaderboard(filters),
-      getRegionalTrend(filters),
     ])
-      .then(([kpi, regional, social, trend]) => {
+      .then(([kpi, regional, social]) => {
         setKpiData(kpi.data);
         setRegionalRows(Array.isArray(regional.data) ? regional.data : []);
         setSocialRows(Array.isArray(social.data) ? social.data : []);
-        setTrendRows(Array.isArray(trend.data) ? trend.data : []);
       })
       .catch((caught) => {
         setError(caught instanceof Error ? caught.message : "Gagal memuat laporan analitik.");
@@ -239,51 +213,6 @@ export function SuperadminAnalyticsReportView() {
   const pagedSocialRows = useMemo(() => {
     return sortedSocialRows.slice((accountPage - 1) * 10, accountPage * 10);
   }, [accountPage, sortedSocialRows]);
-
-  const barChartRows = useMemo(
-    () =>
-      [...regionalRows]
-        .sort((left, right) => right.score_final - left.score_final)
-        .map((item) => ({
-          wilayah_nama: item.wilayah_nama,
-          score_timeliness: item.score_timeliness,
-          score_engagement: item.score_engagement,
-          score_final: item.score_final,
-        })),
-    [regionalRows],
-  );
-
-  const nationalAverage = useMemo(() => {
-    if (regionalRows.length === 0) {
-      return 0;
-    }
-
-    return regionalRows.reduce((sum, item) => sum + item.score_final, 0) / regionalRows.length;
-  }, [regionalRows]);
-
-  const trendChartData = useMemo(() => {
-    const regionNames = Array.from(
-      new Set(trendRows.flatMap((item) => item.regions.map((region) => region.wilayah_nama))),
-    );
-
-    return trendRows.map((item) => {
-      const row: Record<string, string | number> = {
-        period_label: item.period_label,
-      };
-
-      for (const regionName of regionNames) {
-        const found = item.regions.find((region) => region.wilayah_nama === regionName);
-        row[regionName] = found?.score_final ?? 0;
-      }
-
-      return row;
-    });
-  }, [trendRows]);
-
-  const trendLegendItems = useMemo(
-    () => Array.from(new Set(trendRows.flatMap((item) => item.regions.map((region) => region.wilayah_nama)))),
-    [trendRows],
-  );
 
   if (isPending) {
     return <KpiCardsSkeleton />;
@@ -470,57 +399,6 @@ export function SuperadminAnalyticsReportView() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-foreground/10 shadow-sm">
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
-          <div>
-            <CardTitle>Bar Chart Perbandingan Regional</CardTitle>
-            <CardDescription>Bandingkan skor waktu, engagement, dan final seluruh regional.</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={barVisibility.timeliness ? "default" : "outline"}
-              onClick={() => setBarVisibility((current) => ({ ...current, timeliness: !current.timeliness }))}
-            >
-              Skor Waktu
-            </Button>
-            <Button
-              size="sm"
-              variant={barVisibility.engagement ? "default" : "outline"}
-              onClick={() => setBarVisibility((current) => ({ ...current, engagement: !current.engagement }))}
-            >
-              Skor Engagement
-            </Button>
-            <Button
-              size="sm"
-              variant={barVisibility.final ? "default" : "outline"}
-              onClick={() => setBarVisibility((current) => ({ ...current, final: !current.final }))}
-            >
-              Skor Final
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="h-[420px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barChartRows} layout="vertical" margin={{ left: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} />
-              <YAxis dataKey="wilayah_nama" type="category" width={120} />
-              <Tooltip />
-              <Legend />
-              <ReferenceLine x={nationalAverage} stroke="#64748b" strokeDasharray="5 5" label="Rata-rata nasional" />
-              {barVisibility.timeliness ? (
-                <Bar dataKey="score_timeliness" name="Skor Waktu" fill="#2563eb" radius={6} />
-              ) : null}
-              {barVisibility.engagement ? (
-                <Bar dataKey="score_engagement" name="Skor Engagement" fill="#16a34a" radius={6} />
-              ) : null}
-              {barVisibility.final ? <Bar dataKey="score_final" name="Skor Final" fill="#7c3aed" radius={6} /> : null}
-            </BarChart>
-          </ResponsiveContainer>
         </CardContent>
       </Card>
 
@@ -727,60 +605,6 @@ export function SuperadminAnalyticsReportView() {
         </CardContent>
       </Card>
 
-      <Card className="border-foreground/10 shadow-sm">
-        <CardHeader>
-          <CardTitle>Trend Line Chart Regional</CardTitle>
-          <CardDescription>Tren skor final lintas regional pada bucket periode yang dipilih.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {trendLegendItems.map((region, index) => {
-              const hidden = hiddenRegions.includes(region);
-              return (
-                <Button
-                  key={region}
-                  size="sm"
-                  variant={hidden ? "outline" : "default"}
-                  onClick={() =>
-                    setHiddenRegions((current) =>
-                      hidden ? current.filter((item) => item !== region) : [...current, region],
-                    )
-                  }
-                >
-                  <span
-                    className="mr-2 inline-flex size-2.5 rounded-full"
-                    style={{ backgroundColor: REGION_COLORS[index % REGION_COLORS.length] }}
-                  />
-                  {region}
-                </Button>
-              );
-            })}
-          </div>
-          <div className="h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period_label" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip />
-                <Legend />
-                {trendLegendItems.map((region, index) =>
-                  hiddenRegions.includes(region) ? null : (
-                    <Line
-                      key={region}
-                      type="monotone"
-                      dataKey={region}
-                      stroke={REGION_COLORS[index % REGION_COLORS.length]}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                  ),
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import type {
 function mapSchedule(item: {
   id: string;
   platform: ScraperScheduleItem["platform"];
+  mode: ScraperScheduleItem["mode"];
   frequency: ScraperScheduleItem["frequency"];
   run_at: string;
   cron_expression: string;
@@ -27,6 +28,7 @@ function mapSchedule(item: {
   return {
     id: item.id,
     platform: item.platform,
+    mode: item.mode,
     frequency: item.frequency,
     runAt: item.run_at,
     cronExpression: item.cron_expression,
@@ -44,6 +46,7 @@ function mapLog(item: {
   schedule_id: string | null;
   trigger_type: ScraperLogItem["triggerType"];
   platform: ScraperLogItem["platform"];
+  mode: ScraperLogItem["mode"];
   status: ScraperLogItem["status"];
   total_accounts: number;
   success_count: number;
@@ -59,6 +62,7 @@ function mapLog(item: {
     ? T extends object
       ? {
           id: string;
+          mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
           run_at: string;
           frequency: ScraperLogItem["schedule"] extends { frequency: infer F } ? F : never;
         } | null
@@ -70,6 +74,7 @@ function mapLog(item: {
     scheduleId: item.schedule_id,
     triggerType: item.trigger_type,
     platform: item.platform,
+    mode: item.mode,
     status: item.status,
     totalAccounts: item.total_accounts,
     successCount: item.success_count,
@@ -84,6 +89,7 @@ function mapLog(item: {
     schedule: item.schedule
       ? {
           id: item.schedule.id,
+          mode: item.schedule.mode,
           runAt: item.schedule.run_at,
           frequency: item.schedule.frequency,
         }
@@ -92,21 +98,23 @@ function mapLog(item: {
 }
 
 export async function listScraperSchedules() {
-  const response = await apiClient<
-    Array<{
-      id: string;
-      platform: ScraperScheduleItem["platform"];
-      frequency: ScraperScheduleItem["frequency"];
-      run_at: string;
-      cron_expression: string;
-      is_active: boolean;
-      last_run_at: string | null;
-      next_run_at: string | null;
-      created_at: string;
-      updated_at: string;
-      created_by: ScraperScheduleItem["createdBy"];
-    }>
-  >("/v1/scraper/schedules");
+  const response =
+    await apiClient<
+      Array<{
+        id: string;
+        platform: ScraperScheduleItem["platform"];
+        mode: ScraperScheduleItem["mode"];
+        frequency: ScraperScheduleItem["frequency"];
+        run_at: string;
+        cron_expression: string;
+        is_active: boolean;
+        last_run_at: string | null;
+        next_run_at: string | null;
+        created_at: string;
+        updated_at: string;
+        created_by: ScraperScheduleItem["createdBy"];
+      }>
+    >("/v1/scraper/schedules");
 
   return {
     ...response,
@@ -118,6 +126,7 @@ export async function createScraperSchedule(payload: CreateScraperSchedulePayloa
   const response = await apiClient<{
     id: string;
     platform: ScraperScheduleItem["platform"];
+    mode: ScraperScheduleItem["mode"];
     frequency: ScraperScheduleItem["frequency"];
     run_at: string;
     cron_expression: string;
@@ -131,6 +140,7 @@ export async function createScraperSchedule(payload: CreateScraperSchedulePayloa
     method: "POST",
     body: {
       platform: payload.platform,
+      mode: payload.mode,
       frequency: payload.frequency,
       runAt: payload.runAt,
       cronExpression: payload.cronExpression,
@@ -148,6 +158,7 @@ export async function updateScraperSchedule(id: string, payload: UpdateScraperSc
   const response = await apiClient<{
     id: string;
     platform: ScraperScheduleItem["platform"];
+    mode: ScraperScheduleItem["mode"];
     frequency: ScraperScheduleItem["frequency"];
     run_at: string;
     cron_expression: string;
@@ -161,6 +172,7 @@ export async function updateScraperSchedule(id: string, payload: UpdateScraperSc
     method: "PATCH",
     body: {
       platform: payload.platform,
+      mode: payload.mode,
       frequency: payload.frequency,
       runAt: payload.runAt,
       cronExpression: payload.cronExpression,
@@ -178,6 +190,7 @@ export async function toggleScraperSchedule(id: string, isActive: boolean) {
   const response = await apiClient<{
     id: string;
     platform: ScraperScheduleItem["platform"];
+    mode: ScraperScheduleItem["mode"];
     frequency: ScraperScheduleItem["frequency"];
     run_at: string;
     cron_expression: string;
@@ -212,6 +225,7 @@ export async function runScraperScheduleNow(id: string) {
     schedule_id: string | null;
     trigger_type: ScraperLogItem["triggerType"];
     platform: ScraperLogItem["platform"];
+    mode: ScraperLogItem["mode"];
     status: ScraperLogItem["status"];
     total_accounts: number;
     success_count: number;
@@ -225,6 +239,7 @@ export async function runScraperScheduleNow(id: string) {
     created_at: string;
     schedule: {
       id: string;
+      mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
       run_at: string;
       frequency: ScraperLogItem["schedule"] extends { frequency: infer F } ? F : never;
     } | null;
@@ -245,6 +260,7 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
       schedule_id: string | null;
       trigger_type: ScraperLogItem["triggerType"];
       platform: ScraperLogItem["platform"];
+      mode: ScraperLogItem["mode"];
       status: ScraperLogItem["status"];
       total_accounts: number;
       success_count: number;
@@ -258,6 +274,7 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
       created_at: string;
       schedule: {
         id: string;
+        mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
         run_at: string;
         frequency: ScraperLogItem["schedule"] extends { frequency: infer F } ? F : never;
       } | null;
@@ -267,6 +284,7 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
     params: {
       status: query.status && query.status !== "all" ? query.status : undefined,
       platform: query.platform && query.platform !== "all" ? query.platform : undefined,
+      mode: query.mode && query.mode !== "all" ? query.mode : undefined,
       date_from: query.dateFrom,
       date_to: query.dateTo,
       page: query.page ?? 1,
@@ -286,6 +304,7 @@ export async function getScraperLogDetail(id: string) {
     schedule_id: string | null;
     trigger_type: ScraperLogItem["triggerType"];
     platform: ScraperLogItem["platform"];
+    mode: ScraperLogItem["mode"];
     status: ScraperLogItem["status"];
     total_accounts: number;
     success_count: number;
@@ -299,6 +318,7 @@ export async function getScraperLogDetail(id: string) {
     created_at: string;
     schedule: {
       id: string;
+      mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
       run_at: string;
       frequency: ScraperLogItem["schedule"] extends { frequency: infer F } ? F : never;
     } | null;

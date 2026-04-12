@@ -1,33 +1,73 @@
 import type { ContentPlatform, PaginatedMeta } from "@/features/content-shared/types/content.type";
 
 export type BlastReferenceStatus = "all" | "unblasted" | "blasted";
+export type BlastAssignmentStatus = "pending" | "completed" | "cancelled";
 
 export interface BlastFeedItem {
   id: string;
-  external_post_id: string;
   platform: ContentPlatform;
+  title: string;
+  topic: string;
+  submission_code: string | null;
+  drive_link: string;
   post_url: string;
   caption: string | null;
+  approval_at: string | null;
   posted_at: string | null;
-  likes_count: number;
-  comments_count: number;
-  views_count: number;
   blast_count: number;
   blast_status: Exclude<BlastReferenceStatus, "all">;
-  account: {
+  first_blasted_at: string | null;
+  last_blasted_at: string | null;
+  requested_note: string | null;
+  social_account: {
     id: string;
     username: string;
     profile_name: string;
-    wilayah: {
+  } | null;
+  target_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  };
+  source_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  };
+}
+
+export interface BlastCandidateItem {
+  id: string;
+  platform: ContentPlatform;
+  post_url: string;
+  posted_at: string | null;
+  caption: string | null;
+  validated_at: string | null;
+  social_account: {
+    id: string;
+    username: string;
+    profile_name: string;
+  } | null;
+  posting_proof: {
+    id: string;
+    submitted_at: string | null;
+    bank_content: {
       id: string;
-      nama: string;
-      kode: string;
-      level: string;
-    } | null;
-    officer: {
+      title: string;
+      drive_link: string;
+    };
+    pic: {
       id: string;
       name: string;
-    } | null;
+      wilayah: {
+        id: string;
+        nama: string;
+        kode: string;
+        level: string;
+      } | null;
+    };
   };
 }
 
@@ -61,6 +101,25 @@ export interface BlastActivityItem {
     id: string;
     external_post_id: string;
   } | null;
+  blast_assignment: {
+    id: string;
+    status: BlastAssignmentStatus;
+    blast_count: number;
+    last_blasted_at: string | null;
+    target_wilayah: {
+      id: string;
+      nama: string;
+      kode: string;
+      level: string;
+    };
+    content: {
+      id: string;
+      submission_code: string | null;
+      title: string;
+      topic: string;
+      drive_link: string;
+    };
+  } | null;
 }
 
 export interface BlastActivityStats {
@@ -83,6 +142,13 @@ export interface BlastFeedFilters {
   limit: number;
 }
 
+export interface BlastCandidateFilters {
+  platform: "all" | ContentPlatform;
+  search: string;
+  page: number;
+  limit: number;
+}
+
 export interface BlastActivityFilters {
   platform: "all" | ContentPlatform;
   date_from?: string;
@@ -93,6 +159,7 @@ export interface BlastActivityFilters {
 }
 
 export interface CreateBlastActivityPayload {
+  blast_assignment_id?: string;
   scraped_post_id?: string;
   social_account_id?: string;
   platform?: ContentPlatform;
@@ -113,6 +180,12 @@ export interface CreateBlastActivityResult {
   likes: number;
   comments: number;
   message: string;
+}
+
+export interface DecideBlastPayload {
+  posting_proof_link_id: string;
+  should_blast: boolean;
+  note?: string;
 }
 
 export type BlastMeta = PaginatedMeta;

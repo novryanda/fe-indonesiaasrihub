@@ -9,6 +9,7 @@ import {
 
 const AUTH_ROUTES = ["/auth"];
 const PUBLIC_ROUTES = [...AUTH_ROUTES];
+const PUBLIC_WEBHOOK_ROUTES = ["/v1/apify/webhook"];
 
 /**
  * Proxy middleware for route protection.
@@ -38,6 +39,9 @@ export function proxy(req: NextRequest) {
 
   const isAuthenticated = !!sessionToken;
   const isAuthRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  const isPublicWebhookRoute = PUBLIC_WEBHOOK_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
   // Authenticated user trying to access auth pages → redirect to dashboard
   if (isAuthenticated && isAuthRoute) {
@@ -45,7 +49,7 @@ export function proxy(req: NextRequest) {
   }
 
   // Unauthenticated user trying to access protected pages → redirect to login
-  if (!isAuthenticated && !isAuthRoute) {
+  if (!isAuthenticated && !isAuthRoute && !isPublicWebhookRoute) {
     const loginUrl = new URL("/auth/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);

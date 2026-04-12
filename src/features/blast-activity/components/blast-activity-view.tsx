@@ -23,7 +23,7 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import { useBlastActivity } from "../hooks/use-blast-activity";
-import type { BlastFeedItem, BlastReferenceStatus } from "../types/blast-activity.type";
+import type { BlastCandidateItem, BlastFeedItem, BlastReferenceStatus } from "../types/blast-activity.type";
 
 function StatsCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
@@ -59,8 +59,10 @@ function FeedReferenceCard({
           <div className="space-y-2">
             <PlatformIcon platform={item.platform} />
             <div>
-              <p className="font-medium text-sm">{item.account.profile_name}</p>
-              <p className="text-muted-foreground text-xs">@{item.account.username.replace(/^@/, "")}</p>
+              <p className="font-medium text-sm">{item.title}</p>
+              <p className="text-muted-foreground text-xs">
+                {item.social_account?.username ?? item.target_wilayah.nama} • {item.target_wilayah.nama}
+              </p>
             </div>
           </div>
           <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={() => onSelect(item)}>
@@ -72,37 +74,82 @@ function FeedReferenceCard({
           <Badge variant={item.blast_status === "blasted" ? "default" : "secondary"}>
             {item.blast_status === "blasted" ? "Sudah Pernah Di-blast" : "Belum Di-blast"}
           </Badge>
+          <Badge variant="outline">{formatPlatformLabel(item.platform)}</Badge>
           <Badge variant="outline">{item.blast_count} aktivitas blast</Badge>
         </div>
 
-        <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-6">
-          {item.caption?.trim() || "Caption tidak tersedia."}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
-          <span className="inline-flex items-center gap-1">
-            <Eye className="size-3.5" />
-            {formatNumber(item.views_count)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Heart className="size-3.5" />
-            {formatNumber(item.likes_count)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <MessageCircle className="size-3.5" />
-            {formatNumber(item.comments_count)}
-          </span>
+        <div className="space-y-1 text-sm">
+          <p className="text-muted-foreground text-xs">Topik</p>
+          <p className="line-clamp-2 font-medium leading-6">{item.topic}</p>
         </div>
+
+        <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-6">
+          {item.caption?.trim() || "Caption belum tersedia."}
+        </p>
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-muted-foreground text-xs">
-            {item.posted_at ? formatDateTime(item.posted_at) : "Tanggal posting belum tersedia"}
+            {item.last_blasted_at
+              ? `Blast terakhir ${formatDateTime(item.last_blasted_at)}`
+              : item.approval_at
+                ? `Disetujui ${formatDateTime(item.approval_at)}`
+                : "Menunggu blast pertama"}
           </p>
+          <Button asChild variant="ghost" size="sm">
+            <Link href={item.post_url} target="_blank" rel="noreferrer">
+              <ExternalLink className="mr-2 size-4" />
+              Buka Postingan
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CandidateCard({
+  item,
+  isSubmitting,
+  onDecide,
+}: {
+  item: BlastCandidateItem;
+  isSubmitting: boolean;
+  onDecide: (item: BlastCandidateItem, shouldBlast: boolean) => Promise<void>;
+}) {
+  return (
+    <Card className="border-foreground/10">
+      <CardContent className="space-y-4 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <PlatformIcon platform={item.platform} />
+            <div>
+              <p className="font-medium text-sm">{item.posting_proof.bank_content.title}</p>
+              <p className="text-muted-foreground text-xs">
+                {item.posting_proof.pic.name} • {item.posting_proof.pic.wilayah?.nama ?? "-"}
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline">{formatPlatformLabel(item.platform)}</Badge>
+        </div>
+
+        <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6">{item.caption?.trim() || item.post_url}</p>
+
+        <div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
+          <span>{item.validated_at ? `Valid ${formatDateTime(item.validated_at)}` : "Sudah valid"}</span>
           <Button asChild variant="ghost" size="sm">
             <Link href={item.post_url} target="_blank" rel="noreferrer">
               <ExternalLink className="mr-2 size-4" />
               Buka Link
             </Link>
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => void onDecide(item, false)}>
+            Tidak Perlu Blast
+          </Button>
+          <Button type="button" disabled={isSubmitting} onClick={() => void onDecide(item, true)}>
+            Masukkan Blast
           </Button>
         </div>
       </CardContent>
@@ -121,20 +168,26 @@ export function BlastActivityView({
   const { isAuthorized, isPending } = useRoleGuard([...allowedRoles]);
   const {
     feedItems,
+    candidateItems,
     activities,
     stats,
+    candidateFilters,
+    setCandidateFilters,
     activityMeta,
     feedFilters,
     setFeedFilters,
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
+    candidateError,
     feedError,
     activitiesError,
     resetFeedFilters,
     create,
+    decide,
   } = useBlastActivity(mode, mode === "blast" ? referenceStatusPreset : "all");
 
   const [selectedReference, setSelectedReference] = useState<BlastFeedItem | null>(null);
@@ -160,17 +213,17 @@ export function BlastActivityView({
   const subtitle =
     mode === "blast"
       ? isRepeatMode
-        ? "Blast / Referensi Yang Sudah Pernah Di-blast"
-        : "Blast / Aktivitas Sosmed"
+        ? "Blast / Riwayat Blast"
+        : "Blast / Antrian Blast"
       : "Superadmin / Monitoring Blast";
   const description =
     mode === "blast"
       ? isRepeatMode
-        ? "Pilih postingan yang sudah pernah di-blast untuk mencatat aktivitas blast lanjutan terhadap referensi yang sama."
-        : "Pilih referensi posting sosmed yang belum di-blast, lalu catat hasil blast yang sudah Anda lakukan beserta views, likes, dan comments."
-      : "Pantau seluruh aktivitas blast yang sudah diinput user role blast dari satu halaman monitoring.";
+        ? "Pilih item blast yang sudah selesai untuk mencatat blast ulang, tanpa mengembalikannya ke halaman utama."
+        : "Halaman ini hanya menampilkan konten yang ditandai superadmin untuk masuk antrian blast dan belum selesai diblast."
+      : "Tentukan apakah postingan yang sudah valid oleh QCC perlu masuk antrian blast, lalu pantau eksekusinya dari satu halaman.";
 
-  const canSubmit = mode === "blast";
+  const canSubmit = mode === "blast" && Boolean(selectedReference);
 
   const selectedPlatform = selectedReference?.platform ?? formState.platform;
 
@@ -180,10 +233,10 @@ export function BlastActivityView({
       platform: item.platform,
       post_url: item.post_url,
       caption: item.caption ?? "",
-      posted_at: item.posted_at ? item.posted_at.slice(0, 16) : "",
-      views: String(item.views_count ?? 0),
-      likes: String(item.likes_count ?? 0),
-      comments: String(item.comments_count ?? 0),
+      posted_at: "",
+      views: "0",
+      likes: "0",
+      comments: "0",
       notes: "",
     });
     requestAnimationFrame(() => {
@@ -191,12 +244,29 @@ export function BlastActivityView({
     });
   };
 
+  const handleDecideCandidate = async (item: BlastCandidateItem, shouldBlast: boolean) => {
+    try {
+      const result = await decide({
+        posting_proof_link_id: item.id,
+        should_blast: shouldBlast,
+      });
+
+      toast.success(result.message);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal menyimpan keputusan blast");
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!selectedReference) {
+      toast.error("Pilih antrian blast terlebih dahulu.");
+      return;
+    }
+
     try {
       const result = await create({
-        scraped_post_id: selectedReference?.id,
-        social_account_id: selectedReference?.account.id,
-        platform: selectedReference ? undefined : (formState.platform as BlastFeedItem["platform"]),
+        blast_assignment_id: selectedReference.id,
+        platform: selectedReference.platform,
         post_url: formState.post_url.trim() || undefined,
         caption: formState.caption.trim() || undefined,
         posted_at: formState.posted_at ? new Date(formState.posted_at).toISOString() : undefined,
@@ -254,6 +324,7 @@ export function BlastActivityView({
     Boolean(activityFilters.date_from?.trim()) ||
     Boolean(activityFilters.date_to?.trim()) ||
     Boolean(activityFilters.search.trim());
+  const hasCandidateFilters = candidateFilters.platform !== "all" || Boolean(candidateFilters.search.trim());
   const hasFeedFilters =
     feedFilters.platform !== "all" ||
     feedFilters.status !== referenceStatusPreset ||
@@ -313,11 +384,11 @@ export function BlastActivityView({
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Referensi Postingan Sosmed</CardTitle>
+              <CardTitle>Antrian Blast</CardTitle>
               <CardDescription>
                 {isRepeatMode
-                  ? "Tampilkan postingan yang sudah pernah di-blast untuk membuat aktivitas blast tambahan."
-                  : "Tampilkan postingan referensi yang belum pernah di-blast sebagai dasar input blast pertama."}
+                  ? "Tampilkan antrian blast yang sudah selesai untuk membuat log blast tambahan."
+                  : "Tampilkan antrian blast yang masih pending dan sudah ditandai superadmin."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -369,7 +440,7 @@ export function BlastActivityView({
                   <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Cari caption atau akun sosial"
+                    placeholder="Cari judul, topik, atau wilayah target"
                     value={feedFilters.search}
                     onChange={(event) =>
                       setFeedFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
@@ -398,10 +469,10 @@ export function BlastActivityView({
                   {feedItems.length === 0 ? (
                     <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
                       {feedFilters.status === "unblasted"
-                        ? "Belum ada postingan referensi yang belum di-blast."
+                        ? "Belum ada antrian blast yang menunggu."
                         : feedFilters.status === "blasted"
-                          ? "Belum ada postingan referensi yang sudah pernah di-blast."
-                          : "Belum ada postingan referensi yang cocok."}
+                          ? "Belum ada riwayat antrian blast yang selesai."
+                          : "Belum ada antrian blast yang cocok."}
                     </div>
                   ) : (
                     feedItems.map((item) => (
@@ -424,11 +495,20 @@ export function BlastActivityView({
               <CardTitle>Input Aktivitas Blast</CardTitle>
               <CardDescription>
                 {selectedReference
-                  ? "Form sudah terisi dari referensi yang dipilih dan otomatis diposisikan ke bagian input. Anda masih bisa menyesuaikan nilainya."
-                  : "Isi manual jika tidak menggunakan referensi posting yang tersedia."}
+                  ? "Form sudah terisi dari antrian blast yang dipilih. Anda bisa melengkapi hasil blast dan mengganti link jika diperlukan."
+                  : "Pilih antrian blast terlebih dahulu untuk mengisi log aktivitas."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {selectedReference ? (
+                <div className="rounded-2xl border bg-muted/20 p-4 text-sm">
+                  <p className="font-medium">{selectedReference.title}</p>
+                  <p className="mt-1 text-muted-foreground">
+                    {selectedReference.target_wilayah.nama} • {formatPlatformLabel(selectedReference.platform)}
+                  </p>
+                </div>
+              ) : null}
+
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="blast-platform" className="font-medium text-sm">
@@ -467,13 +547,13 @@ export function BlastActivityView({
 
               <div className="space-y-2">
                 <label htmlFor="blast-post-url" className="font-medium text-sm">
-                  Link Postingan
+                  Link Blast / Referensi
                 </label>
                 <Input
                   id="blast-post-url"
                   value={formState.post_url}
                   onChange={(event) => setFormState((previous) => ({ ...previous, post_url: event.target.value }))}
-                  placeholder="https://..."
+                  placeholder="Link drive atau link blast yang digunakan"
                 />
               </div>
 
@@ -574,89 +654,107 @@ export function BlastActivityView({
 
       {mode === "superadmin" ? (
         <Card>
-          <CardContent>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="grid flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_180px_180px]">
-                <div className="relative">
-                  <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Cari link, caption, atau nama user"
-                    value={activityFilters.search}
-                    onChange={(event) =>
-                      setActivityFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
-                    }
-                  />
-                </div>
+          <CardHeader>
+            <CardTitle>Keputusan Blast</CardTitle>
+            <CardDescription>
+              Pilih postingan yang sudah valid oleh QCC untuk dimasukkan ke antrian blast atau ditandai tidak perlu
+              blast.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
+              <Select
+                value={candidateFilters.platform}
+                onValueChange={(value) =>
+                  setCandidateFilters((previous) => ({
+                    ...previous,
+                    platform: value as typeof previous.platform,
+                    page: 1,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Platform</SelectItem>
+                  {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
+                    <SelectItem key={platform} value={platform}>
+                      {formatPlatformLabel(platform as never)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <Select
-                  value={activityFilters.platform}
-                  onValueChange={(value) =>
-                    setActivityFilters((previous) => ({
-                      ...previous,
-                      platform: value as typeof previous.platform,
-                      page: 1,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Platform</SelectItem>
-                    {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
-                      <SelectItem key={platform} value={platform}>
-                        {formatPlatformLabel(platform as never)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
+              <div className="relative">
+                <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                 <Input
-                  aria-label="Tanggal dibuat dari"
-                  type="date"
-                  value={activityFilters.date_from ?? ""}
+                  className="pl-9"
+                  placeholder="Cari link posting, judul konten, PIC, atau wilayah"
+                  value={candidateFilters.search}
                   onChange={(event) =>
-                    setActivityFilters((previous) => ({ ...previous, date_from: event.target.value, page: 1 }))
-                  }
-                />
-
-                <Input
-                  aria-label="Tanggal dibuat sampai"
-                  type="date"
-                  value={activityFilters.date_to ?? ""}
-                  onChange={(event) =>
-                    setActivityFilters((previous) => ({ ...previous, date_to: event.target.value, page: 1 }))
+                    setCandidateFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
                   }
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setActivityFilters((previous) => ({
-                      ...previous,
-                      platform: "all",
-                      date_from: "",
-                      date_to: "",
-                      search: "",
-                      page: 1,
-                    }))
-                  }
-                  disabled={!hasActivityFilters}
-                >
-                  Reset Filter
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCandidateFilters({
+                    platform: "all",
+                    search: "",
+                    page: 1,
+                    limit: candidateFilters.limit,
+                  })
+                }
+                disabled={!hasCandidateFilters}
+              >
+                Reset Filter
+              </Button>
             </div>
+
+            {candidateError ? (
+              <div className="text-destructive text-sm">{candidateError}</div>
+            ) : isCandidatesLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Spinner />
+                <span>Memuat postingan valid...</span>
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {candidateItems.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
+                    Belum ada postingan valid yang menunggu keputusan blast.
+                  </div>
+                ) : (
+                  candidateItems.map((item) => (
+                    <CandidateCard
+                      key={item.id}
+                      item={item}
+                      isSubmitting={isSubmitting}
+                      onDecide={handleDecideCandidate}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}
 
       <Card>
         <CardContent className="space-y-4">
-          {mode === "blast" ? (
+          <div className="space-y-4">
+            <div>
+              <p className="font-medium text-sm">Log Aktivitas Blast</p>
+              <p className="text-muted-foreground text-sm">
+                {mode === "blast"
+                  ? "Riwayat blast yang sudah Anda catat."
+                  : "Seluruh log blast dari assignment yang sudah dikerjakan user blast."}
+              </p>
+            </div>
+
             <div className="grid gap-3 lg:grid-cols-[220px_180px_180px_minmax(0,1fr)]">
               <Select
                 value={activityFilters.platform}
@@ -703,7 +801,7 @@ export function BlastActivityView({
                 <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Cari link, caption, atau nama user"
+                  placeholder="Cari link, caption, user blast, atau wilayah"
                   value={activityFilters.search}
                   onChange={(event) =>
                     setActivityFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
@@ -711,7 +809,26 @@ export function BlastActivityView({
                 />
               </div>
             </div>
-          ) : null}
+
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setActivityFilters((previous) => ({
+                    ...previous,
+                    platform: "all",
+                    date_from: "",
+                    date_to: "",
+                    search: "",
+                    page: 1,
+                  }))
+                }
+                disabled={!hasActivityFilters}
+              >
+                Reset Filter
+              </Button>
+            </div>
+          </div>
 
           {activitiesError ? (
             <div className="text-destructive text-sm">{activitiesError}</div>
@@ -735,6 +852,7 @@ export function BlastActivityView({
                 <TableHeader>
                   <TableRow>
                     <TableHead>User Blast</TableHead>
+                    <TableHead>Referensi Blast</TableHead>
                     <TableHead>Platform</TableHead>
                     <TableHead>Link</TableHead>
                     <TableHead>Views</TableHead>
@@ -747,7 +865,7 @@ export function BlastActivityView({
                 <TableBody>
                   {displayedActivities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                         Belum ada aktivitas blast.
                       </TableCell>
                     </TableRow>
@@ -759,6 +877,21 @@ export function BlastActivityView({
                             <p className="font-medium">{item.blast_user.name}</p>
                             <p className="text-muted-foreground text-xs">{item.blast_user.wilayah?.nama ?? "-"}</p>
                           </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          {item.blast_assignment ? (
+                            <div className="space-y-1">
+                              <p className="font-medium">{item.blast_assignment.content.title}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {item.blast_assignment.target_wilayah.nama}
+                                {item.blast_assignment.content.submission_code
+                                  ? ` • ${item.blast_assignment.content.submission_code}`
+                                  : ""}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Log lama / tanpa assignment</span>
+                          )}
                         </TableCell>
                         <TableCell className="align-top">
                           <PlatformIcon platform={item.platform} />

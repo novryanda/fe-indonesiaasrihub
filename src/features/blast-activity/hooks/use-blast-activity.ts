@@ -4,19 +4,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ApiError } from "@/shared/api/api-client";
 
+import { decideBlast } from "../api/decide-blast";
 import { createBlastActivity } from "../api/create-blast-activity";
 import { getBlastActivities } from "../api/get-blast-activities";
+import { getBlastCandidates } from "../api/get-blast-candidates";
 import { getBlastFeed } from "../api/get-blast-feed";
 import type {
   BlastActivityFilters,
   BlastActivityItem,
   BlastActivityStats,
+  BlastCandidateFilters,
+  BlastCandidateItem,
   BlastFeedFilters,
   BlastFeedItem,
   BlastMeta,
   BlastReferenceStatus,
   CreateBlastActivityPayload,
   CreateBlastActivityResult,
+  DecideBlastPayload,
 } from "../types/blast-activity.type";
 
 function createInitialFeedFilters(status: BlastReferenceStatus): BlastFeedFilters {
@@ -38,18 +43,30 @@ const INITIAL_ACTIVITY_FILTERS: BlastActivityFilters = {
   limit: 20,
 };
 
+const INITIAL_CANDIDATE_FILTERS: BlastCandidateFilters = {
+  platform: "all",
+  search: "",
+  page: 1,
+  limit: 10,
+};
+
 export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus: BlastReferenceStatus = "all") {
   const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(() => createInitialFeedFilters(initialFeedStatus));
   const [activityFilters, setActivityFilters] = useState<BlastActivityFilters>(INITIAL_ACTIVITY_FILTERS);
+  const [candidateFilters, setCandidateFilters] = useState<BlastCandidateFilters>(INITIAL_CANDIDATE_FILTERS);
   const [feedItems, setFeedItems] = useState<BlastFeedItem[]>([]);
+  const [candidateItems, setCandidateItems] = useState<BlastCandidateItem[]>([]);
   const [activities, setActivities] = useState<BlastActivityItem[]>([]);
   const [stats, setStats] = useState<BlastActivityStats | null>(null);
   const [feedMeta, setFeedMeta] = useState<BlastMeta | null>(null);
+  const [candidateMeta, setCandidateMeta] = useState<BlastMeta | null>(null);
   const [activityMeta, setActivityMeta] = useState<BlastMeta | null>(null);
   const [isFeedLoading, setFeedLoading] = useState(mode === "blast");
+  const [isCandidatesLoading, setCandidatesLoading] = useState(mode === "superadmin");
   const [isActivitiesLoading, setActivitiesLoading] = useState(true);
   const [isSubmitting, setSubmitting] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async () => {
@@ -74,6 +91,29 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
       setFeedLoading(false);
     }
   }, [feedFilters, mode]);
+
+  const fetchCandidates = useCallback(async () => {
+    if (mode !== "superadmin") {
+      return;
+    }
+
+    setCandidatesLoading(true);
+    setCandidateError(null);
+
+    try {
+      const response = await getBlastCandidates(candidateFilters);
+      setCandidateItems(response.data);
+      setCandidateMeta(response.meta ?? null);
+    } catch (errorValue) {
+      if (errorValue instanceof ApiError) {
+        setCandidateError(errorValue.message);
+      } else {
+        setCandidateError("Gagal memuat postingan valid untuk keputusan blast");
+      }
+    } finally {
+      setCandidatesLoading(false);
+    }
+  }, [candidateFilters, mode]);
 
   const fetchActivities = useCallback(async () => {
     setActivitiesLoading(true);
@@ -103,6 +143,10 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
     void fetchActivities();
   }, [fetchActivities]);
 
+  useEffect(() => {
+    void fetchCandidates();
+  }, [fetchCandidates]);
+
   const create = useCallback(
     async (payload: CreateBlastActivityPayload): Promise<CreateBlastActivityResult> => {
       setSubmitting(true);
@@ -125,6 +169,28 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
     [fetchActivities, fetchFeed],
   );
 
+  const decide = useCallback(
+    async (payload: DecideBlastPayload) => {
+      setSubmitting(true);
+
+      try {
+        const response = await decideBlast(payload);
+        await fetchCandidates();
+        await fetchFeed();
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal menyimpan keputusan blast");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [fetchCandidates, fetchFeed],
+  );
+
   const activityTotalPages = useMemo(() => {
     if (!activityMeta) {
       return 1;
@@ -135,23 +201,31 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
 
   return {
     feedItems,
+    candidateItems,
     activities,
     stats,
     feedMeta,
+    candidateMeta,
     activityMeta,
     activityTotalPages,
     feedFilters,
     setFeedFilters,
+    candidateFilters,
+    setCandidateFilters,
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
     feedError,
+    candidateError,
     activitiesError,
     resetFeedFilters: () => setFeedFilters(createInitialFeedFilters(initialFeedStatus)),
     refetchFeed: fetchFeed,
+    refetchCandidates: fetchCandidates,
     refetchActivities: fetchActivities,
     create,
+    decide,
   };
 }
