@@ -2,20 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-import { CheckCircle2, ExternalLink, KeyRound, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  KeyRound,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  ShieldAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
+import {
+  getWhatsappIntegrationSettings,
+  resetWhatsappIntegrationSettings,
+  updateWhatsappIntegrationSettings,
+} from "../api/system-settings-api";
 import { testScraperConnection } from "../api/scraper-api";
 import type { ScraperConnectionStatus } from "../types/scraper.type";
+import type {
+  SystemSettingSource,
+  WhatsappIntegrationSettingKey,
+  WhatsappIntegrationSettings,
+} from "../types/system-settings.type";
 
 function getConnectionBadge(status: ScraperConnectionStatus | null) {
   if (!status) {
@@ -33,30 +55,235 @@ function getConnectionBadge(status: ScraperConnectionStatus | null) {
   return { label: "Belum dikonfigurasi", className: "border-rose-200 bg-rose-50 text-rose-700" };
 }
 
+function getSourceBadge(source: SystemSettingSource) {
+  switch (source) {
+    case "database":
+      return {
+        label: "Panel Sysadmin",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      };
+    case "environment":
+      return {
+        label: "Env Deploy",
+        className: "border-sky-200 bg-sky-50 text-sky-700",
+      };
+    default:
+      return {
+        label: "Default App",
+        className: "border-zinc-200 bg-zinc-50 text-zinc-700",
+      };
+  }
+}
+
+type IntegrationFormState = {
+  wahaApiBaseUrl: string;
+  wahaSessionName: string;
+  n8nWhatsappWebhookUrl: string;
+  wahaApiKey: string;
+  n8nWhatsappWebhookToken: string;
+};
+
+const INITIAL_INTEGRATION_FORM: IntegrationFormState = {
+  wahaApiBaseUrl: "",
+  wahaSessionName: "",
+  n8nWhatsappWebhookUrl: "",
+  wahaApiKey: "",
+  n8nWhatsappWebhookToken: "",
+};
+
 export function ScraperConfigurationView() {
   const { isAuthorized, isPending } = useRoleGuard(["sysadmin"]);
   const [connectionStatus, setConnectionStatus] = useState<ScraperConnectionStatus | null>(null);
+  const [integrationSettings, setIntegrationSettings] = useState<WhatsappIntegrationSettings | null>(null);
+  const [integrationForm, setIntegrationForm] = useState<IntegrationFormState>(INITIAL_INTEGRATION_FORM);
+  const [initialNonSecretValues, setInitialNonSecretValues] = useState({
+    wahaApiBaseUrl: "",
+    wahaSessionName: "",
+    n8nWhatsappWebhookUrl: "",
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingScraper, setIsRefreshingScraper] = useState(false);
+  const [isRefreshingIntegration, setIsRefreshingIntegration] = useState(false);
+  const [isSavingIntegration, setIsSavingIntegration] = useState(false);
+  const [resettingKey, setResettingKey] = useState<WhatsappIntegrationSettingKey | null>(null);
+  const [visibleSecretPreviews, setVisibleSecretPreviews] = useState<
+    Partial<Record<"wahaApiKey" | "n8nWhatsappWebhookToken", boolean>>
+  >({});
   const redisDashboardUrl = process.env.NEXT_PUBLIC_REDIS_DASHBOARD_URL?.trim() ?? "";
   const bullBoardUrl = process.env.NEXT_PUBLIC_BULL_BOARD_URL?.trim() ?? "";
 
-  const loadStatus = async () => {
-    setIsLoading(true);
+  const applyIntegrationSettings = (settings: WhatsappIntegrationSettings) => {
+    setIntegrationSettings(settings);
+    setIntegrationForm({
+      wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
+      wahaSessionName: settings.wahaSessionName.value ?? "",
+      n8nWhatsappWebhookUrl: settings.n8nWhatsappWebhookUrl.value ?? "",
+      wahaApiKey: "",
+      n8nWhatsappWebhookToken: "",
+    });
+    setInitialNonSecretValues({
+      wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
+      wahaSessionName: settings.wahaSessionName.value ?? "",
+      n8nWhatsappWebhookUrl: settings.n8nWhatsappWebhookUrl.value ?? "",
+    });
+  };
+
+  const loadScraperStatus = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setIsRefreshingScraper(true);
+    }
+
     try {
       const response = await testScraperConnection();
       setConnectionStatus(response.data);
+      return response.data;
+    } finally {
+      if (!silent) {
+        setIsRefreshingScraper(false);
+      }
+    }
+  };
+
+  const loadIntegrationStatus = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setIsRefreshingIntegration(true);
+    }
+
+    try {
+      const response = await getWhatsappIntegrationSettings();
+      applyIntegrationSettings(response.data);
+      return response.data;
+    } finally {
+      if (!silent) {
+        setIsRefreshingIntegration(false);
+      }
+    }
+  };
+
+  const loadPageData = async () => {
+    setIsLoading(true);
+    try {
+      const [scraperResponse, integrationResponse] = await Promise.all([
+        testScraperConnection(),
+        getWhatsappIntegrationSettings(),
+      ]);
+
+      setConnectionStatus(scraperResponse.data);
+      applyIntegrationSettings(integrationResponse.data);
     } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal mengecek koneksi Apify");
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat konfigurasi sistem");
     } finally {
       setIsLoading(false);
+      setIsRefreshingScraper(false);
+      setIsRefreshingIntegration(false);
     }
   };
 
   useEffect(() => {
     if (!isPending && isAuthorized) {
-      void loadStatus();
+      void loadPageData();
     }
   }, [isAuthorized, isPending]);
+
+  const handleIntegrationFormChange = (field: keyof IntegrationFormState, value: string) => {
+    setIntegrationForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const hasNonSecretChanges =
+    integrationForm.wahaApiBaseUrl.trim() !== initialNonSecretValues.wahaApiBaseUrl ||
+    integrationForm.wahaSessionName.trim() !== initialNonSecretValues.wahaSessionName ||
+    integrationForm.n8nWhatsappWebhookUrl.trim() !== initialNonSecretValues.n8nWhatsappWebhookUrl;
+  const hasSecretChanges =
+    integrationForm.wahaApiKey.trim().length > 0 || integrationForm.n8nWhatsappWebhookToken.trim().length > 0;
+  const canSubmitIntegration = hasNonSecretChanges || hasSecretChanges;
+
+  const handleSaveIntegration = async () => {
+    if (!integrationSettings) {
+      return;
+    }
+
+    const nextWahaApiBaseUrl = integrationForm.wahaApiBaseUrl.trim();
+    const nextWahaSessionName = integrationForm.wahaSessionName.trim();
+    const nextWebhookUrl = integrationForm.n8nWhatsappWebhookUrl.trim();
+
+    if (
+      (integrationForm.wahaApiBaseUrl !== initialNonSecretValues.wahaApiBaseUrl && nextWahaApiBaseUrl.length === 0) ||
+      (integrationForm.wahaSessionName !== initialNonSecretValues.wahaSessionName && nextWahaSessionName.length === 0) ||
+      (integrationForm.n8nWhatsappWebhookUrl !== initialNonSecretValues.n8nWhatsappWebhookUrl && nextWebhookUrl.length === 0)
+    ) {
+      toast.error("Untuk menghapus override field non-secret, gunakan tombol Reset Override.");
+      return;
+    }
+
+    const payload: {
+      wahaApiBaseUrl?: string;
+      wahaApiKey?: string;
+      wahaSessionName?: string;
+      n8nWhatsappWebhookUrl?: string;
+      n8nWhatsappWebhookToken?: string;
+    } = {};
+
+    if (nextWahaApiBaseUrl !== initialNonSecretValues.wahaApiBaseUrl) {
+      payload.wahaApiBaseUrl = nextWahaApiBaseUrl;
+    }
+
+    if (nextWahaSessionName !== initialNonSecretValues.wahaSessionName) {
+      payload.wahaSessionName = nextWahaSessionName;
+    }
+
+    if (nextWebhookUrl !== initialNonSecretValues.n8nWhatsappWebhookUrl) {
+      payload.n8nWhatsappWebhookUrl = nextWebhookUrl;
+    }
+
+    if (integrationForm.wahaApiKey.trim().length > 0) {
+      payload.wahaApiKey = integrationForm.wahaApiKey.trim();
+    }
+
+    if (integrationForm.n8nWhatsappWebhookToken.trim().length > 0) {
+      payload.n8nWhatsappWebhookToken = integrationForm.n8nWhatsappWebhookToken.trim();
+    }
+
+    if (Object.keys(payload).length === 0) {
+      toast.error("Belum ada perubahan konfigurasi yang bisa disimpan.");
+      return;
+    }
+
+    setIsSavingIntegration(true);
+    try {
+      const response = await updateWhatsappIntegrationSettings(payload);
+      applyIntegrationSettings(response.data);
+      toast.success(response.message ?? "Konfigurasi integrasi WhatsApp berhasil diperbarui.");
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal menyimpan konfigurasi integrasi WhatsApp");
+    } finally {
+      setIsSavingIntegration(false);
+    }
+  };
+
+  const handleResetIntegrationField = async (key: WhatsappIntegrationSettingKey) => {
+    setResettingKey(key);
+    try {
+      const response = await resetWhatsappIntegrationSettings([key]);
+      applyIntegrationSettings(response.data);
+      toast.success(response.message ?? "Override konfigurasi berhasil direset.");
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal mereset override konfigurasi");
+    } finally {
+      setResettingKey(null);
+    }
+  };
+
+  const toggleSecretPreview = (key: "wahaApiKey" | "n8nWhatsappWebhookToken") => {
+    setVisibleSecretPreviews((previous) => ({
+      ...previous,
+      [key]: !previous[key],
+    }));
+  };
 
   if (isPending) {
     return (
@@ -74,6 +301,16 @@ export function ScraperConfigurationView() {
   }
 
   const badge = getConnectionBadge(connectionStatus);
+  const wahaReady = Boolean(integrationSettings?.wahaApiBaseUrl.hasValue && integrationSettings?.wahaApiKey.hasValue);
+  const n8nReady = Boolean(
+    integrationSettings?.n8nWhatsappWebhookUrl.hasValue && integrationSettings?.n8nWhatsappWebhookToken.hasValue,
+  );
+
+  const wahaBaseUrlBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaApiBaseUrl.source) : null;
+  const wahaSessionBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaSessionName.source) : null;
+  const wahaApiKeyBadge = integrationSettings ? getSourceBadge(integrationSettings.wahaApiKey.source) : null;
+  const n8nWebhookUrlBadge = integrationSettings ? getSourceBadge(integrationSettings.n8nWhatsappWebhookUrl.source) : null;
+  const n8nWebhookTokenBadge = integrationSettings ? getSourceBadge(integrationSettings.n8nWhatsappWebhookToken.source) : null;
 
   return (
     <div className="space-y-6">
@@ -87,27 +324,321 @@ export function ScraperConfigurationView() {
           </Badge>
           <div className="space-y-2">
             <h1 className="font-semibold text-3xl tracking-tight">Konfigurasi Sistem</h1>
-            <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-              Halaman ini memverifikasi token Apify dan actor scraper yang aktif untuk setiap platform di environment
-              server.
-            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden border-border/70 shadow-none">
+        <CardHeader className="gap-4 border-b bg-muted/25">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={wahaReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}
+                >
+                  {wahaReady ? "WAHA siap" : "WAHA belum lengkap"}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={n8nReady ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}
+                >
+                  {n8nReady ? "n8n siap" : "n8n belum lengkap"}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => void loadIntegrationStatus()} disabled={isRefreshingIntegration || isLoading}>
+                {isRefreshingIntegration ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
+                Refresh Integrasi
+              </Button>
+              <Button onClick={() => void handleSaveIntegration()} disabled={!canSubmitIntegration || isSavingIntegration || isLoading}>
+                {isSavingIntegration ? <Spinner className="mr-2" /> : <Save className="mr-2 size-4" />}
+                Simpan Override
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="hidden grid-cols-[240px_minmax(0,1fr)_180px_150px] border-b bg-muted/20 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground lg:grid">
+            <span>Variable</span>
+            <span>Value</span>
+            <span>Runtime Source</span>
+            <span className="text-right">Action</span>
+          </div>
+
+          <div className="divide-y">
+            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
+              <div className="space-y-2">
+                <p className="font-medium text-sm">WAHA Base URL</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waha-api-base-url" className="sr-only">
+                  WAHA Base URL
+                </Label>
+                <Input
+                  id="waha-api-base-url"
+                  placeholder="https://waha.example.com"
+                  value={integrationForm.wahaApiBaseUrl}
+                  onChange={(event) => handleIntegrationFormChange("wahaApiBaseUrl", event.target.value)}
+                  disabled={isLoading || isSavingIntegration}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Aktif sekarang: {integrationSettings?.wahaApiBaseUrl.value ?? "-"}</p>
+              </div>
+              <div className="space-y-2">
+                {wahaBaseUrlBadge ? <Badge variant="outline" className={wahaBaseUrlBadge.className}>{wahaBaseUrlBadge.label}</Badge> : null}
+                <p className="text-xs text-muted-foreground">Override database akan mengalahkan env deploy.</p>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleResetIntegrationField("waha_api_base_url")}
+                  disabled={integrationSettings?.wahaApiBaseUrl.source !== "database" || resettingKey === "waha_api_base_url"}
+                >
+                  {resettingKey === "waha_api_base_url" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
+              <div className="space-y-2">
+                <p className="font-medium text-sm">WAHA Session Name</p>
+                </div>
+              <div className="space-y-2">
+                <Label htmlFor="waha-session-name" className="sr-only">
+                  WAHA Session Name
+                </Label>
+                <Input
+                  id="waha-session-name"
+                  placeholder="default"
+                  value={integrationForm.wahaSessionName}
+                  onChange={(event) => handleIntegrationFormChange("wahaSessionName", event.target.value)}
+                  disabled={isLoading || isSavingIntegration}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Aktif sekarang: {integrationSettings?.wahaSessionName.value ?? "-"}</p>
+              </div>
+              <div className="space-y-2">
+                {wahaSessionBadge ? <Badge variant="outline" className={wahaSessionBadge.className}>{wahaSessionBadge.label}</Badge> : null}
+                <p className="text-xs text-muted-foreground">Default aplikasi tetap `default` jika source kosong.</p>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleResetIntegrationField("waha_session_name")}
+                  disabled={integrationSettings?.wahaSessionName.source !== "database" || resettingKey === "waha_session_name"}
+                >
+                  {resettingKey === "waha_session_name" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
+              <div className="space-y-2">
+                <p className="font-medium text-sm">WAHA API Key</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waha-api-key" className="sr-only">
+                  WAHA API Key
+                </Label>
+                <Input
+                  id="waha-api-key"
+                  type="password"
+                  placeholder="Tempel nilai baru hanya jika ingin mengganti"
+                  value={integrationForm.wahaApiKey}
+                  onChange={(event) => handleIntegrationFormChange("wahaApiKey", event.target.value)}
+                  disabled={isLoading || isSavingIntegration}
+                  className="font-mono text-sm"
+                />
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {integrationSettings?.wahaApiKey.hasValue ? (
+                    <>
+                      <span>
+                        {visibleSecretPreviews.wahaApiKey
+                          ? integrationSettings.wahaApiKey.maskedPreview ?? "Preview tidak tersedia."
+                          : "Secret aktif tersimpan aman."}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => toggleSecretPreview("wahaApiKey")}
+                      >
+                        {visibleSecretPreviews.wahaApiKey ? (
+                          <EyeOff className="mr-1 size-3.5" />
+                        ) : (
+                          <Eye className="mr-1 size-3.5" />
+                        )}
+                        {visibleSecretPreviews.wahaApiKey ? "Sembunyikan" : "Lihat preview"}
+                      </Button>
+                    </>
+                  ) : (
+                    <span>Belum ada secret aktif.</span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                {wahaApiKeyBadge ? <Badge variant="outline" className={wahaApiKeyBadge.className}>{wahaApiKeyBadge.label}</Badge> : null}
+                <Badge
+                  variant="outline"
+                  className={
+                    integrationSettings?.wahaApiKey.hasValue
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }
+                >
+                  {integrationSettings?.wahaApiKey.hasValue ? "Stored" : "Missing"}
+                </Badge>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleResetIntegrationField("waha_api_key")}
+                  disabled={integrationSettings?.wahaApiKey.source !== "database" || resettingKey === "waha_api_key"}
+                >
+                  {resettingKey === "waha_api_key" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
+              <div className="space-y-2">
+                <p className="font-medium text-sm">n8n Webhook URL</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="n8n-webhook-url" className="sr-only">
+                  n8n Webhook URL
+                </Label>
+                <Input
+                  id="n8n-webhook-url"
+                  placeholder="https://n8n.example.com/webhook/asrihub-whatsapp"
+                  value={integrationForm.n8nWhatsappWebhookUrl}
+                  onChange={(event) => handleIntegrationFormChange("n8nWhatsappWebhookUrl", event.target.value)}
+                  disabled={isLoading || isSavingIntegration}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Aktif sekarang: {integrationSettings?.n8nWhatsappWebhookUrl.value ?? "-"}</p>
+              </div>
+              <div className="space-y-2">
+                {n8nWebhookUrlBadge ? <Badge variant="outline" className={n8nWebhookUrlBadge.className}>{n8nWebhookUrlBadge.label}</Badge> : null}
+                <p className="text-xs text-muted-foreground">Backend akan kirim payload final ke endpoint ini.</p>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleResetIntegrationField("n8n_whatsapp_webhook_url")}
+                  disabled={
+                    integrationSettings?.n8nWhatsappWebhookUrl.source !== "database" ||
+                    resettingKey === "n8n_whatsapp_webhook_url"
+                  }
+                >
+                  {resettingKey === "n8n_whatsapp_webhook_url" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[240px_minmax(0,1fr)_180px_150px] lg:items-start">
+              <div className="space-y-2">
+                <p className="font-medium text-sm">n8n Webhook Token</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="n8n-webhook-token" className="sr-only">
+                  n8n Webhook Token
+                </Label>
+                <Input
+                  id="n8n-webhook-token"
+                  type="password"
+                  placeholder="Tempel nilai baru hanya jika ingin mengganti"
+                  value={integrationForm.n8nWhatsappWebhookToken}
+                  onChange={(event) => handleIntegrationFormChange("n8nWhatsappWebhookToken", event.target.value)}
+                  disabled={isLoading || isSavingIntegration}
+                  className="font-mono text-sm"
+                />
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {integrationSettings?.n8nWhatsappWebhookToken.hasValue ? (
+                    <>
+                      <span>
+                        {visibleSecretPreviews.n8nWhatsappWebhookToken
+                          ? integrationSettings.n8nWhatsappWebhookToken.maskedPreview ?? "Preview tidak tersedia."
+                          : "Secret aktif tersimpan aman."}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => toggleSecretPreview("n8nWhatsappWebhookToken")}
+                      >
+                        {visibleSecretPreviews.n8nWhatsappWebhookToken ? (
+                          <EyeOff className="mr-1 size-3.5" />
+                        ) : (
+                          <Eye className="mr-1 size-3.5" />
+                        )}
+                        {visibleSecretPreviews.n8nWhatsappWebhookToken ? "Sembunyikan" : "Lihat preview"}
+                      </Button>
+                    </>
+                  ) : (
+                    <span>Belum ada secret aktif.</span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                {n8nWebhookTokenBadge ? <Badge variant="outline" className={n8nWebhookTokenBadge.className}>{n8nWebhookTokenBadge.label}</Badge> : null}
+                <Badge
+                  variant="outline"
+                  className={
+                    integrationSettings?.n8nWhatsappWebhookToken.hasValue
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }
+                >
+                  {integrationSettings?.n8nWhatsappWebhookToken.hasValue ? "Stored" : "Missing"}
+                </Badge>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleResetIntegrationField("n8n_whatsapp_webhook_token")}
+                  disabled={
+                    integrationSettings?.n8nWhatsappWebhookToken.source !== "database" ||
+                    resettingKey === "n8n_whatsapp_webhook_token"
+                  }
+                >
+                  {resettingKey === "n8n_whatsapp_webhook_token" ? <Spinner className="mr-2" /> : <RotateCcw className="mr-2 size-4" />}
+                  Reset
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Alert>
-        <ShieldAlert className="size-4" />
-        <AlertTitle>Secret tidak disimpan di database</AlertTitle>
+        <KeyRound className="size-4" />
+        <AlertTitle>Secret bersifat replace-only</AlertTitle>
         <AlertDescription>
-          API Token Apify dibaca langsung dari environment variable server. UI ini hanya menampilkan status koneksi dan
-          actor yang aktif per platform.
+          API key WAHA dan token webhook n8n tidak akan pernah ditampilkan ulang dari server. Isi field secret hanya
+          saat ingin mengganti nilainya.
         </AlertDescription>
       </Alert>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Status Koneksi</CardTitle>
+            <CardTitle>Status Koneksi Scraper</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
@@ -196,7 +727,7 @@ export function ScraperConfigurationView() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Verifikasi Manual</CardTitle>
+          <CardTitle>Verifikasi Manual Scraper</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -207,8 +738,18 @@ export function ScraperConfigurationView() {
                 terbaca.
               </p>
             </div>
-            <Button onClick={() => void loadStatus()} disabled={isLoading}>
-              {isLoading ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
+            <Button
+              onClick={async () => {
+                try {
+                  await loadScraperStatus();
+                  toast.success("Koneksi scraper berhasil diperbarui.");
+                } catch (errorValue) {
+                  toast.error(errorValue instanceof Error ? errorValue.message : "Gagal mengecek koneksi Apify");
+                }
+              }}
+              disabled={isRefreshingScraper || isLoading}
+            >
+              {isRefreshingScraper ? <Spinner className="mr-2" /> : <RefreshCw className="mr-2 size-4" />}
               Test Koneksi
             </Button>
           </div>
@@ -216,13 +757,7 @@ export function ScraperConfigurationView() {
           <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="font-medium text-sm">Dashboard Redis Queue</p>
-              <p className="text-muted-foreground text-sm">
-                Redis dipakai untuk antrean BullMQ scraper per akun. Sysadmin bisa membuka dashboard eksternal Redis
-                dari tombol ini.
-              </p>
-              <p className="break-all text-xs text-muted-foreground">
-                {redisDashboardUrl || "NEXT_PUBLIC_REDIS_DASHBOARD_URL belum di-set."}
-              </p>
+              
             </div>
             <Button asChild variant="outline" disabled={!redisDashboardUrl}>
               <a href={redisDashboardUrl || "#"} target="_blank" rel="noreferrer noopener">
@@ -235,13 +770,7 @@ export function ScraperConfigurationView() {
           <div className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="font-medium text-sm">BullMQ Queue Monitor</p>
-              <p className="text-muted-foreground text-sm">
-                Bull Board menampilkan antrean scraper per akun secara visual, termasuk job waiting, active, completed,
-                failed, dan retry.
-              </p>
-              <p className="break-all text-xs text-muted-foreground">
-                {bullBoardUrl || "NEXT_PUBLIC_BULL_BOARD_URL belum di-set."}
-              </p>
+              
             </div>
             <Button asChild variant="outline" disabled={!bullBoardUrl}>
               <a href={bullBoardUrl || "#"} target="_blank" rel="noreferrer noopener">

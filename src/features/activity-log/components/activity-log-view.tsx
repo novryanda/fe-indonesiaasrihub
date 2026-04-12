@@ -218,10 +218,6 @@ export function ActivityLogView() {
             </Badge>
             <div className="space-y-2">
               <h1 className="font-semibold text-3xl tracking-tight">Log Activity</h1>
-              <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                Pantau aktivitas user yang tercatat di backend, termasuk actor, aksi yang dilakukan, target entity,
-                alamat IP, lokasi IP, dan metadata request.
-              </p>
             </div>
           </CardContent>
         </Card>

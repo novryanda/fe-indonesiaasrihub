@@ -9,6 +9,7 @@ import {
   MessageSquare,
   MonitorPlay,
   MonitorPlayIcon,
+  QrCode,
   Radio,
   Repeat,
   Scroll,
@@ -244,6 +245,18 @@ export const sidebarItems: NavGroup[] = [
     label: "System",
     roles: ["sysadmin"],
     items: [
+      {
+        title: "WhatsApp Automation",
+        url: "/system/whatsapp-automation",
+        icon: MessageSquare,
+        roles: ["sysadmin"],
+      },
+      {
+        title: "WhatsApp Gateway",
+        url: "/system/whatsapp-gateway",
+        icon: QrCode,
+        roles: ["sysadmin"],
+      },
       {
         title: "Jadwal Scraping",
         url: "/system/jadwal-scrapping",

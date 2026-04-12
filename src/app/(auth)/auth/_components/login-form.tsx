@@ -46,7 +46,7 @@ export function LoginForm({
         <Input
           id="identifier"
           type="text"
-          placeholder="email@asrihub.id atau username"
+          placeholder=""
           value={identifier}
           onChange={(event) => onIdentifierChange(event.target.value)}
           required

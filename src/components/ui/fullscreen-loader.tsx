@@ -392,7 +392,6 @@ export function FullScreenLoader({ isLoading, text = "Loading ...", className }:
         <AnimatedBrandLogo />
         <div className="space-y-2 text-center">
           <p className="text-balance font-semibold text-[1.05rem] text-[#17323f]">{text}</p>
-          <p className="text-sm text-[#5d7280]">Menyiapkan akses ke dashboard Indonesia ASRI Hub.</p>
         </div>
         <div className="w-full max-w-sm">
           <ProgressBar aria-label="Loading" className="w-full" value={Math.round(progress)}>

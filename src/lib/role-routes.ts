@@ -28,6 +28,8 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
   ],
   supervisi: ["/dashboard/approval", "/konten/bank-konten"],
   sysadmin: [
+    "/system/whatsapp-automation",
+    "/system/whatsapp-gateway",
     "/system/jadwal-scrapping",
     "/system/log-scrapping",
     "/system/log-activity",
