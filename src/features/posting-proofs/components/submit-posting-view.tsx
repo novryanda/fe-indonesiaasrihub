@@ -169,8 +169,8 @@ export function SubmitPostingView() {
                 <div className="grid gap-2">
                   <Label>Link Arsip Drive</Label>
                   <Input
-                    placeholder="Opsional, untuk arsip bukti posting"
                     value={evidenceLinks[task.id] ?? task.evidence_drive_link ?? ""}
+                    required
                     onChange={(event) =>
                       setEvidenceLinks((previous) => ({
                         ...previous,
@@ -275,6 +275,7 @@ export function SubmitPostingView() {
                     type="button"
                     disabled={submittingId === task.id}
                     onClick={async () => {
+                      const evidenceDriveLink = (evidenceLinks[task.id] ?? task.evidence_drive_link ?? "").trim();
                       const taskDraft = drafts[task.id] ?? {};
                       const payload = task.platform_targets.map((platform): SubmitPostingLinkPayloadItem => {
                         const row = taskDraft[platform];
@@ -287,6 +288,11 @@ export function SubmitPostingView() {
                         };
                       });
 
+                      if (!evidenceDriveLink) {
+                        toast.error("Link Arsip Drive wajib diisi.");
+                        return;
+                      }
+
                       if (payload.some((item) => !item.social_account_id || !item.post_url || !item.posted_at)) {
                         toast.error("Semua platform target harus diisi akun, URL posting, dan waktu posting.");
                         return;
@@ -295,7 +301,7 @@ export function SubmitPostingView() {
                       setSubmittingId(task.id);
                       try {
                         await submitPostingLinksFromBankContent(task.bank_content_id, {
-                          evidence_drive_link: evidenceLinks[task.id]?.trim() || undefined,
+                          evidence_drive_link: evidenceDriveLink,
                           links: payload,
                         });
                         toast.success("Link posting berhasil dikirim.");

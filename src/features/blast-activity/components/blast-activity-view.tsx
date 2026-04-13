@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { ExternalLink, Eye, Heart, MessageCircle, Radio, Search, Send } from "lucide-react";
+import { ExternalLink, Eye, Heart, MessageCircle, Radio, Repeat2, Search, Send, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -200,6 +200,8 @@ export function BlastActivityView({
     views: "0",
     likes: "0",
     comments: "0",
+    shares: "0",
+    reposts: "0",
     notes: "",
   });
   const tableState = useMemo(() => ({ activities, stats, activityMeta }), [activities, activityMeta, stats]);
@@ -237,6 +239,8 @@ export function BlastActivityView({
       views: "0",
       likes: "0",
       comments: "0",
+      shares: "0",
+      reposts: "0",
       notes: "",
     });
     requestAnimationFrame(() => {
@@ -273,6 +277,8 @@ export function BlastActivityView({
         views: Number(formState.views || 0),
         likes: Number(formState.likes || 0),
         comments: Number(formState.comments || 0),
+        shares: Number(formState.shares || 0),
+        reposts: Number(formState.reposts || 0),
         notes: formState.notes.trim() || undefined,
       });
 
@@ -286,6 +292,8 @@ export function BlastActivityView({
         views: "0",
         likes: "0",
         comments: "0",
+        shares: "0",
+        reposts: "0",
         notes: "",
       });
     } catch (error) {
@@ -314,6 +322,16 @@ export function BlastActivityView({
         title: "Total Comments",
         value: formatNumber(displayedStats?.total_comments),
         icon: <MessageCircle className="size-5" />,
+      },
+      {
+        title: "Total Shares",
+        value: formatNumber(displayedStats?.total_shares),
+        icon: <Share2 className="size-5" />,
+      },
+      {
+        title: "Total Reposts",
+        value: formatNumber(displayedStats?.total_reposts),
+        icon: <Repeat2 className="size-5" />,
       },
     ],
     [displayedStats],
@@ -374,7 +392,7 @@ export function BlastActivityView({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         {activitySummary.map((item) => (
           <StatsCard key={item.title} title={item.title} value={item.value} icon={item.icon} />
         ))}
@@ -383,14 +401,6 @@ export function BlastActivityView({
       {mode === "blast" ? (
         <>
           <Card>
-            <CardHeader>
-              <CardTitle>Antrian Blast</CardTitle>
-              <CardDescription>
-                {isRepeatMode
-                  ? "Tampilkan antrian blast yang sudah selesai untuk membuat log blast tambahan."
-                  : "Tampilkan antrian blast yang masih pending dan sudah ditandai superadmin."}
-              </CardDescription>
-            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto]">
                 <Select
@@ -491,14 +501,6 @@ export function BlastActivityView({
           </Card>
 
           <Card ref={blastFormRef}>
-            <CardHeader>
-              <CardTitle>Input Aktivitas Blast</CardTitle>
-              <CardDescription>
-                {selectedReference
-                  ? "Form sudah terisi dari antrian blast yang dipilih. Anda bisa melengkapi hasil blast dan mengganti link jika diperlukan."
-                  : "Pilih antrian blast terlebih dahulu untuk mengisi log aktivitas."}
-              </CardDescription>
-            </CardHeader>
             <CardContent className="space-y-4">
               {selectedReference ? (
                 <div className="rounded-2xl border bg-muted/20 p-4 text-sm">
@@ -570,7 +572,7 @@ export function BlastActivityView({
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <div className="space-y-2">
                   <label htmlFor="blast-views" className="font-medium text-sm">
                     Views
@@ -607,6 +609,30 @@ export function BlastActivityView({
                     onChange={(event) => setFormState((previous) => ({ ...previous, comments: event.target.value }))}
                   />
                 </div>
+                <div className="space-y-2">
+                  <label htmlFor="blast-shares" className="font-medium text-sm">
+                    Shares
+                  </label>
+                  <Input
+                    id="blast-shares"
+                    type="number"
+                    min={0}
+                    value={formState.shares}
+                    onChange={(event) => setFormState((previous) => ({ ...previous, shares: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="blast-reposts" className="font-medium text-sm">
+                    Reposts
+                  </label>
+                  <Input
+                    id="blast-reposts"
+                    type="number"
+                    min={0}
+                    value={formState.reposts}
+                    onChange={(event) => setFormState((previous) => ({ ...previous, reposts: event.target.value }))}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -636,6 +662,8 @@ export function BlastActivityView({
                       views: "0",
                       likes: "0",
                       comments: "0",
+                      shares: "0",
+                      reposts: "0",
                       notes: "",
                     });
                   }}
@@ -746,15 +774,6 @@ export function BlastActivityView({
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-4">
-            <div>
-              <p className="font-medium text-sm">Log Aktivitas Blast</p>
-              <p className="text-muted-foreground text-sm">
-                {mode === "blast"
-                  ? "Riwayat blast yang sudah Anda catat."
-                  : "Seluruh log blast dari assignment yang sudah dikerjakan user blast."}
-              </p>
-            </div>
-
             <div className="grid gap-3 lg:grid-cols-[220px_180px_180px_minmax(0,1fr)]">
               <Select
                 value={activityFilters.platform}
@@ -858,6 +877,8 @@ export function BlastActivityView({
                     <TableHead>Views</TableHead>
                     <TableHead>Likes</TableHead>
                     <TableHead>Comments</TableHead>
+                    <TableHead>Shares</TableHead>
+                    <TableHead>Reposts</TableHead>
                     <TableHead>Posted</TableHead>
                     <TableHead>Dibuat</TableHead>
                   </TableRow>
@@ -865,7 +886,7 @@ export function BlastActivityView({
                 <TableBody>
                   {displayedActivities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                         Belum ada aktivitas blast.
                       </TableCell>
                     </TableRow>
@@ -913,6 +934,8 @@ export function BlastActivityView({
                         <TableCell>{formatNumber(item.views)}</TableCell>
                         <TableCell>{formatNumber(item.likes)}</TableCell>
                         <TableCell>{formatNumber(item.comments)}</TableCell>
+                        <TableCell>{formatNumber(item.shares)}</TableCell>
+                        <TableCell>{formatNumber(item.reposts)}</TableCell>
                         <TableCell>{item.posted_at ? formatDateTime(item.posted_at) : "-"}</TableCell>
                         <TableCell>{formatDateTime(item.created_at)}</TableCell>
                       </TableRow>

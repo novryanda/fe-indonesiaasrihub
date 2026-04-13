@@ -80,6 +80,8 @@ export interface BlastActivityItem {
   views: number;
   likes: number;
   comments: number;
+  shares: number;
+  reposts: number;
   notes: string | null;
   created_at: string;
   blast_user: {
@@ -127,6 +129,8 @@ export interface BlastActivityStats {
   total_views: number;
   total_likes: number;
   total_comments: number;
+  total_shares: number;
+  total_reposts: number;
 }
 
 export interface ListBlastActivitiesData {
@@ -169,6 +173,8 @@ export interface CreateBlastActivityPayload {
   views: number;
   likes: number;
   comments: number;
+  shares: number;
+  reposts: number;
   notes?: string;
 }
 
@@ -179,6 +185,8 @@ export interface CreateBlastActivityResult {
   views: number;
   likes: number;
   comments: number;
+  shares: number;
+  reposts: number;
   message: string;
 }
 

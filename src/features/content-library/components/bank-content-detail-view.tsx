@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 
 import {
   ArrowLeft,
-  CalendarDays,
+  Copy,
   ExternalLink,
   FileText,
   FolderOpen,
@@ -17,6 +17,7 @@ import {
   Send,
   UserRound,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,11 +55,22 @@ function StatsCard({ title, value, icon }: { title: string; value: string; icon:
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="grid gap-1 md:grid-cols-[160px_minmax(0,1fr)]">
       <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="font-medium text-sm leading-6">{value}</p>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="break-all font-medium text-emerald-700 text-sm leading-6 underline-offset-4 hover:underline"
+        >
+          {value}
+        </a>
+      ) : (
+        <p className="font-medium text-sm leading-6">{value}</p>
+      )}
     </div>
   );
 }
@@ -70,7 +82,7 @@ function formatAccessLabel(value: BankContentDetail["status_akses"]) {
 export function BankContentDetailView() {
   const params = useParams<{ id: string }>();
   const contentId = typeof params?.id === "string" ? params.id : "";
-  const { accessToken, isAuthorized, isPending } = useRoleGuard([
+  const { accessToken, role, isAuthorized, isPending } = useRoleGuard([
     "qcc_wcc",
     "wcc",
     "pic_sosmed",
@@ -81,6 +93,21 @@ export function BankContentDetailView() {
   const [detail, setDetail] = useState<BankContentDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const canViewUsage = role === "superadmin" || role === "supervisi";
+
+  const handleCopy = async (value: string, label: string) => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(normalizedValue);
+      toast.success(`${label} berhasil disalin.`);
+    } catch {
+      toast.error(`Gagal menyalin ${label.toLowerCase()}.`);
+    }
+  };
 
   useEffect(() => {
     if (!contentId) {
@@ -156,57 +183,48 @@ export function BankContentDetailView() {
 
   return (
     <div className="space-y-6">
-      <Card className="app-bg-hero app-border-soft">
-        <CardContent className="space-y-5 px-6 py-8 md:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-3">
-              <Badge
-                variant="outline"
-                className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
-              >
-                Konten / Detail Bank Konten
-              </Badge>
-              <div className="space-y-2">
-                <h1 className="font-semibold text-3xl tracking-tight">Detail Bank Konten</h1>
-                <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                  Lihat ringkasan aset, metadata, dan berapa banyak posting yang sudah tercatat memakai konten ini.
-                </p>
-              </div>
-            </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-start">
+          <Button asChild variant="outline">
+            <Link href="/konten/bank-konten">
+              <ArrowLeft className="mr-2 size-4" />
+              Kembali
+            </Link>
+          </Button>
+        </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline">
-                <Link href="/konten/bank-konten">
-                  <ArrowLeft className="mr-2 size-4" />
-                  Kembali
-                </Link>
-              </Button>
-            </div>
-          </div>
+        <Card className="border-foreground/10">
+          <CardContent className="space-y-4 px-6 py-6 md:px-8">
+            <Badge variant="outline" className="rounded-full px-3 py-1">
+              Konten / Detail Bank Konten
+            </Badge>
 
-          <div className="rounded-3xl border border-emerald-200 bg-background/75 p-4 dark:bg-card/75">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold text-2xl">{detail.judul}</h2>
+                  <button
+                    type="button"
+                    className="text-left font-semibold text-3xl tracking-tight transition-opacity hover:opacity-80"
+                    onClick={() => void handleCopy(detail.judul, "Judul konten")}
+                  >
+                    {detail.judul}
+                  </button>
                   <Badge variant="outline" className="rounded-full px-3 py-1">
                     {formatAccessLabel(detail.status_akses)}
                   </Badge>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  {detail.regional_asal} • Tahun kampanye {detail.tahun_kampanye}
-                </p>
+                <p className="text-muted-foreground text-sm">{detail.regional_asal}</p>
               </div>
 
               <p className="text-muted-foreground text-sm">
                 Dibuat {formatDateTime(detail.created_at)} • Update {formatDateTime(detail.updated_at)}
               </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatsCard
           title="Akun Posting"
           value={formatNumber(detail.jumlah_posting_digunakan)}
@@ -221,11 +239,6 @@ export function BankContentDetailView() {
           title="Platform"
           value={formatNumber(detail.platform.length)}
           icon={<FolderOpen className="size-5" />}
-        />
-        <StatsCard
-          title="Tahun Kampanye"
-          value={formatYear(detail.tahun_kampanye)}
-          icon={<CalendarDays className="size-5" />}
         />
       </div>
 
@@ -248,21 +261,36 @@ export function BankContentDetailView() {
                 </Badge>
               </div>
 
-              <div className="rounded-3xl bg-muted/30 p-4">
-                <p className="font-medium text-sm">Deskripsi</p>
+              <button
+                type="button"
+                className="w-full rounded-3xl bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+                onClick={() => void handleCopy(detail.deskripsi?.trim() ?? "", "Deskripsi")}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium text-sm">Deskripsi</p>
+                  <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+                    <Copy className="size-3.5" />
+                    Klik untuk salin
+                  </span>
+                </div>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
                   {detail.deskripsi?.trim() || "Deskripsi belum tersedia."}
                 </p>
-              </div>
+              </button>
 
               {detail.hashtags.length > 0 && (
                 <div className="space-y-2">
                   <p className="font-medium text-sm">Hashtag</p>
                   <div className="flex flex-wrap gap-2">
                     {detail.hashtags.map((hashtag) => (
-                      <Badge key={hashtag} variant="secondary" className="rounded-full px-3 py-1">
+                      <button
+                        key={hashtag}
+                        type="button"
+                        className="rounded-full bg-secondary px-3 py-1 font-medium text-secondary-foreground text-xs transition-colors hover:bg-secondary/80"
+                        onClick={() => void handleCopy(hashtag, "Hashtag")}
+                      >
                         {hashtag}
-                      </Badge>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -281,7 +309,7 @@ export function BankContentDetailView() {
               <DetailRow label="Status Akses" value={formatAccessLabel(detail.status_akses)} />
               <DetailRow label="Uploader" value={detail.uploaded_by} />
               <DetailRow label="Tanggal Dibuat" value={formatDate(detail.created_at)} />
-              <DetailRow label="Drive Link" value={detail.drive_link} />
+              <DetailRow label="Drive Link" value={detail.drive_link} href={detail.drive_link} />
               <DetailRow
                 label="Regional Terbatas"
                 value={detail.regional_terbatas.length > 0 ? detail.regional_terbatas.join(", ") : "Tidak ada batasan"}
@@ -289,83 +317,85 @@ export function BankContentDetailView() {
             </CardContent>
           </Card>
 
-          <Card className="border-foreground/10">
-            <CardHeader>
-              <CardTitle className="text-xl">Posting yang Memakai Konten Ini</CardTitle>
-              <CardDescription>
-                Daftar akun sosmed yang sudah memposting konten ini berdasarkan hasil validasi bukti posting.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {detail.penggunaan_posting.length === 0 ? (
-                <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
-                  Belum ada posting tercatat yang memakai konten ini.
-                </div>
-              ) : (
-                detail.penggunaan_posting.map((usage) => (
-                  <div key={usage.id} className="rounded-2xl border bg-muted/20 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-2">
-                        <p className="font-medium text-sm">{usage.social_account.nama_profil}</p>
-                        <p className="text-muted-foreground text-xs">
-                          @{usage.social_account.username.replace(/^@/, "")} •{" "}
-                          {usage.pic_sosmed?.name ?? "PIC belum tercatat"}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "rounded-full px-3 py-1",
-                            getPlatformAccentClassName(usage.social_account.platform),
-                          )}
-                        >
-                          {formatPlatformLabel(usage.social_account.platform)}
-                        </Badge>
-                        {usage.validation_status ? (
-                          <Badge variant="outline" className={cn("rounded-full px-3 py-1")}>
-                            {usage.validation_status.replaceAll("_", " ")}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border bg-background px-4 py-3">
-                        <p className="text-muted-foreground text-xs">Waktu Posting</p>
-                        <p className="mt-1 font-medium text-sm">{formatDateTime(usage.posted_at)}</p>
-                      </div>
-                      <div className="rounded-2xl border bg-background px-4 py-3">
-                        <p className="text-muted-foreground text-xs">Regional PIC</p>
-                        <p className="mt-1 font-medium text-sm">{usage.pic_sosmed?.regional ?? "-"}</p>
-                      </div>
-                    </div>
-
-                    {usage.pic_bukti_posting ? (
-                      <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-                        <p className="text-muted-foreground text-xs">PIC Pengirim Bukti</p>
-                        <p className="mt-1 font-medium">{usage.pic_bukti_posting.name}</p>
-                      </div>
-                    ) : null}
-
-                    {usage.post_url ? (
-                      <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-                        <p className="text-muted-foreground text-xs">Link Posting</p>
-                        <a
-                          href={usage.post_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 block break-all text-emerald-700 underline-offset-4 hover:underline"
-                        >
-                          {usage.post_url}
-                        </a>
-                      </div>
-                    ) : null}
+          {canViewUsage ? (
+            <Card className="border-foreground/10">
+              <CardHeader>
+                <CardTitle className="text-xl">Posting yang Memakai Konten Ini</CardTitle>
+                <CardDescription>
+                  Daftar akun sosmed yang sudah memposting konten ini berdasarkan hasil validasi bukti posting.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {detail.penggunaan_posting.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
+                    Belum ada posting tercatat yang memakai konten ini.
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                ) : (
+                  detail.penggunaan_posting.map((usage) => (
+                    <div key={usage.id} className="rounded-2xl border bg-muted/20 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-2">
+                          <p className="font-medium text-sm">{usage.social_account.nama_profil}</p>
+                          <p className="text-muted-foreground text-xs">
+                            @{usage.social_account.username.replace(/^@/, "")} •{" "}
+                            {usage.pic_sosmed?.name ?? "PIC belum tercatat"}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "rounded-full px-3 py-1",
+                              getPlatformAccentClassName(usage.social_account.platform),
+                            )}
+                          >
+                            {formatPlatformLabel(usage.social_account.platform)}
+                          </Badge>
+                          {usage.validation_status ? (
+                            <Badge variant="outline" className={cn("rounded-full px-3 py-1")}>
+                              {usage.validation_status.replaceAll("_", " ")}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-2xl border bg-background px-4 py-3">
+                          <p className="text-muted-foreground text-xs">Waktu Posting</p>
+                          <p className="mt-1 font-medium text-sm">{formatDateTime(usage.posted_at)}</p>
+                        </div>
+                        <div className="rounded-2xl border bg-background px-4 py-3">
+                          <p className="text-muted-foreground text-xs">Regional PIC</p>
+                          <p className="mt-1 font-medium text-sm">{usage.pic_sosmed?.regional ?? "-"}</p>
+                        </div>
+                      </div>
+
+                      {usage.pic_bukti_posting ? (
+                        <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
+                          <p className="text-muted-foreground text-xs">PIC Pengirim Bukti</p>
+                          <p className="mt-1 font-medium">{usage.pic_bukti_posting.name}</p>
+                        </div>
+                      ) : null}
+
+                      {usage.post_url ? (
+                        <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
+                          <p className="text-muted-foreground text-xs">Link Posting</p>
+                          <a
+                            href={usage.post_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block break-all text-emerald-700 underline-offset-4 hover:underline"
+                          >
+                            {usage.post_url}
+                          </a>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
         </section>
 
         <aside className="space-y-6">
@@ -394,7 +424,14 @@ export function BankContentDetailView() {
                   <Link2 className="mt-0.5 size-4 text-emerald-700" />
                   <div>
                     <p className="font-medium text-sm">Drive Link</p>
-                    <p className="break-all text-muted-foreground text-sm leading-6">{detail.drive_link}</p>
+                    <a
+                      href={detail.drive_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-emerald-700 text-sm leading-6 underline-offset-4 hover:underline"
+                    >
+                      {detail.drive_link}
+                    </a>
                   </div>
                 </div>
               </div>
