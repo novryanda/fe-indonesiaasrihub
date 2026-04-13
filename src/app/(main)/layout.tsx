@@ -7,6 +7,7 @@ import { AppSidebar } from "@/app/(main)/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SESSION_COOKIE_NAME, SESSION_COOKIE_NAME_HOST, SESSION_COOKIE_NAME_SECURE } from "@/lib/auth-constants";
+import { getRequiredEnv, normalizeBaseUrl } from "@/lib/env";
 import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES } from "@/lib/preferences/layout";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
@@ -16,14 +17,48 @@ import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 
+type SessionPayload = {
+  session?: unknown;
+  user?: unknown;
+};
+
+async function hasValidSession(cookieHeader: string) {
+  try {
+    const apiBaseUrl = normalizeBaseUrl(getRequiredEnv("API_BASE_URL"));
+    const response = await fetch(`${apiBaseUrl}/api/auth/get-session`, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const payload = (await response.json().catch(() => null)) as SessionPayload | null;
+    return Boolean(payload?.session && payload?.user);
+  } catch {
+    return false;
+  }
+}
+
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
   const sessionToken =
     cookieStore.get(SESSION_COOKIE_NAME)?.value ||
     cookieStore.get(SESSION_COOKIE_NAME_SECURE)?.value ||
     cookieStore.get(SESSION_COOKIE_NAME_HOST)?.value;
 
-  if (!sessionToken) {
+  if (!sessionToken || !cookieHeader) {
+    redirect("/auth/login");
+  }
+
+  const sessionIsValid = await hasValidSession(cookieHeader);
+  if (!sessionIsValid) {
     redirect("/auth/login");
   }
 

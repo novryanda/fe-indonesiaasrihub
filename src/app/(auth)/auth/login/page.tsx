@@ -1,15 +1,15 @@
 "use client";
 
-import { type FormEvent, Suspense, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useState } from "react";
 
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { toast } from "sonner";
 
 import type { UserRole, UserStatus } from "@/app/(auth)/auth/types/auth.types";
 import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
-import { authClient, signIn, signOut } from "@/lib/auth-client";
+import { authClient, signIn, signOut, useSession } from "@/lib/auth-client";
 import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
 import { resolveRouteForRole } from "@/lib/role-routes";
 
@@ -96,20 +96,49 @@ async function signInWithUsername(username: string, password: string): Promise<A
 }
 
 function LoginPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: activeSession } = useSession();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const callbackUrl = searchParams.get("callbackUrl");
   const safeCallbackUrl = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : null;
 
+  useEffect(() => {
+    if (!redirectTarget) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      window.location.replace(redirectTarget);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [redirectTarget]);
+
+  useEffect(() => {
+    if (!activeSession || isSubmitting || isRedirecting) {
+      return;
+    }
+
+    const activeRole = ((activeSession.user as { role?: UserRole } | undefined)?.role ?? "wcc") as UserRole;
+    const targetRoute = resolveRouteForRole(activeRole, safeCallbackUrl);
+    persistRoleHomeRoute(targetRoute);
+    router.replace(targetRoute);
+  }, [activeSession, isRedirecting, isSubmitting, router, safeCallbackUrl]);
+
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setIsRedirecting(false);
+    setRedirectTarget(null);
     setError("");
 
     try {
@@ -180,17 +209,14 @@ function LoginPageContent() {
       persistRoleHomeRoute(targetRoute);
       setIsSubmitting(false);
       setIsRedirecting(true);
-
-      // Jeda buatan untuk memberi waktu loading screen terlihat (sesuai permintaan user)
-      await new Promise((r) => setTimeout(r, 1500));
-
-      window.location.assign(targetRoute);
+      setRedirectTarget(targetRoute);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan jaringan. Silakan coba lagi.";
       setError(message);
       toast.error(message);
       setIsSubmitting(false);
       setIsRedirecting(false);
+      setRedirectTarget(null);
     }
   };
 

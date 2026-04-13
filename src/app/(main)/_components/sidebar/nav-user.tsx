@@ -41,13 +41,16 @@ export function NavUser({
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await signOut();
-    clearRoleHomeRoute();
-
-    // Memberikan jeda waktu agar animasi loading terlihat (sesuai permintaan)
-    await new Promise((r) => setTimeout(r, 1500));
-
-    router.push("/auth/login");
+    try {
+      await signOut();
+      clearRoleHomeRoute();
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 2000);
+      });
+      window.location.replace("/auth/login");
+    } catch {
+      setIsLoggingOut(false);
+    }
   };
 
   return (

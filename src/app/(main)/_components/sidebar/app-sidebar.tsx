@@ -53,7 +53,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link prefetch={false} href="/dashboard/nasional">
+              <Link prefetch={false} href="/dashboard">
                 <div className="flex items-center gap-0">
                   <Image
                     src="/logo-klhk.png"
