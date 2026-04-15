@@ -90,6 +90,12 @@ export async function listSocialAccounts(filters: SocialAccountFilters, signal?:
 
   return {
     ...response,
+    meta: response.meta
+      ? {
+          ...response.meta,
+          summary: response.meta.summary,
+        }
+      : response.meta,
     data: response.data.map((item) => ({
       id: item.id,
       wilayah_id: item.wilayah_id,

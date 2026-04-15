@@ -399,7 +399,7 @@ export function NationalDashboardView() {
       {
         label: "User Aktif",
         value: formatNumber(data.stats.total_user_aktif),
-        helper: "Seluruh role aktif",
+        helper: "Total PIC sosmed aktif",
         icon: UsersRound,
       },
       {

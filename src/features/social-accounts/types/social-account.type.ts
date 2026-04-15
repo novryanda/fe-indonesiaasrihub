@@ -49,6 +49,12 @@ export interface SocialAccountListMeta {
   page: number;
   limit: number;
   total: number;
+  summary?: {
+    total_accounts: number;
+    verified_accounts: number;
+    delegated_accounts: number;
+    total_followers: number;
+  };
 }
 
 export interface SocialAccountFilters {

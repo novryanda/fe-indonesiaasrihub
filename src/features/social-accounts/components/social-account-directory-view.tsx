@@ -61,6 +61,7 @@ import type {
   CreateSocialAccountPayload,
   SocialAccountDelegationStatus,
   SocialAccountItem,
+  SocialAccountListMeta,
   SocialAccountVerificationStatus,
   UpdateSocialAccountPayload,
 } from "../types/social-account.type";
@@ -96,6 +97,7 @@ const compactNumberFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 1,
 });
 const PAGE_SIZE = 10;
+const initialMeta: SocialAccountListMeta = { page: 1, limit: PAGE_SIZE, total: 0 };
 
 function SearchableSelect({
   label,
@@ -217,7 +219,7 @@ export function SocialAccountDirectoryView() {
   const [items, setItems] = useState<SocialAccountItem[]>([]);
   const [wilayahOptions, setWilayahOptions] = useState<WilayahOption[]>([]);
   const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
+  const [meta, setMeta] = useState<SocialAccountListMeta>(initialMeta);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -387,7 +389,7 @@ export function SocialAccountDirectoryView() {
 
         setItems(response.data);
         setWilayahOptions(wilayahList);
-        setMeta(response.meta ?? { page, limit: PAGE_SIZE, total: response.data.length });
+        setMeta(response.meta ?? { ...initialMeta, page, total: response.data.length });
       } catch (errorValue) {
         if (signal?.aborted) {
           return;
@@ -430,14 +432,19 @@ export function SocialAccountDirectoryView() {
   }, [isAuthorized, isPending, loadAccounts]);
 
   const summaryCards = useMemo(() => {
-    const verifiedCount = displayedItems.filter((item) => item.verification_status === "verified").length;
-    const delegatedCount = displayedItems.filter((item) => item.delegation_status === "sudah_didelegasikan").length;
-    const totalFollowers = displayedItems.reduce((total, item) => total + item.followers, 0);
+    const fallbackVerifiedCount = displayedItems.filter((item) => item.verification_status === "verified").length;
+    const fallbackDelegatedCount = displayedItems.filter((item) => item.delegation_status === "sudah_didelegasikan").length;
+    const fallbackTotalFollowers = displayedItems.reduce((total, item) => total + item.followers, 0);
+    const summary = displayedMeta.summary;
+    const totalAccounts = summary?.total_accounts ?? displayedItems.length;
+    const verifiedCount = summary?.verified_accounts ?? fallbackVerifiedCount;
+    const delegatedCount = summary?.delegated_accounts ?? fallbackDelegatedCount;
+    const totalFollowers = summary?.total_followers ?? fallbackTotalFollowers;
 
     return [
       {
         label: "Total Akun",
-        value: numberFormatter.format(displayedItems.length),
+        value: numberFormatter.format(totalAccounts),
         helper: "Akun aktif yang sudah terdaftar",
       },
       {
@@ -456,7 +463,7 @@ export function SocialAccountDirectoryView() {
         helper: "Akumulasi follower seluruh akun",
       },
     ];
-  }, [displayedItems]);
+  }, [displayedItems, displayedMeta.summary]);
 
   const totalPages = Math.max(1, Math.ceil(displayedMeta.total / displayedMeta.limit));
   const summaryText =
