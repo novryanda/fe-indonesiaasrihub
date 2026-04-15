@@ -226,9 +226,14 @@ function LoginPageContent() {
       <div className="app-bg-canvas flex min-h-dvh flex-col overflow-y-auto xl:h-dvh xl:flex-row xl:overflow-hidden">
         {/* Left Decoration Panel */}
         <div className="relative hidden overflow-hidden xl:block xl:w-[40%] 2xl:w-[36%]">
-          <div
-            className="absolute inset-0 bg-center bg-cover bg-no-repeat"
-            style={{ backgroundImage: "url('/silas-baisch-PvBECXDZw84-unsplash.png')" }}
+          <Image
+            src="/silas-baisch-PvBECXDZw84-unsplash.png"
+            alt="Background Nature"
+            fill
+            priority
+            sizes="(min-width: 1536px) 36vw, (min-width: 1280px) 40vw, 100vw"
+            className="object-cover object-center translate-z-0"
+            quality={75}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/70 via-emerald-900/60 to-emerald-950/75" />
           <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 2xl:p-12">
