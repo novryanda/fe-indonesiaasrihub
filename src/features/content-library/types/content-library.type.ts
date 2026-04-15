@@ -64,6 +64,20 @@ export interface BankContentUsageItem {
   validation_status: string | null;
 }
 
+export interface BankContentAssignmentItem {
+  id: string;
+  status: string;
+  submitted_at: string | null;
+  evidence_drive_link: string | null;
+  platform_targets: ContentPlatform[];
+  pic: {
+    id: string;
+    name: string;
+    wilayah_id: string | null;
+    regional: string | null;
+  };
+}
+
 export interface BankContentDetail extends BankContentItem {
   deskripsi: string | null;
   jenis_konten: string;
@@ -76,6 +90,7 @@ export interface BankContentDetail extends BankContentItem {
     status: string;
     submission_code: string;
   } | null;
+  penugasan_posting: BankContentAssignmentItem[];
   penggunaan_posting: BankContentUsageItem[];
 }
 

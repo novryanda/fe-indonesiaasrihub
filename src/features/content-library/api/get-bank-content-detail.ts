@@ -34,6 +34,22 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
     source_content?: BankContentDetail["source_content"];
     jumlah_posting_digunakan: number;
     jumlah_konten_turunan: number;
+    penugasan_posting: Array<{
+      id: string;
+      status: string;
+      submitted_at: string | null;
+      evidence_drive_link: string | null;
+      platform_targets: BankContentDetail["penugasan_posting"][number]["platform_targets"];
+      pic: {
+        id: string;
+        name: string;
+        wilayah_id: string | null;
+        wilayah: {
+          id: string;
+          nama: string;
+        } | null;
+      };
+    }>;
     penggunaan_posting: Array<{
       id: string;
       posted_at: string;
@@ -89,6 +105,19 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
       source_content: response.data.source_content ?? null,
       jumlah_posting_digunakan: response.data.jumlah_posting_digunakan,
       jumlah_konten_turunan: response.data.jumlah_konten_turunan,
+      penugasan_posting: response.data.penugasan_posting.map((assignment) => ({
+        id: assignment.id,
+        status: assignment.status,
+        submitted_at: assignment.submitted_at,
+        evidence_drive_link: assignment.evidence_drive_link,
+        platform_targets: assignment.platform_targets,
+        pic: {
+          id: assignment.pic.id,
+          name: assignment.pic.name,
+          wilayah_id: assignment.pic.wilayah_id,
+          regional: assignment.pic.wilayah?.nama ?? null,
+        },
+      })),
       penggunaan_posting: response.data.penggunaan_posting.map((usage) => ({
         id: usage.id,
         posted_at: usage.posted_at,

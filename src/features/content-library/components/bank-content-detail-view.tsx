@@ -22,7 +22,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   formatDate,
   formatDateTime,
@@ -30,7 +33,6 @@ import {
   formatNumber,
   formatPlatformLabel,
   formatTopikLabel,
-  formatYear,
   getPlatformAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,23 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getBankContentDetail } from "../api/get-bank-content-detail";
 import type { BankContentDetail } from "../types/content-library.type";
+
+type UsageFilter = "all" | "posted" | "pending";
+
+type UsageTableRow = {
+  id: string;
+  type: "posted" | "pending";
+  proof_id: string | null;
+  account_name: string | null;
+  username: string | null;
+  platforms: BankContentDetail["platform"];
+  posted_at: string | null;
+  pic_name: string;
+  pic_regional: string | null;
+  proof_sender_name: string | null;
+  validation_status: string | null;
+  post_url: string | null;
+};
 
 function StatsCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
@@ -79,6 +98,10 @@ function formatAccessLabel(value: BankContentDetail["status_akses"]) {
   return value === "publik" ? "Publik" : "Terbatas";
 }
 
+function formatValidationStatusLabel(value: string | null) {
+  return value ? value.replaceAll("_", " ") : "-";
+}
+
 export function BankContentDetailView() {
   const params = useParams<{ id: string }>();
   const contentId = typeof params?.id === "string" ? params.id : "";
@@ -93,6 +116,8 @@ export function BankContentDetailView() {
   const [detail, setDetail] = useState<BankContentDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usageFilter, setUsageFilter] = useState<UsageFilter>("all");
+  const [usagePage, setUsagePage] = useState(1);
   const canViewUsage = role === "superadmin" || role === "supervisi";
 
   const handleCopy = async (value: string, label: string) => {
@@ -180,6 +205,63 @@ export function BankContentDetailView() {
       </Card>
     );
   }
+
+  const postedPicCount = new Set(
+    detail.penggunaan_posting.map((usage) => usage.bukti_posting_id).filter((value): value is string => Boolean(value)),
+  ).size;
+  const totalAssignedPicCount = detail.task_summary.assigned_pic_count;
+  const totalPublicationTarget = totalAssignedPicCount > 0 ? totalAssignedPicCount : postedPicCount;
+  const pendingPicCount = Math.max(totalPublicationTarget - postedPicCount, 0);
+  const postedRows: UsageTableRow[] = detail.penggunaan_posting.map((usage) => ({
+    id: usage.id,
+    type: "posted",
+    proof_id: usage.bukti_posting_id,
+    account_name: usage.social_account.nama_profil,
+    username: usage.social_account.username,
+    platforms: [usage.social_account.platform],
+    posted_at: usage.posted_at,
+    pic_name: usage.pic_sosmed?.name ?? usage.pic_bukti_posting?.name ?? "PIC belum tercatat",
+    pic_regional: usage.pic_sosmed?.regional ?? usage.pic_bukti_posting?.regional ?? null,
+    proof_sender_name: usage.pic_bukti_posting?.name ?? null,
+    validation_status: usage.validation_status,
+    post_url: usage.post_url,
+  }));
+  const postedProofIds = new Set(
+    postedRows.map((row) => row.proof_id).filter((value): value is string => Boolean(value)),
+  );
+  const pendingRows: UsageTableRow[] = detail.penugasan_posting
+    .filter((assignment) => !postedProofIds.has(assignment.id))
+    .map((assignment) => ({
+      id: assignment.id,
+      type: "pending",
+      proof_id: assignment.id,
+      account_name: null,
+      username: null,
+      platforms: assignment.platform_targets,
+      posted_at: null,
+      pic_name: assignment.pic.name,
+      pic_regional: assignment.pic.regional,
+      proof_sender_name: assignment.submitted_at ? assignment.pic.name : null,
+      validation_status: assignment.status,
+      post_url: null,
+    }));
+  const usageRows = [...postedRows, ...pendingRows];
+  const filteredUsageRows =
+    usageFilter === "posted"
+      ? usageRows.filter((row) => row.type === "posted")
+      : usageFilter === "pending"
+        ? usageRows.filter((row) => row.type === "pending")
+        : usageRows;
+  const usagePageSize = 10;
+  const usageTotalPages = Math.max(1, Math.ceil(filteredUsageRows.length / usagePageSize));
+  const paginatedUsageRows = filteredUsageRows.slice((usagePage - 1) * usagePageSize, usagePage * usagePageSize);
+  const usageSummary =
+    filteredUsageRows.length === 0
+      ? "Menampilkan 0 data"
+      : `Menampilkan ${Math.min((usagePage - 1) * usagePageSize + 1, filteredUsageRows.length)}-${Math.min(
+          usagePage * usagePageSize,
+          filteredUsageRows.length,
+        )} dari ${filteredUsageRows.length} data`;
 
   return (
     <div className="space-y-6">
@@ -316,86 +398,6 @@ export function BankContentDetailView() {
               />
             </CardContent>
           </Card>
-
-          {canViewUsage ? (
-            <Card className="border-foreground/10">
-              <CardHeader>
-                <CardTitle className="text-xl">Posting yang Memakai Konten Ini</CardTitle>
-                <CardDescription>
-                  Daftar akun sosmed yang sudah memposting konten ini berdasarkan hasil validasi bukti posting.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {detail.penggunaan_posting.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
-                    Belum ada posting tercatat yang memakai konten ini.
-                  </div>
-                ) : (
-                  detail.penggunaan_posting.map((usage) => (
-                    <div key={usage.id} className="rounded-2xl border bg-muted/20 p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-2">
-                          <p className="font-medium text-sm">{usage.social_account.nama_profil}</p>
-                          <p className="text-muted-foreground text-xs">
-                            @{usage.social_account.username.replace(/^@/, "")} •{" "}
-                            {usage.pic_sosmed?.name ?? "PIC belum tercatat"}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "rounded-full px-3 py-1",
-                              getPlatformAccentClassName(usage.social_account.platform),
-                            )}
-                          >
-                            {formatPlatformLabel(usage.social_account.platform)}
-                          </Badge>
-                          {usage.validation_status ? (
-                            <Badge variant="outline" className={cn("rounded-full px-3 py-1")}>
-                              {usage.validation_status.replaceAll("_", " ")}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-2xl border bg-background px-4 py-3">
-                          <p className="text-muted-foreground text-xs">Waktu Posting</p>
-                          <p className="mt-1 font-medium text-sm">{formatDateTime(usage.posted_at)}</p>
-                        </div>
-                        <div className="rounded-2xl border bg-background px-4 py-3">
-                          <p className="text-muted-foreground text-xs">Regional PIC</p>
-                          <p className="mt-1 font-medium text-sm">{usage.pic_sosmed?.regional ?? "-"}</p>
-                        </div>
-                      </div>
-
-                      {usage.pic_bukti_posting ? (
-                        <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-                          <p className="text-muted-foreground text-xs">PIC Pengirim Bukti</p>
-                          <p className="mt-1 font-medium">{usage.pic_bukti_posting.name}</p>
-                        </div>
-                      ) : null}
-
-                      {usage.post_url ? (
-                        <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-                          <p className="text-muted-foreground text-xs">Link Posting</p>
-                          <a
-                            href={usage.post_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 block break-all text-emerald-700 underline-offset-4 hover:underline"
-                          >
-                            {usage.post_url}
-                          </a>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          ) : null}
         </section>
 
         <aside className="space-y-6">
@@ -456,6 +458,160 @@ export function BankContentDetailView() {
           </Card>
         </aside>
       </div>
+
+      {canViewUsage ? (
+        <Card className="border-foreground/10">
+          <CardHeader className="gap-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-xl">Posting yang Memakai Konten Ini</CardTitle>
+                <CardDescription>
+                  Ringkasan PIC yang sudah dan belum melakukan posting untuk konten ini, berdasarkan task publikasi dan
+                  hasil validasi bukti posting.
+                </CardDescription>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
+                <div className="rounded-2xl border bg-muted/20 px-4 py-3">
+                  <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Progress PIC Posting</p>
+                  <p className="mt-2 font-semibold text-2xl">
+                    {formatNumber(postedPicCount)}/{formatNumber(totalPublicationTarget)}
+                  </p>
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    {formatNumber(postedPicCount)} PIC sudah melakukan posting.
+                  </p>
+                </div>
+                <div className="rounded-2xl border bg-muted/20 px-4 py-3">
+                  <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Belum Posting</p>
+                  <p className="mt-2 font-semibold text-2xl">{formatNumber(pendingPicCount)}</p>
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    {formatNumber(pendingPicCount)} PIC belum melakukan posting.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="w-full max-w-[260px]">
+                <Select
+                  value={usageFilter}
+                  onValueChange={(value) => {
+                    setUsageFilter(value as UsageFilter);
+                    setUsagePage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter status posting" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Data</SelectItem>
+                    <SelectItem value="posted">Sudah Posting</SelectItem>
+                    <SelectItem value="pending">Belum Posting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Sudah posting: {formatNumber(postedPicCount)} PIC. Belum posting: {formatNumber(pendingPicCount)} PIC.
+              </p>
+            </div>
+
+            {filteredUsageRows.length === 0 ? (
+              <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
+                {usageFilter === "posted"
+                  ? "Belum ada posting tercatat yang memakai konten ini."
+                  : usageFilter === "pending"
+                    ? "Semua PIC yang ditugaskan sudah melakukan posting."
+                    : "Belum ada data posting untuk konten ini."}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-hidden rounded-2xl border">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead className="min-w-[220px]">Akun</TableHead>
+                        <TableHead>Platform</TableHead>
+                        <TableHead className="min-w-[160px]">Waktu Posting</TableHead>
+                        <TableHead className="min-w-[180px]">PIC Sosmed</TableHead>
+                        <TableHead className="min-w-[140px]">Regional PIC</TableHead>
+                        <TableHead className="min-w-[180px]">PIC Pengirim Bukti</TableHead>
+                        <TableHead className="min-w-[140px]">Status</TableHead>
+                        <TableHead className="min-w-[280px]">Link Posting</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedUsageRows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="whitespace-normal">
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{row.account_name ?? "-"}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {row.username ? `@${row.username.replace(/^@/, "")}` : "Belum ada akun posting"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-normal">
+                            <div className="flex flex-wrap gap-2">
+                              {row.platforms.length > 0 ? (
+                                row.platforms.map((platform) => (
+                                  <Badge
+                                    key={`${row.id}-${platform}`}
+                                    variant="outline"
+                                    className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
+                                  >
+                                    {formatPlatformLabel(platform)}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-normal text-sm">
+                            {row.posted_at ? formatDateTime(row.posted_at) : "-"}
+                          </TableCell>
+                          <TableCell className="whitespace-normal text-sm">{row.pic_name}</TableCell>
+                          <TableCell className="whitespace-normal text-sm">{row.pic_regional ?? "-"}</TableCell>
+                          <TableCell className="whitespace-normal text-sm">{row.proof_sender_name ?? "-"}</TableCell>
+                          <TableCell className="whitespace-normal">
+                            <Badge variant="outline" className="rounded-full px-3 py-1">
+                              {row.type === "pending"
+                                ? "belum posting"
+                                : formatValidationStatusLabel(row.validation_status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-normal">
+                            {row.post_url ? (
+                              <a
+                                href={row.post_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="break-all text-emerald-700 text-sm underline-offset-4 hover:underline"
+                              >
+                                {row.post_url}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <TablePagination
+                  summary={usageSummary}
+                  page={usagePage}
+                  totalPages={usageTotalPages}
+                  onPageChange={setUsagePage}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
