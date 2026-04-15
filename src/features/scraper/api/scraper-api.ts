@@ -368,9 +368,11 @@ export async function testScraperConnection() {
   const response = await apiClient<{
     configured: boolean;
     connected: boolean;
-    actor_ids: Record<ScraperScheduleItem["platform"], string | null>;
-    configured_platforms: Array<ScraperScheduleItem["platform"]>;
-    missing_platforms: Array<ScraperScheduleItem["platform"]>;
+    actor_ids: Record<"bootstrap" | "profile" | "post", Record<ScraperScheduleItem["platform"], string | null>>;
+    configured_platforms: Record<"bootstrap" | "profile" | "post", Array<ScraperScheduleItem["platform"]>>;
+    missing_platforms: Record<"bootstrap" | "profile" | "post", Array<ScraperScheduleItem["platform"]>>;
+    fully_configured_platforms: Array<ScraperScheduleItem["platform"]>;
+    bootstrap_only_platforms: Array<ScraperScheduleItem["platform"]>;
     app_public_url: string | null;
     account_username: string | null;
     message: string;
@@ -384,6 +386,8 @@ export async function testScraperConnection() {
       actorIds: response.data.actor_ids,
       configuredPlatforms: response.data.configured_platforms,
       missingPlatforms: response.data.missing_platforms,
+      fullyConfiguredPlatforms: response.data.fully_configured_platforms,
+      bootstrapOnlyPlatforms: response.data.bootstrap_only_platforms,
       appPublicUrl: response.data.app_public_url,
       accountUsername: response.data.account_username,
       message: response.data.message,

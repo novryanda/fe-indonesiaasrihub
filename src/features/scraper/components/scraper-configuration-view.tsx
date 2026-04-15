@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { CheckCircle2, ExternalLink, Eye, EyeOff, KeyRound, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ import {
 } from "../api/system-settings-api";
 import type { ScraperConnectionStatus } from "../types/scraper.type";
 import type {
+  ApifyActorCategory,
   ApifyIntegrationSettingKey,
   ApifyIntegrationSettings,
   SystemSettingSource,
@@ -76,13 +77,96 @@ type IntegrationFormState = {
   wahaApiKey: string;
 };
 
-type ApifyPlatform = keyof ApifyIntegrationSettings["actorIds"];
+type ApifyPlatform = keyof ApifyIntegrationSettings["actorIds"]["bootstrap"];
+type ApifyActorValueMap = Record<ApifyActorCategory, Record<ApifyPlatform, string>>;
 
 type ApifyIntegrationFormState = {
   apifyApiToken: string;
   apifyWebhookSecret: string;
-  actorIds: Record<ApifyPlatform, string>;
+  actorIds: ApifyActorValueMap;
 };
+
+const APIFY_ACTOR_GROUPS: Array<{
+  key: ApifyActorCategory;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "bootstrap",
+    label: "Bootstrap / History",
+    description: "Dipakai saat daftar akun untuk tarik profil dan histori post awal.",
+  },
+  {
+    key: "profile",
+    label: "Profile Monitoring",
+    description: "Dipakai jadwal profil ringan untuk refresh followers, following, dan profil akun.",
+  },
+  {
+    key: "post",
+    label: "Posting Metrics",
+    description: "Dipakai scrape satu kali per URL posting yang disubmit PIC lalu freeze.",
+  },
+];
+
+function createEmptyApifyActorValues(): ApifyActorValueMap {
+  return {
+    bootstrap: {
+      instagram: "",
+      tiktok: "",
+      youtube: "",
+      facebook: "",
+      x: "",
+    },
+    profile: {
+      instagram: "",
+      tiktok: "",
+      youtube: "",
+      facebook: "",
+      x: "",
+    },
+    post: {
+      instagram: "",
+      tiktok: "",
+      youtube: "",
+      facebook: "",
+      x: "",
+    },
+  };
+}
+
+function createApifyActorValues(settings: ApifyIntegrationSettings): ApifyActorValueMap {
+  return {
+    bootstrap: {
+      instagram: settings.actorIds.bootstrap.instagram.value ?? "",
+      tiktok: settings.actorIds.bootstrap.tiktok.value ?? "",
+      youtube: settings.actorIds.bootstrap.youtube.value ?? "",
+      facebook: settings.actorIds.bootstrap.facebook.value ?? "",
+      x: settings.actorIds.bootstrap.x.value ?? "",
+    },
+    profile: {
+      instagram: settings.actorIds.profile.instagram.value ?? "",
+      tiktok: settings.actorIds.profile.tiktok.value ?? "",
+      youtube: settings.actorIds.profile.youtube.value ?? "",
+      facebook: settings.actorIds.profile.facebook.value ?? "",
+      x: settings.actorIds.profile.x.value ?? "",
+    },
+    post: {
+      instagram: settings.actorIds.post.instagram.value ?? "",
+      tiktok: settings.actorIds.post.tiktok.value ?? "",
+      youtube: settings.actorIds.post.youtube.value ?? "",
+      facebook: settings.actorIds.post.facebook.value ?? "",
+      x: settings.actorIds.post.x.value ?? "",
+    },
+  };
+}
+
+function getApifyResetKey(category: ApifyActorCategory, platform: ApifyPlatform): ApifyIntegrationSettingKey {
+  if (category === "bootstrap") {
+    return `apify_${platform}_actor_id`;
+  }
+
+  return `apify_${platform}_${category}_actor_id`;
+}
 
 const INITIAL_INTEGRATION_FORM: IntegrationFormState = {
   wahaApiBaseUrl: "",
@@ -93,13 +177,7 @@ const INITIAL_INTEGRATION_FORM: IntegrationFormState = {
 const INITIAL_APIFY_FORM: ApifyIntegrationFormState = {
   apifyApiToken: "",
   apifyWebhookSecret: "",
-  actorIds: {
-    instagram: "",
-    tiktok: "",
-    youtube: "",
-    facebook: "",
-    x: "",
-  },
+  actorIds: createEmptyApifyActorValues(),
 };
 
 export function ScraperConfigurationView() {
@@ -109,13 +187,9 @@ export function ScraperConfigurationView() {
   const [integrationSettings, setIntegrationSettings] = useState<WhatsappIntegrationSettings | null>(null);
   const [apifyForm, setApifyForm] = useState<ApifyIntegrationFormState>(INITIAL_APIFY_FORM);
   const [integrationForm, setIntegrationForm] = useState<IntegrationFormState>(INITIAL_INTEGRATION_FORM);
-  const [initialApifyActorValues, setInitialApifyActorValues] = useState<Record<ApifyPlatform, string>>({
-    instagram: "",
-    tiktok: "",
-    youtube: "",
-    facebook: "",
-    x: "",
-  });
+  const [initialApifyActorValues, setInitialApifyActorValues] = useState<ApifyActorValueMap>(
+    createEmptyApifyActorValues(),
+  );
   const [initialNonSecretValues, setInitialNonSecretValues] = useState({
     wahaApiBaseUrl: "",
     wahaSessionName: "",
@@ -134,29 +208,18 @@ export function ScraperConfigurationView() {
   const redisDashboardUrl = process.env.NEXT_PUBLIC_REDIS_DASHBOARD_URL?.trim() ?? "";
   const bullBoardUrl = process.env.NEXT_PUBLIC_BULL_BOARD_URL?.trim() ?? "";
 
-  const applyApifySettings = (settings: ApifyIntegrationSettings) => {
+  const applyApifySettings = useCallback((settings: ApifyIntegrationSettings) => {
+    const actorValues = createApifyActorValues(settings);
     setApifySettings(settings);
     setApifyForm({
       apifyApiToken: "",
       apifyWebhookSecret: "",
-      actorIds: {
-        instagram: settings.actorIds.instagram.value ?? "",
-        tiktok: settings.actorIds.tiktok.value ?? "",
-        youtube: settings.actorIds.youtube.value ?? "",
-        facebook: settings.actorIds.facebook.value ?? "",
-        x: settings.actorIds.x.value ?? "",
-      },
+      actorIds: actorValues,
     });
-    setInitialApifyActorValues({
-      instagram: settings.actorIds.instagram.value ?? "",
-      tiktok: settings.actorIds.tiktok.value ?? "",
-      youtube: settings.actorIds.youtube.value ?? "",
-      facebook: settings.actorIds.facebook.value ?? "",
-      x: settings.actorIds.x.value ?? "",
-    });
-  };
+    setInitialApifyActorValues(actorValues);
+  }, []);
 
-  const applyIntegrationSettings = (settings: WhatsappIntegrationSettings) => {
+  const applyIntegrationSettings = useCallback((settings: WhatsappIntegrationSettings) => {
     setIntegrationSettings(settings);
     setIntegrationForm({
       wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
@@ -167,7 +230,7 @@ export function ScraperConfigurationView() {
       wahaApiBaseUrl: settings.wahaApiBaseUrl.value ?? "",
       wahaSessionName: settings.wahaSessionName.value ?? "",
     });
-  };
+  }, []);
 
   const loadApifyIntegrationStatus = async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -235,25 +298,7 @@ export function ScraperConfigurationView() {
         ]);
 
         setConnectionStatus(scraperResponse.data);
-        setApifySettings(apifyResponse.data);
-        setApifyForm({
-          apifyApiToken: "",
-          apifyWebhookSecret: "",
-          actorIds: {
-            instagram: apifyResponse.data.actorIds.instagram.value ?? "",
-            tiktok: apifyResponse.data.actorIds.tiktok.value ?? "",
-            youtube: apifyResponse.data.actorIds.youtube.value ?? "",
-            facebook: apifyResponse.data.actorIds.facebook.value ?? "",
-            x: apifyResponse.data.actorIds.x.value ?? "",
-          },
-        });
-        setInitialApifyActorValues({
-          instagram: apifyResponse.data.actorIds.instagram.value ?? "",
-          tiktok: apifyResponse.data.actorIds.tiktok.value ?? "",
-          youtube: apifyResponse.data.actorIds.youtube.value ?? "",
-          facebook: apifyResponse.data.actorIds.facebook.value ?? "",
-          x: apifyResponse.data.actorIds.x.value ?? "",
-        });
+        applyApifySettings(apifyResponse.data);
         setIntegrationSettings(integrationResponse.data);
         setIntegrationForm({
           wahaApiBaseUrl: integrationResponse.data.wahaApiBaseUrl.value ?? "",
@@ -275,7 +320,7 @@ export function ScraperConfigurationView() {
     };
 
     void loadInitialData();
-  }, [isAuthorized, isPending]);
+  }, [applyApifySettings, isAuthorized, isPending]);
 
   const handleIntegrationFormChange = (field: keyof IntegrationFormState, value: string) => {
     setIntegrationForm((previous) => ({
@@ -284,12 +329,15 @@ export function ScraperConfigurationView() {
     }));
   };
 
-  const handleApifyActorChange = (platform: ApifyPlatform, value: string) => {
+  const handleApifyActorChange = (category: ApifyActorCategory, platform: ApifyPlatform, value: string) => {
     setApifyForm((previous) => ({
       ...previous,
       actorIds: {
         ...previous.actorIds,
-        [platform]: value,
+        [category]: {
+          ...previous.actorIds[category],
+          [platform]: value,
+        },
       },
     }));
   };
@@ -309,8 +357,12 @@ export function ScraperConfigurationView() {
     integrationForm.wahaSessionName.trim() !== initialNonSecretValues.wahaSessionName;
   const hasSecretChanges = integrationForm.wahaApiKey.trim().length > 0;
   const canSubmitIntegration = hasNonSecretChanges || hasSecretChanges;
-  const hasApifyActorChanges = (Object.keys(apifyForm.actorIds) as ApifyPlatform[]).some(
-    (platform) => apifyForm.actorIds[platform].trim() !== initialApifyActorValues[platform],
+  const hasApifyActorChanges = APIFY_ACTOR_GROUPS.some(({ key }) =>
+    PLATFORM_OPTIONS.some(
+      (platform) =>
+        apifyForm.actorIds[key][platform.value as ApifyPlatform].trim() !==
+        initialApifyActorValues[key][platform.value as ApifyPlatform],
+    ),
   );
   const hasApifySecretChanges =
     apifyForm.apifyApiToken.trim().length > 0 || apifyForm.apifyWebhookSecret.trim().length > 0;
@@ -324,7 +376,7 @@ export function ScraperConfigurationView() {
     const payload: {
       apifyApiToken?: string;
       apifyWebhookSecret?: string;
-      actorIds?: Partial<Record<ApifyPlatform, string>>;
+      actorIds?: Partial<Record<ApifyActorCategory, Partial<Record<ApifyPlatform, string>>>>;
     } = {};
 
     if (apifyForm.apifyApiToken.trim().length > 0) {
@@ -335,15 +387,27 @@ export function ScraperConfigurationView() {
       payload.apifyWebhookSecret = apifyForm.apifyWebhookSecret.trim();
     }
 
-    const actorIds = (Object.keys(apifyForm.actorIds) as ApifyPlatform[]).reduce(
-      (result, platform) => {
-        const nextValue = apifyForm.actorIds[platform].trim();
-        if (nextValue !== initialApifyActorValues[platform]) {
-          result[platform] = nextValue;
+    const actorIds = APIFY_ACTOR_GROUPS.reduce(
+      (result, { key }) => {
+        const changedGroup = PLATFORM_OPTIONS.reduce(
+          (groupResult, platform) => {
+            const platformKey = platform.value as ApifyPlatform;
+            const nextValue = apifyForm.actorIds[key][platformKey].trim();
+            if (nextValue !== initialApifyActorValues[key][platformKey]) {
+              groupResult[platformKey] = nextValue;
+            }
+            return groupResult;
+          },
+          {} as Partial<Record<ApifyPlatform, string>>,
+        );
+
+        if (Object.keys(changedGroup).length > 0) {
+          result[key] = changedGroup;
         }
+
         return result;
       },
-      {} as Partial<Record<ApifyPlatform, string>>,
+      {} as Partial<Record<ApifyActorCategory, Partial<Record<ApifyPlatform, string>>>>,
     );
 
     if (Object.keys(actorIds).length > 0) {
@@ -668,8 +732,8 @@ export function ScraperConfigurationView() {
                 )}
               </div>
               <p className="text-muted-foreground text-xs">
-                Input ini sengaja selalu kosong saat halaman dibuka. Secret aktif tetap dibaca dari sumber saat ini
-                ({apifySettings ? getSourceBadge(apifySettings.apifyWebhookSecret.source).label : "runtime app"}) dan
+                Input ini sengaja selalu kosong saat halaman dibuka. Secret aktif tetap dibaca dari sumber saat ini (
+                {apifySettings ? getSourceBadge(apifySettings.apifyWebhookSecret.source).label : "runtime app"}) dan
                 hanya perlu diisi jika ingin override dari panel.
               </p>
               <div className="flex justify-end">
@@ -695,66 +759,90 @@ export function ScraperConfigurationView() {
 
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium text-sm">Actor per Platform</p>
-              {apifySettings?.configuredPlatforms.length ? (
+              <p className="font-medium text-sm">Actor per Jalur Scraping</p>
+              {apifySettings?.fullyConfiguredPlatforms.length ? (
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  {apifySettings.configuredPlatforms.length} platform siap
+                  {apifySettings.fullyConfiguredPlatforms.length} platform full stack
                 </Badge>
               ) : null}
             </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {PLATFORM_OPTIONS.map((platform) => {
-                const actorField = apifySettings?.actorIds[platform.value as ApifyPlatform];
-                const actorBadge = actorField ? getSourceBadge(actorField.source) : null;
-                const resetKey = `apify_${platform.value}_actor_id` as ApifyIntegrationSettingKey;
-
-                return (
-                  <div key={platform.value} className="space-y-3 rounded-2xl border p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-sm">{platform.label}</p>
+            <div className="grid gap-4 xl:grid-cols-3">
+              {APIFY_ACTOR_GROUPS.map((group) => (
+                <div key={group.key} className="space-y-3 rounded-2xl border p-4">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-sm">{group.label}</p>
                       <Badge
                         variant="outline"
                         className={
-                          actorField?.hasValue
+                          apifySettings?.configuredPlatforms[group.key].length
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                             : "border-amber-200 bg-amber-50 text-amber-700"
                         }
                       >
-                        {actorField?.hasValue ? "Siap" : "Belum di-set"}
+                        {apifySettings?.configuredPlatforms[group.key].length ?? 0} platform siap
                       </Badge>
                     </div>
-                    <Input
-                      value={apifyForm.actorIds[platform.value as ApifyPlatform]}
-                      onChange={(event) => handleApifyActorChange(platform.value as ApifyPlatform, event.target.value)}
-                      placeholder={`Actor ${platform.label}`}
-                      disabled={isLoading || isSavingApifyIntegration}
-                      className="font-mono text-sm"
-                    />
-                    <div className="flex items-center justify-between gap-3">
-                      {actorBadge ? (
-                        <Badge variant="outline" className={actorBadge.className}>
-                          {actorBadge.label}
-                        </Badge>
-                      ) : (
-                        <span />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => void handleResetApifyIntegrationField(resetKey)}
-                        disabled={actorField?.source !== "database" || resettingApifyKey === resetKey}
-                      >
-                        {resettingApifyKey === resetKey ? (
-                          <Spinner className="mr-2" />
-                        ) : (
-                          <RotateCcw className="mr-2 size-4" />
-                        )}
-                        Reset
-                      </Button>
-                    </div>
+                    <p className="text-muted-foreground text-xs">{group.description}</p>
                   </div>
-                );
-              })}
+
+                  <div className="space-y-3">
+                    {PLATFORM_OPTIONS.map((platform) => {
+                      const platformKey = platform.value as ApifyPlatform;
+                      const actorField = apifySettings?.actorIds[group.key][platformKey];
+                      const actorBadge = actorField ? getSourceBadge(actorField.source) : null;
+                      const resetKey = getApifyResetKey(group.key, platformKey);
+
+                      return (
+                        <div key={`${group.key}-${platform.value}`} className="space-y-3 rounded-2xl border p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-medium text-sm">{platform.label}</p>
+                            <Badge
+                              variant="outline"
+                              className={
+                                actorField?.hasValue
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "border-amber-200 bg-amber-50 text-amber-700"
+                              }
+                            >
+                              {actorField?.hasValue ? "Siap" : "Belum di-set"}
+                            </Badge>
+                          </div>
+                          <Input
+                            value={apifyForm.actorIds[group.key][platformKey]}
+                            onChange={(event) => handleApifyActorChange(group.key, platformKey, event.target.value)}
+                            placeholder={`Actor ${group.label} ${platform.label}`}
+                            disabled={isLoading || isSavingApifyIntegration}
+                            className="font-mono text-sm"
+                          />
+                          <div className="flex items-center justify-between gap-3">
+                            {actorBadge ? (
+                              <Badge variant="outline" className={actorBadge.className}>
+                                {actorBadge.label}
+                              </Badge>
+                            ) : (
+                              <span />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => void handleResetApifyIntegrationField(resetKey)}
+                              disabled={actorField?.source !== "database" || resettingApifyKey === resetKey}
+                            >
+                              {resettingApifyKey === resetKey ? (
+                                <Spinner className="mr-2" />
+                              ) : (
+                                <RotateCcw className="mr-2 size-4" />
+                              )}
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -1024,9 +1112,9 @@ export function ScraperConfigurationView() {
             <CardTitle>Platform Aktif</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {connectionStatus?.configuredPlatforms?.length ? (
+            {connectionStatus?.fullyConfiguredPlatforms?.length ? (
               <div className="flex flex-wrap gap-2">
-                {connectionStatus.configuredPlatforms.map((platform) => (
+                {connectionStatus.fullyConfiguredPlatforms.map((platform) => (
                   <Badge key={platform} variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
                     {formatPlatformLabel(platform)}
                   </Badge>
@@ -1035,9 +1123,15 @@ export function ScraperConfigurationView() {
             ) : (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <CheckCircle2 className="size-4 text-emerald-700" />
-                <span>Belum ada actor platform yang dikonfigurasi.</span>
+                <span>Belum ada platform yang lengkap untuk bootstrap, profile, dan post.</span>
               </div>
             )}
+            {connectionStatus?.bootstrapOnlyPlatforms.length ? (
+              <p className="text-muted-foreground text-xs">
+                Baru bootstrap saja:{" "}
+                {connectionStatus.bootstrapOnlyPlatforms.map((platform) => formatPlatformLabel(platform)).join(", ")}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -1058,30 +1152,40 @@ export function ScraperConfigurationView() {
         <CardHeader>
           <CardTitle>Actor Runtime Aktif</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {PLATFORM_OPTIONS.map((platform) => {
-            const actorId = connectionStatus?.actorIds?.[platform.value] ?? null;
-            const isConfigured = Boolean(actorId);
-
-            return (
-              <div key={platform.value} className="space-y-2 rounded-2xl border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-sm">{platform.label}</p>
-                  <Badge
-                    variant="outline"
-                    className={
-                      isConfigured
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-amber-200 bg-amber-50 text-amber-700"
-                    }
-                  >
-                    {isConfigured ? "Siap" : "Belum di-set"}
-                  </Badge>
-                </div>
-                <p className="break-all text-muted-foreground text-sm">{actorId ?? "-"}</p>
+        <CardContent className="grid gap-4 xl:grid-cols-3">
+          {APIFY_ACTOR_GROUPS.map((group) => (
+            <div key={group.key} className="space-y-3 rounded-2xl border p-4">
+              <div className="space-y-1">
+                <p className="font-medium text-sm">{group.label}</p>
+                <p className="text-muted-foreground text-xs">{group.description}</p>
               </div>
-            );
-          })}
+              <div className="space-y-3">
+                {PLATFORM_OPTIONS.map((platform) => {
+                  const actorId = connectionStatus?.actorIds?.[group.key]?.[platform.value] ?? null;
+                  const isConfigured = Boolean(actorId);
+
+                  return (
+                    <div key={`${group.key}-${platform.value}`} className="space-y-2 rounded-2xl border p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-medium text-sm">{platform.label}</p>
+                        <Badge
+                          variant="outline"
+                          className={
+                            isConfigured
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
+                          }
+                        >
+                          {isConfigured ? "Siap" : "Belum di-set"}
+                        </Badge>
+                      </div>
+                      <p className="break-all text-muted-foreground text-sm">{actorId ?? "-"}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 

@@ -7,6 +7,14 @@ export interface MonitoringSosmedScope {
   wilayah_kode: string;
 }
 
+export interface MonitoringSosmedFilters {
+  wilayah_id: string | null;
+  platform: MonitoringPlatform | null;
+  eselon_2: string | null;
+  start_date: string;
+  end_date: string;
+}
+
 export interface MonitoringSosmedStats {
   total_akun_aktif: number;
   total_posting_bulan_ini: number;
@@ -112,15 +120,39 @@ export interface MonitoringPlatformContentRadarItem {
   comments: number;
 }
 
+export interface MonitoringEngagementOverview {
+  avg_engagement_score: number;
+}
+
+export interface MonitoringEngagementScoreTrendItem {
+  period_date: string;
+  period_label: string;
+  engagement_score: number;
+}
+
+export interface MonitoringEngagementDetailItem {
+  period_date: string;
+  period_label: string;
+  likes: number;
+  views: number;
+  comments: number;
+}
+
 export interface MonitoringSosmedData {
   scope: MonitoringSosmedScope;
+  filters: MonitoringSosmedFilters;
   stats: MonitoringSosmedStats;
   selected_period: {
     month: number;
     year: number;
+    start_date: string;
+    end_date: string;
     label: string;
   };
   latest_scraped_at: string | null;
+  engagement_overview: MonitoringEngagementOverview;
+  engagement_score_trends: MonitoringEngagementScoreTrendItem[];
+  engagement_details: MonitoringEngagementDetailItem[];
   daily_platform_area: MonitoringDailyPlatformAreaItem[];
   platform_average_bar: MonitoringPlatformAverageBarItem[];
   platform_content_radar: MonitoringPlatformContentRadarItem[];

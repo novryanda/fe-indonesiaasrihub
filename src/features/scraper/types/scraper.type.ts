@@ -106,9 +106,11 @@ export interface ScraperLogsMeta {
 export interface ScraperConnectionStatus {
   configured: boolean;
   connected: boolean;
-  actorIds: Record<ScraperPlatform, string | null>;
-  configuredPlatforms: ScraperPlatform[];
-  missingPlatforms: ScraperPlatform[];
+  actorIds: Record<"bootstrap" | "profile" | "post", Record<ScraperPlatform, string | null>>;
+  configuredPlatforms: Record<"bootstrap" | "profile" | "post", ScraperPlatform[]>;
+  missingPlatforms: Record<"bootstrap" | "profile" | "post", ScraperPlatform[]>;
+  fullyConfiguredPlatforms: ScraperPlatform[];
+  bootstrapOnlyPlatforms: ScraperPlatform[];
   appPublicUrl: string | null;
   accountUsername: string | null;
   message: string;

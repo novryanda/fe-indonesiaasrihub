@@ -1,6 +1,7 @@
 import { apiClient } from "@/shared/api/api-client";
 
 import type {
+  ApifyActorCategory,
   ApifyIntegrationSettingKey,
   ApifyIntegrationSettings,
   WhatsappIntegrationSettingKey,
@@ -37,29 +38,42 @@ function mapApifySettings(data: {
     masked_preview?: string | null;
   };
   actor_ids: Record<
-    keyof ApifyIntegrationSettings["actorIds"],
-    {
-      is_secret: boolean;
-      has_value: boolean;
-      source: ApifyIntegrationSettings["apifyApiToken"]["source"];
-      value?: string | null;
-    }
+    ApifyActorCategory,
+    Record<
+      keyof ApifyIntegrationSettings["actorIds"]["bootstrap"],
+      {
+        is_secret: boolean;
+        has_value: boolean;
+        source: ApifyIntegrationSettings["apifyApiToken"]["source"];
+        value?: string | null;
+      }
+    >
   >;
   configured_platforms: ApifyIntegrationSettings["configuredPlatforms"];
   missing_platforms: ApifyIntegrationSettings["missingPlatforms"];
+  fully_configured_platforms: ApifyIntegrationSettings["fullyConfiguredPlatforms"];
+  bootstrap_only_platforms: ApifyIntegrationSettings["bootstrapOnlyPlatforms"];
 }): ApifyIntegrationSettings {
+  const mapActorGroup = (category: ApifyActorCategory) => ({
+    instagram: mapField(data.actor_ids[category].instagram),
+    tiktok: mapField(data.actor_ids[category].tiktok),
+    youtube: mapField(data.actor_ids[category].youtube),
+    facebook: mapField(data.actor_ids[category].facebook),
+    x: mapField(data.actor_ids[category].x),
+  });
+
   return {
     apifyApiToken: mapField(data.apify_api_token),
     apifyWebhookSecret: mapField(data.apify_webhook_secret),
     actorIds: {
-      instagram: mapField(data.actor_ids.instagram),
-      tiktok: mapField(data.actor_ids.tiktok),
-      youtube: mapField(data.actor_ids.youtube),
-      facebook: mapField(data.actor_ids.facebook),
-      x: mapField(data.actor_ids.x),
+      bootstrap: mapActorGroup("bootstrap"),
+      profile: mapActorGroup("profile"),
+      post: mapActorGroup("post"),
     },
     configuredPlatforms: data.configured_platforms,
     missingPlatforms: data.missing_platforms,
+    fullyConfiguredPlatforms: data.fully_configured_platforms,
+    bootstrapOnlyPlatforms: data.bootstrap_only_platforms,
   };
 }
 
@@ -105,16 +119,21 @@ export async function getApifyIntegrationSettings() {
       masked_preview?: string | null;
     };
     actor_ids: Record<
-      keyof ApifyIntegrationSettings["actorIds"],
-      {
-        is_secret: boolean;
-        has_value: boolean;
-        source: ApifyIntegrationSettings["apifyApiToken"]["source"];
-        value?: string | null;
-      }
+      ApifyActorCategory,
+      Record<
+        keyof ApifyIntegrationSettings["actorIds"]["bootstrap"],
+        {
+          is_secret: boolean;
+          has_value: boolean;
+          source: ApifyIntegrationSettings["apifyApiToken"]["source"];
+          value?: string | null;
+        }
+      >
     >;
     configured_platforms: ApifyIntegrationSettings["configuredPlatforms"];
     missing_platforms: ApifyIntegrationSettings["missingPlatforms"];
+    fully_configured_platforms: ApifyIntegrationSettings["fullyConfiguredPlatforms"];
+    bootstrap_only_platforms: ApifyIntegrationSettings["bootstrapOnlyPlatforms"];
   }>("/v1/system-settings/apify-integration");
 
   return {
@@ -126,7 +145,9 @@ export async function getApifyIntegrationSettings() {
 export async function updateApifyIntegrationSettings(payload: {
   apifyApiToken?: string;
   apifyWebhookSecret?: string;
-  actorIds?: Partial<Record<keyof ApifyIntegrationSettings["actorIds"], string>>;
+  actorIds?: Partial<
+    Record<ApifyActorCategory, Partial<Record<keyof ApifyIntegrationSettings["actorIds"]["bootstrap"], string>>>
+  >;
 }) {
   const response = await apiClient<{
     apify_api_token: {
@@ -142,26 +163,41 @@ export async function updateApifyIntegrationSettings(payload: {
       masked_preview?: string | null;
     };
     actor_ids: Record<
-      keyof ApifyIntegrationSettings["actorIds"],
-      {
-        is_secret: boolean;
-        has_value: boolean;
-        source: ApifyIntegrationSettings["apifyApiToken"]["source"];
-        value?: string | null;
-      }
+      ApifyActorCategory,
+      Record<
+        keyof ApifyIntegrationSettings["actorIds"]["bootstrap"],
+        {
+          is_secret: boolean;
+          has_value: boolean;
+          source: ApifyIntegrationSettings["apifyApiToken"]["source"];
+          value?: string | null;
+        }
+      >
     >;
     configured_platforms: ApifyIntegrationSettings["configuredPlatforms"];
     missing_platforms: ApifyIntegrationSettings["missingPlatforms"];
+    fully_configured_platforms: ApifyIntegrationSettings["fullyConfiguredPlatforms"];
+    bootstrap_only_platforms: ApifyIntegrationSettings["bootstrapOnlyPlatforms"];
   }>("/v1/system-settings/apify-integration", {
     method: "PATCH",
     body: {
       apify_api_token: payload.apifyApiToken,
       apify_webhook_secret: payload.apifyWebhookSecret,
-      apify_instagram_actor_id: payload.actorIds?.instagram,
-      apify_tiktok_actor_id: payload.actorIds?.tiktok,
-      apify_youtube_actor_id: payload.actorIds?.youtube,
-      apify_facebook_actor_id: payload.actorIds?.facebook,
-      apify_x_actor_id: payload.actorIds?.x,
+      apify_instagram_actor_id: payload.actorIds?.bootstrap?.instagram,
+      apify_instagram_profile_actor_id: payload.actorIds?.profile?.instagram,
+      apify_instagram_post_actor_id: payload.actorIds?.post?.instagram,
+      apify_tiktok_actor_id: payload.actorIds?.bootstrap?.tiktok,
+      apify_tiktok_profile_actor_id: payload.actorIds?.profile?.tiktok,
+      apify_tiktok_post_actor_id: payload.actorIds?.post?.tiktok,
+      apify_youtube_actor_id: payload.actorIds?.bootstrap?.youtube,
+      apify_youtube_profile_actor_id: payload.actorIds?.profile?.youtube,
+      apify_youtube_post_actor_id: payload.actorIds?.post?.youtube,
+      apify_facebook_actor_id: payload.actorIds?.bootstrap?.facebook,
+      apify_facebook_profile_actor_id: payload.actorIds?.profile?.facebook,
+      apify_facebook_post_actor_id: payload.actorIds?.post?.facebook,
+      apify_x_actor_id: payload.actorIds?.bootstrap?.x,
+      apify_x_profile_actor_id: payload.actorIds?.profile?.x,
+      apify_x_post_actor_id: payload.actorIds?.post?.x,
     },
   });
 
@@ -186,16 +222,21 @@ export async function resetApifyIntegrationSettings(keys: ApifyIntegrationSettin
       masked_preview?: string | null;
     };
     actor_ids: Record<
-      keyof ApifyIntegrationSettings["actorIds"],
-      {
-        is_secret: boolean;
-        has_value: boolean;
-        source: ApifyIntegrationSettings["apifyApiToken"]["source"];
-        value?: string | null;
-      }
+      ApifyActorCategory,
+      Record<
+        keyof ApifyIntegrationSettings["actorIds"]["bootstrap"],
+        {
+          is_secret: boolean;
+          has_value: boolean;
+          source: ApifyIntegrationSettings["apifyApiToken"]["source"];
+          value?: string | null;
+        }
+      >
     >;
     configured_platforms: ApifyIntegrationSettings["configuredPlatforms"];
     missing_platforms: ApifyIntegrationSettings["missingPlatforms"];
+    fully_configured_platforms: ApifyIntegrationSettings["fullyConfiguredPlatforms"];
+    bootstrap_only_platforms: ApifyIntegrationSettings["bootstrapOnlyPlatforms"];
   }>("/v1/system-settings/apify-integration/reset", {
     method: "POST",
     body: {
