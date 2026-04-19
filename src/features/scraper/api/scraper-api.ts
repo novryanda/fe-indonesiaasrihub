@@ -1,6 +1,7 @@
 import { apiClient } from "@/shared/api/api-client";
 
 import type {
+  ScraperCostSummary,
   CreateScraperSchedulePayload,
   ScraperConnectionStatus,
   ScraperLogDetail,
@@ -10,6 +11,24 @@ import type {
   ScraperScheduleItem,
   UpdateScraperSchedulePayload,
 } from "../types/scraper.type";
+
+type ApiScraperCostSummary = {
+  usage_total_usd: number | null;
+  compute_units: number | null;
+  usage_usd: Record<string, number>;
+};
+
+function mapCostSummary(item?: ApiScraperCostSummary | null): ScraperCostSummary | null {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    usageTotalUsd: item.usage_total_usd,
+    computeUnits: item.compute_units,
+    usageUsd: item.usage_usd,
+  };
+}
 
 function mapSchedule(item: {
   id: string;
@@ -58,6 +77,7 @@ function mapLog(item: {
   finished_at: string | null;
   duration_ms: number | null;
   created_at: string;
+  cost_summary?: ApiScraperCostSummary | null;
   schedule: ScraperLogItem["schedule"] extends infer T
     ? T extends object
       ? {
@@ -86,6 +106,7 @@ function mapLog(item: {
     finishedAt: item.finished_at,
     durationMs: item.duration_ms,
     createdAt: item.created_at,
+    costSummary: mapCostSummary(item.cost_summary),
     schedule: item.schedule
       ? {
           id: item.schedule.id,
@@ -237,6 +258,7 @@ export async function runScraperScheduleNow(id: string) {
     finished_at: string | null;
     duration_ms: number | null;
     created_at: string;
+    cost_summary: ApiScraperCostSummary | null;
     schedule: {
       id: string;
       mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
@@ -272,6 +294,7 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
       finished_at: string | null;
       duration_ms: number | null;
       created_at: string;
+      cost_summary: ApiScraperCostSummary | null;
       schedule: {
         id: string;
         mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
@@ -316,6 +339,7 @@ export async function getScraperLogDetail(id: string) {
     finished_at: string | null;
     duration_ms: number | null;
     created_at: string;
+    cost_summary: ApiScraperCostSummary | null;
     schedule: {
       id: string;
       mode: ScraperLogItem["schedule"] extends { mode: infer M } ? M : never;
@@ -330,10 +354,15 @@ export async function getScraperLogDetail(id: string) {
         profile_name: string;
         platform: ScraperLogItem["platform"];
       };
+      apify_run_id: string | null;
       success: boolean;
       followers: number | null;
       post_count: number | null;
       total_reach: number | null;
+      usage_total_usd: number | null;
+      compute_units: number | null;
+      pricing_model: string | null;
+      usage_usd: Record<string, number>;
       error_reason: string | null;
       scraped_at: string;
       raw_payload: unknown;
@@ -352,10 +381,17 @@ export async function getScraperLogDetail(id: string) {
           profileName: result.social_account.profile_name,
           platform: result.social_account.platform,
         },
+        apifyRunId: result.apify_run_id,
         success: result.success,
         followers: result.followers,
         postCount: result.post_count,
         totalReach: result.total_reach,
+        cost: {
+          usageTotalUsd: result.usage_total_usd,
+          computeUnits: result.compute_units,
+          pricingModel: result.pricing_model,
+          usageUsd: result.usage_usd,
+        },
         errorReason: result.error_reason,
         scrapedAt: result.scraped_at,
         rawPayload: result.raw_payload,

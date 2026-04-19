@@ -114,3 +114,34 @@ export interface RegionalDashboardData {
     reminder_sent_bulan_ini: number;
   };
 }
+
+export interface OfficerDashboardData {
+  stats: {
+    konten_disetujui: number;
+    menunggu_review: number;
+    perlu_revisi: number;
+    akun_terverifikasi: number;
+    total_akun: number;
+    perlu_lampirkan_bukti: number;
+    bukti_ditolak: number;
+  };
+  ranking: {
+    wilayah_id: string | null;
+    wilayah_nama: string;
+    wilayah_kode: string;
+    period_label: string;
+    current_rank: number | null;
+    total_pic_wilayah: number;
+    valid_post_count: number;
+    total_views: number;
+    total_interactions: number;
+    last_activity: string | null;
+  } | null;
+  alur_approval_terkini: {
+    konten_id: string | null;
+    judul: string | null;
+    steps: unknown[];
+  };
+  konten_ditolak_terbaru: unknown;
+  performa_akun: unknown[];
+}

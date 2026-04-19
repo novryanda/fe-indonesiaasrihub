@@ -1,6 +1,6 @@
 import { apiClient } from "@/shared/api/api-client";
 
-import type { NationalDashboardData, RegionalDashboardData } from "../types/dashboard.type";
+import type { NationalDashboardData, OfficerDashboardData, RegionalDashboardData } from "../types/dashboard.type";
 
 export async function getNationalDashboard(params?: { month?: number; year?: number }) {
   return apiClient<NationalDashboardData>("/v1/dashboard/superadmin", {
@@ -19,5 +19,11 @@ export async function getRegionalDashboard(params?: { month?: number; year?: num
       month: params?.month,
       year: params?.year,
     },
+  });
+}
+
+export async function getOfficerDashboard() {
+  return apiClient<OfficerDashboardData>("/v1/dashboard/officer", {
+    method: "GET",
   });
 }

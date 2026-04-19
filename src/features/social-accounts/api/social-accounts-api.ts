@@ -197,6 +197,22 @@ export async function deleteSocialAccount(id: string) {
   });
 }
 
+export async function triggerManualSocialAccountScrape(id: string) {
+  return apiClient<{
+    id: string;
+    username: string;
+    nama_profil: string;
+    platform: SocialAccountItem["platform"];
+    run_log_id: string;
+    mode: string;
+    status: string;
+    total_accounts: number;
+    message: string;
+  }>(`/v1/akun-sosmed/${id}/manual-scrape`, {
+    method: "POST",
+  });
+}
+
 export async function verifySocialAccount(id: string, payload: VerifySocialAccountPayload) {
   return apiClient<{ id: string; verification_status: string }>(`/v1/akun-sosmed/${id}/verification`, {
     method: "PATCH",

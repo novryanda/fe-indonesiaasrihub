@@ -7,7 +7,7 @@ import Link from "next/link";
 import { format, subDays } from "date-fns";
 import { CalendarRange, TrendingUp } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, LabelList, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,7 @@ const chartSeriesColors = {
   views: "#2563eb",
   comments: "#f97316",
 } as const;
+const MAX_DATE_TICKS = 8;
 
 function formatNumber(value: number) {
   return numberFormatter.format(value);
@@ -74,13 +75,65 @@ function formatPercent(value: number, fractionDigits = 2) {
   return `${value.toFixed(fractionDigits)}%`;
 }
 
-function renderAreaValueLabel(formatter: (value: number) => string, fill: string, dy: number) {
-  return function AreaValueLabel(props: { x?: number | string; y?: number | string; value?: number | string }) {
+function formatChartDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function formatChartDateWithYear(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function buildAdaptiveDateTicks<T extends { period_date: string }>(rows: T[], maxTicks = MAX_DATE_TICKS) {
+  if (rows.length <= 2) {
+    return rows.map((row) => row.period_date);
+  }
+
+  const step = Math.max(1, Math.ceil((rows.length - 1) / (maxTicks - 1)));
+  const ticks = rows
+    .filter((_, index) => index === 0 || index === rows.length - 1 || index % step === 0)
+    .map((row) => row.period_date);
+
+  return [...new Set(ticks)];
+}
+
+function resolveLastMeaningfulIndex<T, K extends keyof T>(rows: T[], dataKey: K) {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const value = Number(rows[index][dataKey]);
+
+    if (Number.isFinite(value) && value > 0) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function renderHighlightedAreaLabel(options: {
+  targetIndex: number;
+  label: string;
+  formatter: (value: number) => string;
+  fill: string;
+  dy: number;
+}) {
+  return function AreaValueLabel(props: {
+    index?: number;
+    x?: number | string;
+    y?: number | string;
+    value?: number | string;
+  }) {
     const numericValue = Number(props.value ?? 0);
+    const index = Number(props.index ?? -1);
     const x = Number(props.x);
     const y = Number(props.y);
 
-    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    if (index !== options.targetIndex || !Number.isFinite(numericValue) || numericValue <= 0) {
       return null;
     }
 
@@ -89,8 +142,8 @@ function renderAreaValueLabel(formatter: (value: number) => string, fill: string
     }
 
     return (
-      <text x={x} y={y + dy} fill={fill} fontSize={11} fontWeight={600} textAnchor="middle">
-        {formatter(numericValue)}
+      <text x={x} y={y + options.dy} fill={options.fill} fontSize={11} fontWeight={600} textAnchor="middle">
+        {options.label} {options.formatter(numericValue)}
       </text>
     );
   };
@@ -182,6 +235,17 @@ export function MonitoringSosmedDashboard() {
 
   const scoreTrendRows = useMemo(() => data?.engagement_score_trends ?? [], [data]);
   const engagementDetailRows = useMemo(() => data?.engagement_details ?? [], [data]);
+  const scoreTrendTicks = useMemo(() => buildAdaptiveDateTicks(scoreTrendRows), [scoreTrendRows]);
+  const engagementDetailTicks = useMemo(() => buildAdaptiveDateTicks(engagementDetailRows), [engagementDetailRows]);
+  const scoreTrendLabelIndex = scoreTrendRows.length - 1;
+  const engagementLabelIndexes = useMemo(
+    () => ({
+      comments: resolveLastMeaningfulIndex(engagementDetailRows, "comments"),
+      likes: resolveLastMeaningfulIndex(engagementDetailRows, "likes"),
+      views: resolveLastMeaningfulIndex(engagementDetailRows, "views"),
+    }),
+    [engagementDetailRows],
+  );
 
   if (isPending) {
     return (
@@ -325,7 +389,15 @@ export function MonitoringSosmedDashboard() {
           <CardContent>
             {scoreTrendRows.length > 0 ? (
               <ChartContainer config={scoreTrendChartConfig} className="h-[280px] w-full">
-                <AreaChart data={scoreTrendRows}>
+                <AreaChart
+                  data={scoreTrendRows}
+                  margin={{
+                    top: 24,
+                    left: 4,
+                    right: 20,
+                    bottom: 8,
+                  }}
+                >
                   <defs>
                     <linearGradient id="scoreTrendFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--color-engagement_score)" stopOpacity={0.35} />
@@ -334,17 +406,20 @@ export function MonitoringSosmedDashboard() {
                   </defs>
                   <CartesianGrid vertical={false} />
                   <XAxis
-                    dataKey="period_label"
+                    dataKey="period_date"
+                    ticks={scoreTrendTicks}
                     tickLine={false}
                     axisLine={false}
-                    interval={0}
                     tickMargin={8}
                     fontSize={11}
+                    minTickGap={28}
+                    tickFormatter={(value) => formatChartDate(String(value))}
                   />
                   <YAxis tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} width={60} />
                   <ChartTooltip
                     content={
                       <ChartTooltipContent
+                        labelFormatter={(value) => formatChartDateWithYear(String(value))}
                         formatter={(value) => (
                           <div className="flex min-w-[160px] items-center justify-between gap-4">
                             <span>Engagement Score</span>
@@ -362,13 +437,17 @@ export function MonitoringSosmedDashboard() {
                     strokeWidth={2.5}
                     fill="url(#scoreTrendFill)"
                     fillOpacity={1}
+                    dot={false}
+                    activeDot={{ r: 5 }}
                   >
                     <LabelList
-                      content={renderAreaValueLabel(
-                        (value) => formatPercent(value),
-                        chartSeriesColors.engagementScore,
-                        -12,
-                      )}
+                      content={renderHighlightedAreaLabel({
+                        targetIndex: scoreTrendLabelIndex,
+                        label: "Score",
+                        formatter: (value) => formatPercent(value),
+                        fill: chartSeriesColors.engagementScore,
+                        dy: -12,
+                      })}
                     />
                   </Area>
                 </AreaChart>
@@ -392,7 +471,15 @@ export function MonitoringSosmedDashboard() {
         <CardContent>
           {engagementDetailRows.length > 0 ? (
             <ChartContainer config={engagementDetailChartConfig} className="h-[360px] w-full">
-              <ComposedChart data={engagementDetailRows}>
+              <AreaChart
+                data={engagementDetailRows}
+                margin={{
+                  top: 28,
+                  left: 8,
+                  right: 20,
+                  bottom: 8,
+                }}
+              >
                 <defs>
                   <linearGradient id="likesFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-likes)" stopOpacity={0.3} />
@@ -409,12 +496,14 @@ export function MonitoringSosmedDashboard() {
                 </defs>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                  dataKey="period_label"
+                  dataKey="period_date"
+                  ticks={engagementDetailTicks}
                   tickLine={false}
                   axisLine={false}
-                  interval={0}
                   tickMargin={8}
                   fontSize={11}
+                  minTickGap={30}
+                  tickFormatter={(value) => formatChartDate(String(value))}
                 />
                 <YAxis
                   tickFormatter={(value) => formatCompact(Number(value))}
@@ -425,6 +514,7 @@ export function MonitoringSosmedDashboard() {
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
+                      labelFormatter={(value) => formatChartDateWithYear(String(value))}
                       formatter={(value, name) => (
                         <div className="flex min-w-[160px] items-center justify-between gap-4">
                           <span>{String(name)}</span>
@@ -435,45 +525,70 @@ export function MonitoringSosmedDashboard() {
                   }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar
+                <Area
+                  type="natural"
                   dataKey="comments"
                   name="Comments"
-                  fill="var(--color-comments)"
-                  fillOpacity={0.82}
-                  radius={[6, 6, 0, 0]}
-                  barSize={18}
+                  stroke="var(--color-comments)"
+                  strokeWidth={2}
+                  fill="url(#commentsFill)"
+                  fillOpacity={1}
+                  dot={false}
+                  activeDot={{ r: 5 }}
                 >
                   <LabelList
-                    content={renderAreaValueLabel((value) => formatCompact(value), chartSeriesColors.comments, -8)}
+                    content={renderHighlightedAreaLabel({
+                      targetIndex: engagementLabelIndexes.comments,
+                      label: "Comments",
+                      formatter: (value) => formatCompact(value),
+                      fill: chartSeriesColors.comments,
+                      dy: -12,
+                    })}
                   />
-                </Bar>
+                </Area>
                 <Area
-                  type="monotone"
+                  type="natural"
                   dataKey="likes"
                   name="Likes"
                   stroke="var(--color-likes)"
                   strokeWidth={2}
                   fill="url(#likesFill)"
                   fillOpacity={1}
+                  dot={false}
+                  activeDot={{ r: 5 }}
                 >
                   <LabelList
-                    content={renderAreaValueLabel((value) => formatCompact(value), chartSeriesColors.likes, -14)}
+                    content={renderHighlightedAreaLabel({
+                      targetIndex: engagementLabelIndexes.likes,
+                      label: "Likes",
+                      formatter: (value) => formatCompact(value),
+                      fill: chartSeriesColors.likes,
+                      dy: -28,
+                    })}
                   />
                 </Area>
                 <Area
-                  type="monotone"
+                  type="natural"
                   dataKey="views"
                   name="Views"
                   stroke="var(--color-views)"
                   strokeWidth={2}
                   fill="url(#viewsFill)"
                   fillOpacity={1}
+                  dot={false}
+                  activeDot={{ r: 5 }}
                 >
                   <LabelList
-                    content={renderAreaValueLabel((value) => formatCompact(value), chartSeriesColors.views, -30)}
+                    content={renderHighlightedAreaLabel({
+                      targetIndex: engagementLabelIndexes.views,
+                      label: "Views",
+                      formatter: (value) => formatCompact(value),
+                      fill: chartSeriesColors.views,
+                      dy: -12,
+                    })}
                   />
                 </Area>
-              </ComposedChart>
+              </AreaChart>
             </ChartContainer>
           ) : (
             <div className="rounded-3xl border border-foreground/20 border-dashed py-16 text-center text-muted-foreground">

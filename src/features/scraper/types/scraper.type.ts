@@ -6,6 +6,16 @@ export type ScraperScheduleMode = "profile_monitoring" | "posting_metrics";
 export type ScraperRunStatus = "running" | "success" | "failed" | "partial";
 export type ScraperTriggerType = "scheduled" | "on_register" | "manual";
 
+export interface ScraperCostSummary {
+  usageTotalUsd: number | null;
+  computeUnits: number | null;
+  usageUsd: Record<string, number>;
+}
+
+export interface ScraperResultCost extends ScraperCostSummary {
+  pricingModel: string | null;
+}
+
 export interface ScraperScheduleItem {
   id: string;
   platform: ScraperPlatform;
@@ -60,6 +70,7 @@ export interface ScraperLogItem {
   finishedAt: string | null;
   durationMs: number | null;
   createdAt: string;
+  costSummary: ScraperCostSummary | null;
   schedule: {
     id: string;
     mode: ScraperScheduleMode;
@@ -77,10 +88,12 @@ export interface ScraperLogDetail extends ScraperLogItem {
       profileName: string;
       platform: ScraperPlatform;
     };
+    apifyRunId: string | null;
     success: boolean;
     followers: number | null;
     postCount: number | null;
     totalReach: number | null;
+    cost: ScraperResultCost;
     errorReason: string | null;
     scrapedAt: string;
     rawPayload: unknown;

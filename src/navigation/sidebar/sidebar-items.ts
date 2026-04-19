@@ -9,6 +9,7 @@ import {
   MessageSquare,
   MonitorPlay,
   MonitorPlayIcon,
+  Play,
   QrCode,
   Radio,
   Repeat,
@@ -261,6 +262,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Jadwal Scraping",
         url: "/system/jadwal-scrapping",
         icon: Clock3,
+        roles: ["sysadmin"],
+      },
+      {
+        title: "Tarik Scrape Akun",
+        url: "/system/tarik-scrapping",
+        icon: Play,
         roles: ["sysadmin"],
       },
       {

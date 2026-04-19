@@ -2,7 +2,7 @@
 
 import { type ComponentType, useCallback, useEffect, useState } from "react";
 
-import { BarChart3, Clock3, ExternalLink, Link2, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { BarChart3, CircleAlert, Clock3, ExternalLink, Link2, ShieldCheck, Trophy, UserRound, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,8 @@ import {
   formatPlatformLabel,
   getPlatformAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
+import { getOfficerDashboard } from "@/features/dashboard/api/dashboard-api";
+import type { OfficerDashboardData } from "@/features/dashboard/types/dashboard.type";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
@@ -138,6 +140,7 @@ export function SocialAccountHubView() {
   const [meta, setMeta] = useState<SocialAccountListMeta>({ page: 1, limit: 9, total: 0 });
   const [page, setPage] = useState(1);
   const [pics, setPics] = useState<SocialPicOption[]>([]);
+  const [officerDashboard, setOfficerDashboard] = useState<OfficerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedPic, setSelectedPic] = useState<Record<string, string>>({});
@@ -152,17 +155,19 @@ export function SocialAccountHubView() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [accountsResponse, picOptions] = await Promise.all([
+      const [accountsResponse, picOptions, officerResponse] = await Promise.all([
         listSocialAccounts({
           verification_status: role === "pic_sosmed" ? "all" : "verified",
           page,
           limit: 9,
         }),
         role === "pic_sosmed" ? Promise.resolve([]) : listSocialPicOptions(),
+        role === "pic_sosmed" ? getOfficerDashboard() : Promise.resolve(null),
       ]);
       setItems(accountsResponse.data);
       setMeta(accountsResponse.meta ?? { page, limit: 9, total: accountsResponse.data.length });
       setPics(picOptions);
+      setOfficerDashboard(officerResponse?.data ?? null);
     } catch (errorValue) {
       toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat data akun sosmed");
     } finally {
@@ -212,9 +217,82 @@ export function SocialAccountHubView() {
               <h1 className="font-semibold text-3xl tracking-tight">
                 {role === "pic_sosmed" ? "Akun Sosmed Saya" : "PIC Akun Sosmed"}
               </h1>
+              {role === "pic_sosmed" && officerDashboard?.ranking ? (
+                <p className="max-w-3xl text-muted-foreground text-sm leading-6">
+                  Posisi Anda saat ini #{officerDashboard.ranking.current_rank ?? "-"} dari{" "}
+                  {formatNumber(officerDashboard.ranking.total_pic_wilayah)} PIC wilayah {officerDashboard.ranking.wilayah_nama} untuk periode{" "}
+                  {officerDashboard.ranking.period_label}.
+                </p>
+              ) : null}
             </div>
           </CardContent>
         </Card>
+
+        {role === "pic_sosmed" && officerDashboard ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="border-amber-200 bg-amber-50/60">
+              <CardContent className="space-y-3 py-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-amber-800 text-sm">Ranking Saya</p>
+                  <Trophy className="size-5 text-amber-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-3xl tracking-tight text-amber-900">
+                    #{officerDashboard.ranking?.current_rank ?? "-"}
+                  </p>
+                  <p className="mt-1 text-amber-800/90 text-sm">
+                    {officerDashboard.ranking
+                      ? `Dari ${formatNumber(officerDashboard.ranking.total_pic_wilayah)} PIC • ${officerDashboard.ranking.period_label}`
+                      : "Ranking belum tersedia"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-foreground/10">
+              <CardContent className="space-y-3 py-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-muted-foreground text-sm">Total Akun</p>
+                  <UsersRound className="size-5 text-sky-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-3xl tracking-tight">{formatNumber(officerDashboard.stats.total_akun)}</p>
+                  <p className="mt-1 text-muted-foreground text-sm">Akun delegasi aktif untuk Anda</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-sky-200 bg-sky-50/60">
+              <CardContent className="space-y-3 py-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sky-800 text-sm">Perlu Kirim Bukti</p>
+                  <Clock3 className="size-5 text-sky-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-3xl tracking-tight text-sky-900">
+                    {formatNumber(officerDashboard.stats.perlu_lampirkan_bukti)}
+                  </p>
+                  <p className="mt-1 text-sky-800/90 text-sm">Task yang belum dilampirkan bukti posting</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-rose-200 bg-rose-50/60">
+              <CardContent className="space-y-3 py-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-rose-800 text-sm">Bukti Ditolak</p>
+                  <CircleAlert className="size-5 text-rose-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-3xl tracking-tight text-rose-900">
+                    {formatNumber(officerDashboard.stats.bukti_ditolak)}
+                  </p>
+                  <p className="mt-1 text-rose-800/90 text-sm">Perlu perbaikan atau submit ulang</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
 
         {loading ? (
           <Card>
