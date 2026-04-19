@@ -261,15 +261,15 @@ export function ScraperAccountTriggerView() {
               <span>Memuat akun sosmed...</span>
             </div>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Akun</TableHead>
-                  <TableHead>Wilayah</TableHead>
-                  <TableHead>PIC</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Stat Terakhir</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead className="w-[42%] whitespace-normal">Akun</TableHead>
+                  <TableHead className="w-[12%]">Wilayah</TableHead>
+                  <TableHead className="w-[14%]">PIC</TableHead>
+                  <TableHead className="w-[14%]">Status</TableHead>
+                  <TableHead className="w-[10%] whitespace-normal">Stat Terakhir</TableHead>
+                  <TableHead className="w-[8%] text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -282,33 +282,40 @@ export function ScraperAccountTriggerView() {
                 ) : (
                   items.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="align-top">
-                        <div className="space-y-1">
+                      <TableCell className="whitespace-normal align-top">
+                        <div className="max-w-[34rem] space-y-1">
                           <div className="flex items-center gap-2">
                             <PlatformIcon platform={item.platform} />
-                            <p className="font-medium">{item.nama_profil}</p>
+                            <p className="break-words font-medium leading-6">{item.nama_profil}</p>
                           </div>
-                          <p className="text-muted-foreground text-sm">{item.username}</p>
+                          <p className="break-all text-muted-foreground text-sm">{item.username}</p>
                           <p className="text-muted-foreground text-xs">{formatPlatformLabel(item.platform)}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="whitespace-normal align-top">
                         <div className="space-y-1">
                           <p className="font-medium">{item.wilayah_name}</p>
-                          <p className="text-muted-foreground text-xs">{item.officer_regional ?? "Belum ada regional PIC"}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {item.officer_regional ?? "Belum ada regional PIC"}
+                          </p>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="whitespace-normal align-top">
                         <div className="space-y-1">
                           <p className="font-medium">{item.officer_name ?? "-"}</p>
-                          <p className="text-muted-foreground text-xs">{item.officer_id ? "PIC terhubung" : "Belum didelegasikan"}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {item.officer_id ? "PIC terhubung" : "Belum didelegasikan"}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell className="align-top">
                         <div className="flex max-w-72 flex-wrap gap-2">
                           <Badge
                             variant="outline"
-                            className={cn("rounded-full px-3 py-1", getVerificationBadgeClass(item.verification_status))}
+                            className={cn(
+                              "rounded-full px-3 py-1",
+                              getVerificationBadgeClass(item.verification_status),
+                            )}
                           >
                             {formatVerificationLabel(item.verification_status)}
                           </Badge>
@@ -320,7 +327,7 @@ export function ScraperAccountTriggerView() {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
+                      <TableCell className="whitespace-normal align-top">
                         {item.last_stat_update ? formatDateTime(item.last_stat_update) : "Belum pernah scrape"}
                       </TableCell>
                       <TableCell className="align-top">
@@ -331,7 +338,11 @@ export function ScraperAccountTriggerView() {
                               Profil
                             </a>
                           </Button>
-                          <Button size="sm" onClick={() => void handleTriggerScrape(item)} disabled={runningId === item.id}>
+                          <Button
+                            size="sm"
+                            onClick={() => void handleTriggerScrape(item)}
+                            disabled={runningId === item.id}
+                          >
                             {runningId === item.id ? <Spinner className="mr-2" /> : <Play className="mr-2 size-4" />}
                             Tarik Scrape
                           </Button>
