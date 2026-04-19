@@ -71,6 +71,38 @@ function getSourceBadge(source: SystemSettingSource) {
   }
 }
 
+function getActorStatusBadge(input: {
+  hasActorValue: boolean;
+  hasApifyCredentials: boolean;
+  hasAppPublicUrl: boolean;
+}) {
+  if (!input.hasActorValue) {
+    return {
+      label: "Belum di-set",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (!input.hasApifyCredentials) {
+    return {
+      label: "Butuh token",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (!input.hasAppPublicUrl) {
+    return {
+      label: "Butuh URL app",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  return {
+    label: "Siap",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+}
+
 type IntegrationFormState = {
   wahaApiBaseUrl: string;
   wahaSessionName: string;
@@ -207,6 +239,34 @@ export function ScraperConfigurationView() {
   >({});
   const redisDashboardUrl = process.env.NEXT_PUBLIC_REDIS_DASHBOARD_URL?.trim() ?? "";
   const bullBoardUrl = process.env.NEXT_PUBLIC_BULL_BOARD_URL?.trim() ?? "";
+  const hasApifyCredentials = Boolean(apifySettings?.apifyApiToken.hasValue && apifySettings?.apifyWebhookSecret.hasValue);
+  const hasAppPublicUrl = Boolean(connectionStatus?.appPublicUrl);
+  const runtimeReadyPlatformCount = APIFY_ACTOR_GROUPS.reduce(
+    (summary, group) => ({
+      ...summary,
+      [group.key]: PLATFORM_OPTIONS.filter((platform) =>
+        Boolean(apifySettings?.actorIds[group.key][platform.value as ApifyPlatform].hasValue) &&
+        hasApifyCredentials &&
+        hasAppPublicUrl,
+      ).length,
+    }),
+    {
+      bootstrap: 0,
+      profile: 0,
+      post: 0,
+    } as Record<ApifyActorCategory, number>,
+  );
+  const fullStackPlatformCount = PLATFORM_OPTIONS.filter((platform) => {
+    const platformKey = platform.value as ApifyPlatform;
+
+    return (
+      Boolean(apifySettings?.actorIds.bootstrap[platformKey].hasValue) &&
+      Boolean(apifySettings?.actorIds.profile[platformKey].hasValue) &&
+      Boolean(apifySettings?.actorIds.post[platformKey].hasValue) &&
+      hasApifyCredentials &&
+      hasAppPublicUrl
+    );
+  }).length;
 
   const applyApifySettings = useCallback((settings: ApifyIntegrationSettings) => {
     const actorValues = createApifyActorValues(settings);
@@ -533,7 +593,7 @@ export function ScraperConfigurationView() {
   }
 
   const badge = getConnectionBadge(connectionStatus);
-  const apifyReady = Boolean(apifySettings?.apifyApiToken.hasValue && apifySettings?.apifyWebhookSecret.hasValue);
+  const apifyReady = Boolean(hasApifyCredentials && hasAppPublicUrl);
   const wahaReady = Boolean(integrationSettings?.wahaApiBaseUrl.hasValue && integrationSettings?.wahaApiKey.hasValue);
 
   const apifyTokenBadge = apifySettings ? getSourceBadge(apifySettings.apifyApiToken.source) : null;
@@ -760,9 +820,9 @@ export function ScraperConfigurationView() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-medium text-sm">Actor per Jalur Scraping</p>
-              {apifySettings?.fullyConfiguredPlatforms.length ? (
+              {fullStackPlatformCount ? (
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  {apifySettings.fullyConfiguredPlatforms.length} platform full stack
+                  {fullStackPlatformCount} platform full stack
                 </Badge>
               ) : null}
             </div>
@@ -775,12 +835,12 @@ export function ScraperConfigurationView() {
                       <Badge
                         variant="outline"
                         className={
-                          apifySettings?.configuredPlatforms[group.key].length
+                          runtimeReadyPlatformCount[group.key]
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                             : "border-amber-200 bg-amber-50 text-amber-700"
                         }
                       >
-                        {apifySettings?.configuredPlatforms[group.key].length ?? 0} platform siap
+                        {runtimeReadyPlatformCount[group.key]} platform siap
                       </Badge>
                     </div>
                     <p className="text-muted-foreground text-xs">{group.description}</p>
@@ -791,21 +851,19 @@ export function ScraperConfigurationView() {
                       const platformKey = platform.value as ApifyPlatform;
                       const actorField = apifySettings?.actorIds[group.key][platformKey];
                       const actorBadge = actorField ? getSourceBadge(actorField.source) : null;
+                      const statusBadge = getActorStatusBadge({
+                        hasActorValue: Boolean(actorField?.hasValue),
+                        hasApifyCredentials,
+                        hasAppPublicUrl,
+                      });
                       const resetKey = getApifyResetKey(group.key, platformKey);
 
                       return (
                         <div key={`${group.key}-${platform.value}`} className="space-y-3 rounded-2xl border p-4">
                           <div className="flex items-center justify-between gap-3">
                             <p className="font-medium text-sm">{platform.label}</p>
-                            <Badge
-                              variant="outline"
-                              className={
-                                actorField?.hasValue
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "border-amber-200 bg-amber-50 text-amber-700"
-                              }
-                            >
-                              {actorField?.hasValue ? "Siap" : "Belum di-set"}
+                            <Badge variant="outline" className={statusBadge.className}>
+                              {statusBadge.label}
                             </Badge>
                           </div>
                           <Input
@@ -1162,21 +1220,18 @@ export function ScraperConfigurationView() {
               <div className="space-y-3">
                 {PLATFORM_OPTIONS.map((platform) => {
                   const actorId = connectionStatus?.actorIds?.[group.key]?.[platform.value] ?? null;
-                  const isConfigured = Boolean(actorId);
+                  const statusBadge = getActorStatusBadge({
+                    hasActorValue: Boolean(actorId),
+                    hasApifyCredentials,
+                    hasAppPublicUrl,
+                  });
 
                   return (
                     <div key={`${group.key}-${platform.value}`} className="space-y-2 rounded-2xl border p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-medium text-sm">{platform.label}</p>
-                        <Badge
-                          variant="outline"
-                          className={
-                            isConfigured
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : "border-amber-200 bg-amber-50 text-amber-700"
-                          }
-                        >
-                          {isConfigured ? "Siap" : "Belum di-set"}
+                        <Badge variant="outline" className={statusBadge.className}>
+                          {statusBadge.label}
                         </Badge>
                       </div>
                       <p className="break-all text-muted-foreground text-sm">{actorId ?? "-"}</p>
