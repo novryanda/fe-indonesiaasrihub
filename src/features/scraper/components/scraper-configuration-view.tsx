@@ -850,7 +850,7 @@ export function ScraperConfigurationView() {
                     {PLATFORM_OPTIONS.map((platform) => {
                       const platformKey = platform.value as ApifyPlatform;
                       const actorField = apifySettings?.actorIds[group.key][platformKey];
-                      const actorBadge = actorField ? getSourceBadge(actorField.source) : null;
+                      const actorBadge = actorField?.hasValue ? getSourceBadge(actorField.source) : null;
                       const statusBadge = getActorStatusBadge({
                         hasActorValue: Boolean(actorField?.hasValue),
                         hasApifyCredentials,
