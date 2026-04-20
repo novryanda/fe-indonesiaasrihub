@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { formatPlatformLabel, formatTimeAgo } from "@/features/content-shared/utils/content-formatters";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getSocialAccountDetail } from "../api/social-accounts-api";
@@ -221,9 +221,12 @@ export function SocialAccountDetailView({ id }: { id: string }) {
 
           <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
             <Avatar className="size-20 rounded-[1.75rem] border-4 border-white/80 bg-card/95 shadow-lg ring-1 ring-emerald-100/80 sm:size-24">
-              <AvatarImage src={data.screenshot_url ?? undefined} alt={data.nama_profil} className="object-cover" />
-              <AvatarFallback className="rounded-[1.75rem] bg-white text-foreground text-xl sm:text-2xl">
-                {getInitials(data.nama_profil)}
+              <AvatarImage src={data.screenshot_url || undefined} alt={data.nama_profil} className="object-cover" />
+              <AvatarFallback className="rounded-[1.75rem] bg-white">
+                <span
+                  aria-hidden="true"
+                  className="size-11 rounded-full border border-border/55 bg-background/70 shadow-inner sm:size-14"
+                />
               </AvatarFallback>
             </Avatar>
 
