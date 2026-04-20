@@ -2,7 +2,17 @@
 
 import { type ComponentType, useCallback, useEffect, useState } from "react";
 
-import { BarChart3, CircleAlert, Clock3, ExternalLink, Link2, ShieldCheck, Trophy, UserRound, UsersRound } from "lucide-react";
+import {
+  BarChart3,
+  CircleAlert,
+  Clock3,
+  ExternalLink,
+  Link2,
+  ShieldCheck,
+  Trophy,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +55,36 @@ import type {
   SocialAccountListMeta,
   SocialPicOption,
 } from "../types/social-account.type";
+
+const MONTH_OPTIONS = [
+  { value: 1, label: "Januari" },
+  { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mei" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "Agustus" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Desember" },
+] as const;
+
+function getYearOptions() {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 7 }, (_, index) => currentYear - index);
+}
+
+function getMonthLabel(month: number) {
+  return MONTH_OPTIONS.find((option) => option.value === month)?.label ?? "Pilih bulan";
+}
+
+const YEAR_OPTIONS = getYearOptions();
+const DEFAULT_OFFICER_PERIOD = {
+  month: new Date().getMonth() + 1,
+  year: new Date().getFullYear(),
+};
 
 function getPlatformCardAccentClassName(platform: SocialAccountItem["platform"]) {
   switch (platform) {
@@ -141,7 +181,9 @@ export function SocialAccountHubView() {
   const [page, setPage] = useState(1);
   const [pics, setPics] = useState<SocialPicOption[]>([]);
   const [officerDashboard, setOfficerDashboard] = useState<OfficerDashboardData | null>(null);
+  const [officerPeriod, setOfficerPeriod] = useState(DEFAULT_OFFICER_PERIOD);
   const [loading, setLoading] = useState(true);
+  const [officerDashboardLoading, setOfficerDashboardLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedPic, setSelectedPic] = useState<Record<string, string>>({});
   const [statDialog, setStatDialog] = useState<{ open: boolean; account?: SocialAccountItem }>({ open: false });
@@ -152,22 +194,20 @@ export function SocialAccountHubView() {
     total_reach: 0,
   });
 
-  const loadData = useCallback(async () => {
+  const loadAccountsData = useCallback(async () => {
     setLoading(true);
     try {
-      const [accountsResponse, picOptions, officerResponse] = await Promise.all([
+      const [accountsResponse, picOptions] = await Promise.all([
         listSocialAccounts({
           verification_status: role === "pic_sosmed" ? "all" : "verified",
           page,
           limit: 9,
         }),
         role === "pic_sosmed" ? Promise.resolve([]) : listSocialPicOptions(),
-        role === "pic_sosmed" ? getOfficerDashboard() : Promise.resolve(null),
       ]);
       setItems(accountsResponse.data);
       setMeta(accountsResponse.meta ?? { page, limit: 9, total: accountsResponse.data.length });
       setPics(picOptions);
-      setOfficerDashboard(officerResponse?.data ?? null);
     } catch (errorValue) {
       toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat data akun sosmed");
     } finally {
@@ -175,11 +215,36 @@ export function SocialAccountHubView() {
     }
   }, [page, role]);
 
+  const loadOfficerDashboard = useCallback(async () => {
+    if (role !== "pic_sosmed") {
+      setOfficerDashboard(null);
+      setOfficerDashboardLoading(false);
+      return;
+    }
+
+    setOfficerDashboardLoading(true);
+    setOfficerDashboard(null);
+    try {
+      const officerResponse = await getOfficerDashboard(officerPeriod);
+      setOfficerDashboard(officerResponse.data);
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat ranking PIC");
+    } finally {
+      setOfficerDashboardLoading(false);
+    }
+  }, [officerPeriod, role]);
+
   useEffect(() => {
     if (!isPending && isAuthorized) {
-      void loadData();
+      void loadAccountsData();
     }
-  }, [isAuthorized, isPending, loadData]);
+  }, [isAuthorized, isPending, loadAccountsData]);
+
+  useEffect(() => {
+    if (!isPending && isAuthorized && role === "pic_sosmed") {
+      void loadOfficerDashboard();
+    }
+  }, [isAuthorized, isPending, loadOfficerDashboard, role]);
 
   if (isPending) {
     return (
@@ -201,6 +266,9 @@ export function SocialAccountHubView() {
     meta.total === 0
       ? "Belum ada akun sosmed untuk ditampilkan."
       : `Halaman ${page} dari ${totalPages} (${meta.total} total akun)`;
+  const selectedOfficerPeriodLabel = `${getMonthLabel(officerPeriod.month)} ${officerPeriod.year}`;
+  const rankingPeriodLabel =
+    officerDashboard?.ranking?.period_label ?? officerDashboard?.selected_period.label ?? selectedOfficerPeriodLabel;
 
   return (
     <>
@@ -213,16 +281,72 @@ export function SocialAccountHubView() {
             >
               Akun Sosmed / {role === "pic_sosmed" ? "Akun Saya" : "Delegasi"}
             </Badge>
-            <div className="space-y-2">
-              <h1 className="font-semibold text-3xl tracking-tight">
-                {role === "pic_sosmed" ? "Akun Sosmed Saya" : "PIC Akun Sosmed"}
-              </h1>
-              {role === "pic_sosmed" && officerDashboard?.ranking ? (
-                <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                  Posisi Anda saat ini #{officerDashboard.ranking.current_rank ?? "-"} dari{" "}
-                  {formatNumber(officerDashboard.ranking.total_pic_wilayah)} PIC wilayah {officerDashboard.ranking.wilayah_nama} untuk periode{" "}
-                  {officerDashboard.ranking.period_label}.
-                </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-2">
+                <h1 className="font-semibold text-3xl tracking-tight">
+                  {role === "pic_sosmed" ? "Akun Sosmed Saya" : "PIC Akun Sosmed"}
+                </h1>
+                {role === "pic_sosmed" ? (
+                  <p className="max-w-3xl text-muted-foreground text-sm leading-6">
+                    {officerDashboard?.ranking
+                      ? `Posisi Anda saat ini #${officerDashboard.ranking.current_rank ?? "-"} dari ${formatNumber(
+                          officerDashboard.ranking.total_pic_wilayah,
+                        )} PIC wilayah ${officerDashboard.ranking.wilayah_nama} untuk periode ${rankingPeriodLabel}.`
+                      : officerDashboardLoading
+                        ? `Memuat ranking PIC untuk periode ${selectedOfficerPeriodLabel}.`
+                        : `Ranking PIC untuk periode ${selectedOfficerPeriodLabel} belum tersedia.`}
+                  </p>
+                ) : null}
+              </div>
+
+              {role === "pic_sosmed" ? (
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Periode Ranking</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Select
+                      disabled={officerDashboardLoading}
+                      value={String(officerPeriod.month)}
+                      onValueChange={(value) =>
+                        setOfficerPeriod((previous) => ({
+                          ...previous,
+                          month: Number(value),
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="min-w-40 bg-background/90">
+                        <SelectValue placeholder="Pilih bulan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTH_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={String(option.value)}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      disabled={officerDashboardLoading}
+                      value={String(officerPeriod.year)}
+                      onValueChange={(value) =>
+                        setOfficerPeriod((previous) => ({
+                          ...previous,
+                          year: Number(value),
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="min-w-32 bg-background/90">
+                        <SelectValue placeholder="Pilih tahun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {YEAR_OPTIONS.map((year) => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               ) : null}
             </div>
           </CardContent>
@@ -237,7 +361,7 @@ export function SocialAccountHubView() {
                   <Trophy className="size-5 text-amber-700" />
                 </div>
                 <div>
-                  <p className="font-semibold text-3xl tracking-tight text-amber-900">
+                  <p className="font-semibold text-3xl text-amber-900 tracking-tight">
                     #{officerDashboard.ranking?.current_rank ?? "-"}
                   </p>
                   <p className="mt-1 text-amber-800/90 text-sm">
@@ -256,7 +380,9 @@ export function SocialAccountHubView() {
                   <UsersRound className="size-5 text-sky-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-3xl tracking-tight">{formatNumber(officerDashboard.stats.total_akun)}</p>
+                  <p className="font-semibold text-3xl tracking-tight">
+                    {formatNumber(officerDashboard.stats.total_akun)}
+                  </p>
                   <p className="mt-1 text-muted-foreground text-sm">Akun delegasi aktif untuk Anda</p>
                 </div>
               </CardContent>
@@ -269,7 +395,7 @@ export function SocialAccountHubView() {
                   <Clock3 className="size-5 text-sky-700" />
                 </div>
                 <div>
-                  <p className="font-semibold text-3xl tracking-tight text-sky-900">
+                  <p className="font-semibold text-3xl text-sky-900 tracking-tight">
                     {formatNumber(officerDashboard.stats.perlu_lampirkan_bukti)}
                   </p>
                   <p className="mt-1 text-sky-800/90 text-sm">Task yang belum dilampirkan bukti posting</p>
@@ -284,7 +410,7 @@ export function SocialAccountHubView() {
                   <CircleAlert className="size-5 text-rose-700" />
                 </div>
                 <div>
-                  <p className="font-semibold text-3xl tracking-tight text-rose-900">
+                  <p className="font-semibold text-3xl text-rose-900 tracking-tight">
                     {formatNumber(officerDashboard.stats.bukti_ditolak)}
                   </p>
                   <p className="mt-1 text-rose-800/90 text-sm">Perlu perbaikan atau submit ulang</p>
@@ -462,7 +588,7 @@ export function SocialAccountHubView() {
                                     officer_id: officerId,
                                   });
                                   toast.success("Akun berhasil didelegasikan.");
-                                  await loadData();
+                                  await loadAccountsData();
                                 } catch (errorValue) {
                                   toast.error(
                                     errorValue instanceof Error ? errorValue.message : "Gagal mendelegasikan akun",
@@ -492,7 +618,7 @@ export function SocialAccountHubView() {
                                     action: "revoke",
                                   });
                                   toast.success("Delegasi berhasil dicabut.");
-                                  await loadData();
+                                  await loadAccountsData();
                                 } catch (errorValue) {
                                   toast.error(
                                     errorValue instanceof Error ? errorValue.message : "Gagal mencabut delegasi",
@@ -602,7 +728,7 @@ export function SocialAccountHubView() {
                   await upsertSocialAccountWeeklyStat(statDialog.account.id, statForm);
                   toast.success("Statistik berhasil diperbarui.");
                   setStatDialog({ open: false });
-                  await loadData();
+                  await loadAccountsData();
                 } catch (errorValue) {
                   toast.error(errorValue instanceof Error ? errorValue.message : "Gagal menyimpan statistik");
                 }

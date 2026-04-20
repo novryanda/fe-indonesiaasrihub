@@ -116,6 +116,7 @@ export interface RegionalDashboardData {
 }
 
 export interface OfficerDashboardData {
+  selected_period: DashboardSelectedPeriod;
   stats: {
     konten_disetujui: number;
     menunggu_review: number;

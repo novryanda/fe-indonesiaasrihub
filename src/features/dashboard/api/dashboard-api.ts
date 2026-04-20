@@ -22,8 +22,12 @@ export async function getRegionalDashboard(params?: { month?: number; year?: num
   });
 }
 
-export async function getOfficerDashboard() {
+export async function getOfficerDashboard(params?: { month?: number; year?: number }) {
   return apiClient<OfficerDashboardData>("/v1/dashboard/officer", {
     method: "GET",
+    params: {
+      month: params?.month,
+      year: params?.year,
+    },
   });
 }
