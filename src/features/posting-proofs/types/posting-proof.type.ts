@@ -83,12 +83,11 @@ export interface SubmitPostingLinkPayloadItem {
   platform: ContentPlatform;
   social_account_id: string;
   post_url: string;
-  posted_at: string;
+  posted_at?: string;
   catatan_officer?: string;
 }
 
 export interface SubmitPostingLinksPayload {
-  evidence_drive_link?: string;
   links: SubmitPostingLinkPayloadItem[];
 }
 

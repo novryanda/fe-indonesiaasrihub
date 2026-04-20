@@ -78,6 +78,24 @@ export interface BankContentAssignmentItem {
   };
 }
 
+export interface BankContentAssignmentLinkItem {
+  id: string;
+  platform: ContentPlatform;
+  post_url: string;
+  posted_at: string;
+  catatan_officer: string | null;
+  validation_status: string;
+  social_account: {
+    id: string;
+    username: string;
+    nama_profil: string;
+  } | null;
+}
+
+export interface BankContentCurrentPostingTask extends BankContentAssignmentItem {
+  links: BankContentAssignmentLinkItem[];
+}
+
 export interface BankContentDetail extends BankContentItem {
   deskripsi: string | null;
   jenis_konten: string;
@@ -91,6 +109,7 @@ export interface BankContentDetail extends BankContentItem {
     submission_code: string;
   } | null;
   penugasan_posting: BankContentAssignmentItem[];
+  current_posting_task: BankContentCurrentPostingTask | null;
   penggunaan_posting: BankContentUsageItem[];
 }
 

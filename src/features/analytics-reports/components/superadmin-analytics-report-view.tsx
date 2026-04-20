@@ -10,11 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
-import {
-  getKpiSummary,
-  getRegionalLeaderboard,
-  getSocialAccountLeaderboard,
-} from "../api/analytics-report-api";
+import { getKpiSummary, getRegionalLeaderboard, getSocialAccountLeaderboard } from "../api/analytics-report-api";
 import type {
   AnalyticsFilterParams,
   RegionalLeaderboardRow,
@@ -128,11 +124,7 @@ export function SuperadminAnalyticsReportView() {
     setLoading(true);
     setError(null);
 
-    void Promise.all([
-      getKpiSummary(filters),
-      getRegionalLeaderboard(filters),
-      getSocialAccountLeaderboard(filters),
-    ])
+    void Promise.all([getKpiSummary(filters), getRegionalLeaderboard(filters), getSocialAccountLeaderboard(filters)])
       .then(([kpi, regional, social]) => {
         setKpiData(kpi.data);
         setRegionalRows(Array.isArray(regional.data) ? regional.data : []);
@@ -268,139 +260,6 @@ export function SuperadminAnalyticsReportView() {
           ))}
         </div>
       )}
-
-      <Card className="border-foreground/10 shadow-sm">
-        <CardHeader>
-          <CardTitle>Regional Leaderboard</CardTitle>
-          <CardDescription>Ranking semua regional berdasarkan skor performa pada periode terpilih.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <SortHeader
-                    label="Rank"
-                    active={regionalSort.key === "rank"}
-                    direction={regionalSort.direction}
-                    onClick={() =>
-                      setRegionalSort((current) => ({
-                        key: "rank",
-                        direction: current.key === "rank" && current.direction === "desc" ? "asc" : "desc",
-                      }))
-                    }
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortHeader
-                    label="Regional"
-                    active={regionalSort.key === "wilayah_nama"}
-                    direction={regionalSort.direction}
-                    onClick={() =>
-                      setRegionalSort((current) => ({
-                        key: "wilayah_nama",
-                        direction: current.key === "wilayah_nama" && current.direction === "desc" ? "asc" : "desc",
-                      }))
-                    }
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortHeader
-                    label="Skor Waktu"
-                    active={regionalSort.key === "score_timeliness"}
-                    direction={regionalSort.direction}
-                    onClick={() =>
-                      setRegionalSort((current) => ({
-                        key: "score_timeliness",
-                        direction: current.key === "score_timeliness" && current.direction === "desc" ? "asc" : "desc",
-                      }))
-                    }
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortHeader
-                    label="Skor Engagement"
-                    active={regionalSort.key === "score_engagement"}
-                    direction={regionalSort.direction}
-                    onClick={() =>
-                      setRegionalSort((current) => ({
-                        key: "score_engagement",
-                        direction: current.key === "score_engagement" && current.direction === "desc" ? "asc" : "desc",
-                      }))
-                    }
-                  />
-                </TableHead>
-                <TableHead>
-                  <SortHeader
-                    label="Skor Final"
-                    active={regionalSort.key === "score_final"}
-                    direction={regionalSort.direction}
-                    onClick={() =>
-                      setRegionalSort((current) => ({
-                        key: "score_final",
-                        direction: current.key === "score_final" && current.direction === "desc" ? "asc" : "desc",
-                      }))
-                    }
-                  />
-                </TableHead>
-                <TableHead>Trend</TableHead>
-                <TableHead>Total Posting</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pagedRegionalRows.map((row) => (
-                <TableRow key={row.wilayah_id}>
-                  <TableCell>{medalLabel(row.rank)}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{row.wilayah_nama}</p>
-                      <p className="text-muted-foreground text-xs">{row.wilayah_kode}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <ScoreProgress value={row.score_timeliness} />
-                  </TableCell>
-                  <TableCell>
-                    <ScoreProgress value={row.score_engagement} />
-                  </TableCell>
-                  <TableCell>
-                    <span className={`font-semibold ${formatScoreColor(row.score_final)}`}>
-                      {formatPercent(row.score_final)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <TrendBadge direction={row.trend.direction} delta={row.trend.delta} />
-                  </TableCell>
-                  <TableCell>{row.total_posting.label}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="flex items-center justify-between">
-            <p className="text-muted-foreground text-sm">
-              Halaman {regionalPage} dari {Math.max(1, Math.ceil(sortedRegionalRows.length / 10))}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={regionalPage === 1}
-                onClick={() => setRegionalPage((value) => value - 1)}
-              >
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={regionalPage >= Math.ceil(sortedRegionalRows.length / 10)}
-                onClick={() => setRegionalPage((value) => value + 1)}
-              >
-                Berikutnya
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card className="border-foreground/10 shadow-sm">
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
@@ -605,6 +464,138 @@ export function SuperadminAnalyticsReportView() {
         </CardContent>
       </Card>
 
+      <Card className="border-foreground/10 shadow-sm">
+        <CardHeader>
+          <CardTitle>Regional Leaderboard</CardTitle>
+          <CardDescription>Ranking semua regional berdasarkan skor performa pada periode terpilih.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <SortHeader
+                    label="Rank"
+                    active={regionalSort.key === "rank"}
+                    direction={regionalSort.direction}
+                    onClick={() =>
+                      setRegionalSort((current) => ({
+                        key: "rank",
+                        direction: current.key === "rank" && current.direction === "desc" ? "asc" : "desc",
+                      }))
+                    }
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Regional"
+                    active={regionalSort.key === "wilayah_nama"}
+                    direction={regionalSort.direction}
+                    onClick={() =>
+                      setRegionalSort((current) => ({
+                        key: "wilayah_nama",
+                        direction: current.key === "wilayah_nama" && current.direction === "desc" ? "asc" : "desc",
+                      }))
+                    }
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Skor Waktu"
+                    active={regionalSort.key === "score_timeliness"}
+                    direction={regionalSort.direction}
+                    onClick={() =>
+                      setRegionalSort((current) => ({
+                        key: "score_timeliness",
+                        direction: current.key === "score_timeliness" && current.direction === "desc" ? "asc" : "desc",
+                      }))
+                    }
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Skor Engagement"
+                    active={regionalSort.key === "score_engagement"}
+                    direction={regionalSort.direction}
+                    onClick={() =>
+                      setRegionalSort((current) => ({
+                        key: "score_engagement",
+                        direction: current.key === "score_engagement" && current.direction === "desc" ? "asc" : "desc",
+                      }))
+                    }
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Skor Final"
+                    active={regionalSort.key === "score_final"}
+                    direction={regionalSort.direction}
+                    onClick={() =>
+                      setRegionalSort((current) => ({
+                        key: "score_final",
+                        direction: current.key === "score_final" && current.direction === "desc" ? "asc" : "desc",
+                      }))
+                    }
+                  />
+                </TableHead>
+                <TableHead>Trend</TableHead>
+                <TableHead>Total Posting</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagedRegionalRows.map((row) => (
+                <TableRow key={row.wilayah_id}>
+                  <TableCell>{medalLabel(row.rank)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{row.wilayah_nama}</p>
+                      <p className="text-muted-foreground text-xs">{row.wilayah_kode}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <ScoreProgress value={row.score_timeliness} />
+                  </TableCell>
+                  <TableCell>
+                    <ScoreProgress value={row.score_engagement} />
+                  </TableCell>
+                  <TableCell>
+                    <span className={`font-semibold ${formatScoreColor(row.score_final)}`}>
+                      {formatPercent(row.score_final)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <TrendBadge direction={row.trend.direction} delta={row.trend.delta} />
+                  </TableCell>
+                  <TableCell>{row.total_posting.label}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground text-sm">
+              Halaman {regionalPage} dari {Math.max(1, Math.ceil(sortedRegionalRows.length / 10))}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={regionalPage === 1}
+                onClick={() => setRegionalPage((value) => value - 1)}
+              >
+                Sebelumnya
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={regionalPage >= Math.ceil(sortedRegionalRows.length / 10)}
+                onClick={() => setRegionalPage((value) => value + 1)}
+              >
+                Berikutnya
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

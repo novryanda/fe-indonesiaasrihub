@@ -45,7 +45,6 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
   ],
   qcc_wcc: [
     "/dashboard/regional",
-    "/dashboard/validasi-posting",
     "/dashboard/review-konten",
     "/konten/bank-konten",
     "/tim/pic-sosmed",
@@ -62,7 +61,6 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
   pic_sosmed: [
     "/dashboard/laporan-monitoring-tugas",
     "/dashboard/postingan-saya",
-    "/aksi/submit-posting",
     "/konten/bank-konten",
     "/konten/bank-materi",
     "/akun/akun-sosmed",

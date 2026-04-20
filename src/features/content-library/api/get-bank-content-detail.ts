@@ -50,6 +50,27 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
         } | null;
       };
     }>;
+    current_posting_task: {
+      id: string;
+      status: string;
+      submitted_at: string | null;
+      evidence_drive_link: string | null;
+      platform_targets: BankContentDetail["penugasan_posting"][number]["platform_targets"];
+      pic: {
+        id: string;
+        name: string;
+        wilayah_id: string | null;
+        wilayah: {
+          id: string;
+          nama: string;
+        } | null;
+      };
+      links: BankContentDetail["current_posting_task"] extends infer T
+        ? T extends { links: infer L }
+          ? L
+          : never
+        : never;
+    } | null;
     penggunaan_posting: Array<{
       id: string;
       posted_at: string;
@@ -118,6 +139,30 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
           regional: assignment.pic.wilayah?.nama ?? null,
         },
       })),
+      current_posting_task: response.data.current_posting_task
+        ? {
+            id: response.data.current_posting_task.id,
+            status: response.data.current_posting_task.status,
+            submitted_at: response.data.current_posting_task.submitted_at,
+            evidence_drive_link: response.data.current_posting_task.evidence_drive_link,
+            platform_targets: response.data.current_posting_task.platform_targets,
+            pic: {
+              id: response.data.current_posting_task.pic.id,
+              name: response.data.current_posting_task.pic.name,
+              wilayah_id: response.data.current_posting_task.pic.wilayah_id,
+              regional: response.data.current_posting_task.pic.wilayah?.nama ?? null,
+            },
+            links: response.data.current_posting_task.links.map((link) => ({
+              id: link.id,
+              platform: link.platform,
+              post_url: link.post_url,
+              posted_at: link.posted_at,
+              catatan_officer: link.catatan_officer,
+              validation_status: link.validation_status,
+              social_account: link.social_account,
+            })),
+          }
+        : null,
       penggunaan_posting: response.data.penggunaan_posting.map((usage) => ({
         id: usage.id,
         posted_at: usage.posted_at,

@@ -9,6 +9,7 @@ import { CalendarRange, TrendingUp } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Area, AreaChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
+import type { UserRole } from "@/app/(auth)/auth/types/auth.types";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,12 +26,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { getMonitoringTugasData } from "@/features/monitoring-tugas/api/monitoring-tugas-api";
-import type {
-  MonitoringPlatform,
-  MonitoringTugasData,
-} from "@/features/monitoring-tugas/types/monitoring-tugas.type";
+import type { MonitoringPlatform, MonitoringTugasData } from "@/features/monitoring-tugas/types/monitoring-tugas.type";
 import { ESELON_2_OPTIONS } from "@/features/social-accounts/constants/social-account-eselon";
-import type { UserRole } from "@/app/(auth)/auth/types/auth.types";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
@@ -255,11 +252,12 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
         trendDescription: "Perubahan skor engagement harian dari posting tugas PIC pada periode",
         trendEmpty: "Belum ada data tren engagement pada periode ini.",
         detailTitle: "Engagement Details",
-        detailDescription: "Detail performa harian untuk likes, views, dan comments pada URL posting tugas yang masuk filter.",
+        detailDescription:
+          "Detail performa harian untuk likes, views, dan comments pada URL posting tugas yang masuk filter.",
         detailEmpty: "Belum ada detail engagement pada periode ini.",
         topPostsTitle: "Top Posts 10",
         topPostsDescription:
-          "URL posting tugas PIC terbaik pada periode terpilih dengan status validasi sebagai marker operasional.",
+          "URL posting tugas PIC terbaik pada periode terpilih berdasarkan link posting yang sudah tercatat.",
         topPostsEmpty: "Belum ada URL posting tugas pada periode ini.",
         topPostsAction: "Detail Tugas",
         topCommentsTitle: "Top Comment 10",
@@ -268,7 +266,8 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
         topCommentsEmpty: "Belum ada komentar scrape pada periode ini.",
         topCommentsAction: "Detail Tugas",
         accountsTitle: "Akun Top 10",
-        accountsDescription: "Urutan akun berdasarkan performa URL tugas PIC yang terhubung ke akun sosial pada filter aktif.",
+        accountsDescription:
+          "Urutan akun berdasarkan performa URL tugas PIC yang terhubung ke akun sosial pada filter aktif.",
         accountsEmpty: "Belum ada akun yang masuk ranking pada periode ini.",
       };
 
@@ -396,7 +395,7 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
             <span>
               Periode {data.selected_period.label}
               {data.filters.platform ? ` • ${formatPlatformLabel(data.filters.platform)}` : " • Semua platform"}
-              {!isPicView ? data.filters.eselon_2 ? ` • ${data.filters.eselon_2}` : " • Semua unit kerja" : ""}
+              {!isPicView ? (data.filters.eselon_2 ? ` • ${data.filters.eselon_2}` : " • Semua unit kerja") : ""}
             </span>
           </div>
           <div>
@@ -721,7 +720,9 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
                       )
                     ) : post.detail_post_id && post.social_account_id ? (
                       <Button asChild className="flex-1">
-                        <Link href={`/analitik/monitoring-sosmed/${post.social_account_id}/postingan/${post.detail_post_id}`}>
+                        <Link
+                          href={`/analitik/monitoring-sosmed/${post.social_account_id}/postingan/${post.detail_post_id}`}
+                        >
                           Detail Post
                         </Link>
                       </Button>

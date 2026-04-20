@@ -53,7 +53,6 @@ export interface NavGroup {
 }
 
 const CONTENT_CREATOR_ROLES: UserRole[] = ["wcc"];
-const SOCIAL_PIC_ROLES: UserRole[] = ["pic_sosmed"];
 const FIELD_TEAM_ROLES: UserRole[] = ["wcc", "pic_sosmed"];
 
 export const sidebarItems: NavGroup[] = [
@@ -78,12 +77,6 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/approval",
         icon: CheckCircle,
         roles: ["superadmin", "supervisi"],
-      },
-      {
-        title: "Validasi Postingan",
-        url: "/dashboard/validasi-posting",
-        icon: CheckCircle,
-        roles: ["qcc_wcc"],
       },
       {
         title: "Konten Saya",
@@ -194,12 +187,6 @@ export const sidebarItems: NavGroup[] = [
         url: "/aksi/submit-konten",
         icon: SquarePlus,
         roles: CONTENT_CREATOR_ROLES,
-      },
-      {
-        title: "Submit Postingan Baru",
-        url: "/aksi/submit-posting",
-        icon: MessageSquare,
-        roles: SOCIAL_PIC_ROLES,
       },
     ],
   },

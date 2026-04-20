@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { ArrowLeft, ExternalLink, Save } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +55,15 @@ function parseNullableInt(value: string): number | null {
   return Number.parseInt(trimmed, 10);
 }
 
-function getStatsInfo(stats?: PostingProofDetail["links"][number]["stats"]) {
+function getStatsInfo(link: PostingProofDetail["links"][number]) {
+  if (link.validation_status === "ditolak") {
+    return {
+      label: "Link ditolak otomatis",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+    };
+  }
+
+  const stats = link.stats;
   const hasAnyValue = [stats?.views, stats?.likes, stats?.comments, stats?.reposts, stats?.share_posts].some(
     (value) => value !== null && value !== undefined,
   );
@@ -179,7 +187,8 @@ export function PostingProofStatsDetailView() {
               </Badge>
               <h1 className="font-semibold text-3xl tracking-tight">{item?.bank_content_judul ?? "Detail Posting"}</h1>
               <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                PIC Sosmed dapat mengisi statistik performa per link posting yang sudah dibuat dari akun terdelegasi.
+                Link akan diverifikasi otomatis via actor posting metrics. Statistik performa di bawah ini diisi dari
+                hasil scrape dan tetap bisa di-override manual bila dibutuhkan.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -189,14 +198,6 @@ export function PostingProofStatsDetailView() {
                   Kembali
                 </Link>
               </Button>
-              {item?.evidence_drive_link ? (
-                <Button asChild variant="outline">
-                  <a href={item.evidence_drive_link} target="_blank" rel="noreferrer">
-                    <ExternalLink className="mr-2 size-4" />
-                    Buka Drive Lampiran
-                  </a>
-                </Button>
-              ) : null}
               <Button onClick={() => void handleSave()} disabled={isSaving || !item}>
                 {isSaving ? <Spinner className="mr-2" /> : <Save className="mr-2 size-4" />}
                 Simpan Statistik
@@ -240,26 +241,6 @@ export function PostingProofStatsDetailView() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="py-6">
-              <div className="rounded-2xl border bg-muted/20 p-4 text-sm">
-                <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Link Arsip Drive Posting</p>
-                {item.evidence_drive_link ? (
-                  <a
-                    href={item.evidence_drive_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block break-all text-emerald-700 underline-offset-4 hover:underline"
-                  >
-                    {item.evidence_drive_link}
-                  </a>
-                ) : (
-                  <p className="mt-2 text-muted-foreground">Belum ada link arsip drive yang dilampirkan.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {item.links.map((link) => (
             <Card key={link.id} className="border-foreground/10">
               <CardContent className="space-y-5 py-6">
@@ -288,23 +269,32 @@ export function PostingProofStatsDetailView() {
                     <p className="mt-2 font-medium">{formatDateTime(link.posted_at)}</p>
                   </div>
                   <div className="rounded-2xl border bg-muted/20 p-4">
-                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Validator</p>
-                    <p className="mt-2 font-medium">{link.validated_by ?? "-"}</p>
+                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Dicatat Oleh</p>
+                    <p className="mt-2 font-medium">{link.validated_by ?? "Sistem otomatis"}</p>
                   </div>
                   <div className="rounded-2xl border bg-muted/20 p-4">
-                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Validated At</p>
+                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Tercatat Pada</p>
                     <p className="mt-2 font-medium">{link.validated_at ? formatDateTime(link.validated_at) : "-"}</p>
                   </div>
                 </div>
 
-                <Badge variant="outline" className={getStatsInfo(link.stats).className}>
-                  {getStatsInfo(link.stats).label}
+                <Badge variant="outline" className={getStatsInfo(link).className}>
+                  {getStatsInfo(link).label}
                 </Badge>
+
+                {link.rejection_note ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-700 text-sm">
+                    {link.rejection_note}
+                  </div>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                   <div className="grid gap-2">
-                    <label className="text-sm font-medium">Views</label>
+                    <label htmlFor={`stats-${link.id}-views`} className="font-medium text-sm">
+                      Views
+                    </label>
                     <Input
+                      id={`stats-${link.id}-views`}
                       type="number"
                       min={0}
                       value={drafts[link.id]?.views ?? ""}
@@ -313,8 +303,11 @@ export function PostingProofStatsDetailView() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <label className="text-sm font-medium">Likes</label>
+                    <label htmlFor={`stats-${link.id}-likes`} className="font-medium text-sm">
+                      Likes
+                    </label>
                     <Input
+                      id={`stats-${link.id}-likes`}
                       type="number"
                       min={0}
                       value={drafts[link.id]?.likes ?? ""}
@@ -323,8 +316,11 @@ export function PostingProofStatsDetailView() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <label className="text-sm font-medium">Comments</label>
+                    <label htmlFor={`stats-${link.id}-comments`} className="font-medium text-sm">
+                      Comments
+                    </label>
                     <Input
+                      id={`stats-${link.id}-comments`}
                       type="number"
                       min={0}
                       value={drafts[link.id]?.comments ?? ""}
@@ -333,8 +329,11 @@ export function PostingProofStatsDetailView() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <label className="text-sm font-medium">Reposts</label>
+                    <label htmlFor={`stats-${link.id}-reposts`} className="font-medium text-sm">
+                      Reposts
+                    </label>
                     <Input
+                      id={`stats-${link.id}-reposts`}
                       type="number"
                       min={0}
                       value={drafts[link.id]?.reposts ?? ""}
@@ -343,8 +342,11 @@ export function PostingProofStatsDetailView() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <label className="text-sm font-medium">Share Posts</label>
+                    <label htmlFor={`stats-${link.id}-share-posts`} className="font-medium text-sm">
+                      Share Posts
+                    </label>
                     <Input
+                      id={`stats-${link.id}-share-posts`}
                       type="number"
                       min={0}
                       value={drafts[link.id]?.share_posts ?? ""}

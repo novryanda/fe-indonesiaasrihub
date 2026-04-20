@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -22,10 +22,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
+import type { ContentPlatform } from "@/features/content-shared/types/content.type";
 import {
   formatDate,
   formatDateTime,
@@ -35,6 +38,10 @@ import {
   formatTopikLabel,
   getPlatformAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
+import { submitPostingLinksFromBankContent } from "@/features/posting-proofs/api/posting-proofs-api";
+import type { SubmitPostingLinkPayloadItem } from "@/features/posting-proofs/types/posting-proof.type";
+import { listSocialAccounts } from "@/features/social-accounts/api/social-accounts-api";
+import type { SocialAccountItem } from "@/features/social-accounts/types/social-account.type";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
@@ -56,6 +63,12 @@ type UsageTableRow = {
   proof_sender_name: string | null;
   validation_status: string | null;
   post_url: string | null;
+};
+
+type DraftLinkRow = {
+  social_account_id: string;
+  post_url: string;
+  catatan_officer: string;
 };
 
 function StatsCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
@@ -116,9 +129,26 @@ export function BankContentDetailView() {
   const [detail, setDetail] = useState<BankContentDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [picAccounts, setPicAccounts] = useState<SocialAccountItem[]>([]);
+  const [isPicAccountsLoading, setPicAccountsLoading] = useState(false);
+  const [isSubmittingPosting, setSubmittingPosting] = useState(false);
+  const [picDrafts, setPicDrafts] = useState<Record<ContentPlatform, DraftLinkRow>>(
+    {} as Record<ContentPlatform, DraftLinkRow>,
+  );
   const [usageFilter, setUsageFilter] = useState<UsageFilter>("all");
   const [usagePage, setUsagePage] = useState(1);
   const canViewUsage = role === "superadmin" || role === "supervisi";
+  const currentPostingTask = detail?.current_posting_task ?? null;
+  const canSubmitPostingDirectly = role === "pic_sosmed" && Boolean(currentPostingTask);
+  const accountOptionsByPlatform = useMemo(
+    () =>
+      picAccounts.reduce<Partial<Record<ContentPlatform, SocialAccountItem[]>>>((accumulator, account) => {
+        accumulator[account.platform] = [...(accumulator[account.platform] ?? []), account];
+        return accumulator;
+      }, {}),
+    [picAccounts],
+  );
+  const hasSubmittedPosting = Boolean(currentPostingTask?.submitted_at) || Boolean(currentPostingTask?.links.length);
 
   const handleCopy = async (value: string, label: string) => {
     const normalizedValue = value.trim();
@@ -134,46 +164,132 @@ export function BankContentDetailView() {
     }
   };
 
-  useEffect(() => {
+  const loadDetail = useCallback(async () => {
     if (!contentId) {
       setLoading(false);
       setError("Konten bank tidak ditemukan.");
       return;
     }
 
-    let active = true;
+    setLoading(true);
+    setError(null);
 
-    const loadDetail = async () => {
-      setLoading(true);
-      setError(null);
+    try {
+      const response = await getBankContentDetail(contentId, accessToken);
+      setDetail(response.data);
+    } catch (errorValue) {
+      setError(errorValue instanceof Error ? errorValue.message : "Gagal memuat detail bank konten.");
+      setDetail(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, contentId]);
+
+  useEffect(() => {
+    void loadDetail();
+  }, [loadDetail]);
+
+  useEffect(() => {
+    if (!isAuthorized || role !== "pic_sosmed") {
+      setPicAccounts([]);
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+
+    const loadPicAccounts = async () => {
+      setPicAccountsLoading(true);
 
       try {
-        const response = await getBankContentDetail(contentId, accessToken);
+        const response = await listSocialAccounts(
+          {
+            verification_status: "verified",
+            delegation_status: "sudah_didelegasikan",
+            page: 1,
+            limit: 100,
+          },
+          controller.signal,
+        );
+
         if (!active) {
           return;
         }
 
-        setDetail(response.data);
+        setPicAccounts(response.data);
       } catch (errorValue) {
         if (!active) {
           return;
         }
 
-        setError(errorValue instanceof Error ? errorValue.message : "Gagal memuat detail bank konten.");
-        setDetail(null);
+        toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat akun delegasi PIC");
       } finally {
         if (active) {
-          setLoading(false);
+          setPicAccountsLoading(false);
         }
       }
     };
 
-    void loadDetail();
+    void loadPicAccounts();
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [accessToken, contentId]);
+  }, [isAuthorized, role]);
+
+  useEffect(() => {
+    if (!currentPostingTask) {
+      setPicDrafts({} as Record<ContentPlatform, DraftLinkRow>);
+      return;
+    }
+
+    setPicDrafts(
+      currentPostingTask.platform_targets.reduce<Record<ContentPlatform, DraftLinkRow>>(
+        (accumulator, platform) => {
+          const existingLink = currentPostingTask.links.find((link) => link.platform === platform);
+          accumulator[platform] = {
+            social_account_id: existingLink?.social_account?.id ?? "",
+            post_url: existingLink?.post_url ?? "",
+            catatan_officer: existingLink?.catatan_officer ?? "",
+          };
+          return accumulator;
+        },
+        {} as Record<ContentPlatform, DraftLinkRow>,
+      ),
+    );
+  }, [currentPostingTask]);
+
+  const handleSubmitPosting = useCallback(async () => {
+    if (!currentPostingTask) {
+      return;
+    }
+
+    const payload = currentPostingTask.platform_targets.map(
+      (platform): SubmitPostingLinkPayloadItem => ({
+        platform,
+        social_account_id: picDrafts[platform]?.social_account_id ?? "",
+        post_url: picDrafts[platform]?.post_url ?? "",
+        catatan_officer: picDrafts[platform]?.catatan_officer?.trim() || undefined,
+      }),
+    );
+
+    if (payload.some((item) => !item.social_account_id || !item.post_url)) {
+      toast.error("Semua platform target harus diisi akun dan URL posting.");
+      return;
+    }
+
+    setSubmittingPosting(true);
+    try {
+      const response = await submitPostingLinksFromBankContent(contentId, { links: payload });
+      toast.success(response.data.message);
+      await loadDetail();
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal menyimpan link posting");
+    } finally {
+      setSubmittingPosting(false);
+    }
+  }, [contentId, currentPostingTask, loadDetail, picDrafts]);
 
   if (isPending || isLoading) {
     return (
@@ -459,6 +575,135 @@ export function BankContentDetailView() {
         </aside>
       </div>
 
+      {role === "pic_sosmed" ? (
+        <Card className="border-foreground/10">
+          <CardHeader>
+            <CardTitle className="text-xl">Submit Link Posting</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!currentPostingTask ? (
+              <div className="rounded-2xl border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
+                Konten ini belum ditugaskan ke Anda, jadi belum ada form submit link posting.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border bg-muted/20 p-4">
+                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Status Task</p>
+                    <p className="mt-2 font-medium">{currentPostingTask.status.replaceAll("_", " ")}</p>
+                  </div>
+                  <div className="rounded-2xl border bg-muted/20 p-4">
+                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Submit Terakhir</p>
+                    <p className="mt-2 font-medium">
+                      {currentPostingTask.submitted_at ? formatDateTime(currentPostingTask.submitted_at) : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border bg-muted/20 p-4">
+                    <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Platform Target</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {currentPostingTask.platform_targets.map((platform) => (
+                        <Badge
+                          key={`current-task-${platform}`}
+                          variant="outline"
+                          className={cn("rounded-full px-3 py-1", getPlatformAccentClassName(platform))}
+                        >
+                          {formatPlatformLabel(platform)}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {currentPostingTask.platform_targets.map((platform) => {
+                    const draft = picDrafts[platform] ?? {
+                      social_account_id: "",
+                      post_url: "",
+                      catatan_officer: "",
+                    };
+                    const platformAccounts = accountOptionsByPlatform[platform] ?? [];
+
+                    return (
+                      <div key={platform} className="grid gap-3 rounded-2xl border p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="font-medium text-sm">{formatPlatformLabel(platform)}</p>
+                          {isPicAccountsLoading ? (
+                            <span className="text-muted-foreground text-xs">Memuat akun delegasi...</span>
+                          ) : platformAccounts.length === 0 ? (
+                            <span className="text-amber-700 text-xs">
+                              Belum ada akun delegasi verified untuk platform ini.
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label>Akun Sosmed</Label>
+                          <Select
+                            value={draft.social_account_id}
+                            onValueChange={(value) =>
+                              setPicDrafts((previous) => ({
+                                ...previous,
+                                [platform]: {
+                                  ...(previous[platform] ?? draft),
+                                  social_account_id: value,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih akun" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {platformAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.nama_profil} • {account.username}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label>URL Posting</Label>
+                          <Input
+                            value={draft.post_url}
+                            placeholder="https://www.instagram.com/p/..."
+                            onChange={(event) =>
+                              setPicDrafts((previous) => ({
+                                ...previous,
+                                [platform]: {
+                                  ...(previous[platform] ?? draft),
+                                  post_url: event.target.value,
+                                },
+                              }))
+                            }
+                          />
+                          <p className="text-muted-foreground text-xs">
+                            Setelah disubmit, link akan diverifikasi otomatis via Apify dan waktu posting akan diisi
+                            dari hasil scrape actor posting metrics.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    disabled={isSubmittingPosting || isPicAccountsLoading || !canSubmitPostingDirectly}
+                    onClick={() => void handleSubmitPosting()}
+                  >
+                    {isSubmittingPosting ? <Spinner className="mr-2" /> : <Send className="mr-2 size-4" />}
+                    {hasSubmittedPosting ? "Perbarui Link Posting" : "Kirim Link Posting"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {canViewUsage ? (
         <Card className="border-foreground/10">
           <CardHeader className="gap-4">
@@ -467,7 +712,7 @@ export function BankContentDetailView() {
                 <CardTitle className="text-xl">Posting yang Memakai Konten Ini</CardTitle>
                 <CardDescription>
                   Ringkasan PIC yang sudah dan belum melakukan posting untuk konten ini, berdasarkan task publikasi dan
-                  hasil validasi bukti posting.
+                  link posting yang sudah tercatat.
                 </CardDescription>
               </div>
 

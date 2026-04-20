@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { ChartColumnBig, ExternalLink, Search } from "lucide-react";
+import { ChartColumnBig, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +117,7 @@ export function MyPostingProofsView() {
           <div className="space-y-2">
             <h1 className="font-semibold text-3xl tracking-tight">Postingan Saya</h1>
             <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-              Daftar task posting dan bukti yang pernah Anda kirim, lengkap dengan status validasi dan freshness
+              Daftar task posting dan link yang pernah Anda kirim, lengkap dengan status pencatatan dan freshness
               statistik otomatis.
             </p>
           </div>
@@ -224,14 +224,6 @@ export function MyPostingProofsView() {
                       <TableCell className="align-top">{formatDateTime(item.updated_at)}</TableCell>
                       <TableCell className="align-top">
                         <div className="flex justify-end gap-2">
-                          {item.evidence_drive_link ? (
-                            <Button asChild variant="outline" size="sm">
-                              <a href={item.evidence_drive_link} target="_blank" rel="noreferrer">
-                                <ExternalLink className="mr-2 size-4" />
-                                Drive
-                              </a>
-                            </Button>
-                          ) : null}
                           <Button asChild size="sm">
                             <Link href={`/dashboard/postingan-saya/${item.id}`}>
                               <ChartColumnBig className="mr-2 size-4" />
