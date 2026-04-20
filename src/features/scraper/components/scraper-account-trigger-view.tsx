@@ -267,22 +267,22 @@ export function ScraperAccountTriggerView() {
         <CardHeader>
           <CardTitle>Daftar Akun Sosmed</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
               <Spinner />
               <span>Memuat akun sosmed...</span>
             </div>
           ) : (
-            <Table className="table-fixed">
+            <Table className="min-w-[1160px] table-auto">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[42%] whitespace-normal">Akun</TableHead>
-                  <TableHead className="w-[12%]">Wilayah</TableHead>
-                  <TableHead className="w-[14%]">PIC</TableHead>
-                  <TableHead className="w-[14%]">Status</TableHead>
-                  <TableHead className="w-[10%] whitespace-normal">Stat Terakhir</TableHead>
-                  <TableHead className="w-[8%] text-right">Aksi</TableHead>
+                  <TableHead className="min-w-[22rem] px-3 py-3 whitespace-normal">Akun</TableHead>
+                  <TableHead className="min-w-[10rem] px-3 py-3">Wilayah</TableHead>
+                  <TableHead className="min-w-[11rem] px-3 py-3">PIC</TableHead>
+                  <TableHead className="min-w-[12rem] px-3 py-3">Status</TableHead>
+                  <TableHead className="min-w-[10rem] px-3 py-3 whitespace-normal">Stat Terakhir</TableHead>
+                  <TableHead className="min-w-[18rem] px-3 py-3 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,7 +295,7 @@ export function ScraperAccountTriggerView() {
                 ) : (
                   items.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="whitespace-normal align-top">
+                      <TableCell className="px-3 py-4 whitespace-normal align-top">
                         <div className="max-w-[34rem] space-y-1">
                           <div className="flex items-center gap-2">
                             <PlatformIcon platform={item.platform} />
@@ -305,7 +305,7 @@ export function ScraperAccountTriggerView() {
                           <p className="text-muted-foreground text-xs">{formatPlatformLabel(item.platform)}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-normal align-top">
+                      <TableCell className="px-3 py-4 whitespace-normal align-top">
                         <div className="space-y-1">
                           <p className="font-medium">{item.wilayah_name}</p>
                           <p className="text-muted-foreground text-xs">
@@ -313,7 +313,7 @@ export function ScraperAccountTriggerView() {
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-normal align-top">
+                      <TableCell className="px-3 py-4 whitespace-normal align-top">
                         <div className="space-y-1">
                           <p className="font-medium">{item.officer_name ?? "-"}</p>
                           <p className="text-muted-foreground text-xs">
@@ -321,8 +321,8 @@ export function ScraperAccountTriggerView() {
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex max-w-72 flex-wrap gap-2">
+                      <TableCell className="px-3 py-4 align-top">
+                        <div className="flex max-w-[14rem] flex-col items-start gap-1.5">
                           <Badge
                             variant="outline"
                             className={cn(
@@ -340,12 +340,18 @@ export function ScraperAccountTriggerView() {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-normal align-top">
-                        {item.last_stat_update ? formatDateTime(item.last_stat_update) : "Belum pernah scrape"}
+                      <TableCell className="px-3 py-4 whitespace-normal align-top">
+                        <p className="text-sm leading-6">
+                          {item.last_stat_update ? (
+                            <span className="font-medium text-foreground">{formatDateTime(item.last_stat_update)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">Belum pernah scrape</span>
+                          )}
+                        </p>
                       </TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex justify-end gap-2">
-                          <Button asChild variant="outline" size="sm">
+                      <TableCell className="px-3 py-4 align-top">
+                        <div className="grid min-w-[17rem] gap-2 sm:grid-cols-2">
+                          <Button asChild variant="outline" size="sm" className="justify-center">
                             <a href={item.profile_url} target="_blank" rel="noreferrer">
                               <ExternalLink className="mr-2 size-4" />
                               Profil
@@ -354,6 +360,7 @@ export function ScraperAccountTriggerView() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="justify-center"
                             onClick={() => void handleTriggerProfileScrape(item)}
                             disabled={runningAction !== null}
                           >
@@ -366,6 +373,7 @@ export function ScraperAccountTriggerView() {
                           </Button>
                           <Button
                             size="sm"
+                            className="justify-center sm:col-span-2"
                             onClick={() => void handleTriggerFullScrape(item)}
                             disabled={runningAction !== null}
                           >
