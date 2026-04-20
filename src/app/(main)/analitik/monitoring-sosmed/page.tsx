@@ -3,3 +3,5 @@ import { MonitoringSosmedDashboard } from "@/features/monitoring-sosmed/componen
 export default function Page() {
   return <MonitoringSosmedDashboard />;
 }
+
+
