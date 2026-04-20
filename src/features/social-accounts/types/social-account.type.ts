@@ -40,6 +40,7 @@ export interface SocialAccountItem {
   is_verified: boolean;
   verification_status: SocialAccountVerificationStatus;
   verification_note: string | null;
+  auto_blast_enabled: boolean;
   screenshot_url: string | null;
   last_stat_update: string | null;
   created_at: string;
@@ -108,6 +109,10 @@ export interface UpsertSocialAccountStatPayload {
   followers: number;
   posting_count: number;
   total_reach: number;
+}
+
+export interface ToggleSocialAccountAutoBlastPayload {
+  enabled: boolean;
 }
 
 export interface SocialPicOption {
@@ -241,6 +246,7 @@ export interface SocialAccountDetail {
   delegated_at: string | null;
   verification_status: SocialAccountVerificationStatus;
   delegation_status: SocialAccountDelegationStatus;
+  auto_blast_enabled: boolean;
   username: string;
   platform: ContentPlatform;
   profile_url: string;

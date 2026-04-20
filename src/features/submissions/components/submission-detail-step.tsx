@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { HashtagInput } from "@/features/content-shared/components/hashtag-input";
-import { DURATION_OPTIONS, URGENCY_OPTIONS } from "@/features/content-shared/constants/content-options";
+import { DURATION_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { cn } from "@/lib/utils";
 import { listWilayahOptions, type WilayahOption } from "@/shared/api/wilayah";
 
@@ -86,33 +86,6 @@ export function SubmissionDetailStep({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <Label>Tingkat Urgensi</Label>
-        <div className="flex flex-wrap gap-3">
-          {URGENCY_OPTIONS.map((option) => {
-            const selected = draft.urgensi === option.value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                disabled={disableBriefFields}
-                className={cn(
-                  "rounded-2xl border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60",
-                  selected
-                    ? (option.accentClassName ?? "border-primary bg-primary/10 text-primary")
-                    : "border-border bg-background hover:border-primary/30 hover:bg-primary/5",
-                )}
-                onClick={() => onFieldChange("urgensi", option.value)}
-              >
-                <p className="font-medium text-sm">{option.label}</p>
-                <p className="mt-1 text-xs opacity-80">{option.hint}</p>
-              </button>
-            );
-          })}
         </div>
       </div>
 

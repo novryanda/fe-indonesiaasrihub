@@ -5,7 +5,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Spinner as HeroSpinner } from "@heroui/react";
-import { Check, ChevronsUpDown, ExternalLink, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  ExternalLink,
+  Pencil,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -21,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Dialog,
@@ -35,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +61,7 @@ import {
   createSocialAccount,
   deleteSocialAccount,
   listSocialAccounts,
+  toggleSocialAccountAutoBlast,
   updateSocialAccount,
 } from "../api/social-accounts-api";
 import {
@@ -62,7 +75,6 @@ import type {
   SocialAccountDelegationStatus,
   SocialAccountItem,
   SocialAccountListMeta,
-  SocialAccountVerificationStatus,
   UpdateSocialAccountPayload,
 } from "../types/social-account.type";
 
@@ -72,15 +84,6 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: "bisnis", label: "Bisnis" },
   { value: "personal", label: "Personal" },
 ] as const;
-const VERIFICATION_FILTER_OPTIONS: Array<{
-  value: "all" | SocialAccountVerificationStatus;
-  label: string;
-}> = [
-  { value: "all", label: "Semua Verifikasi" },
-  { value: "verified", label: "Verified" },
-  { value: "pending", label: "Pending" },
-  { value: "rejected", label: "Rejected" },
-];
 const DELEGATION_FILTER_OPTIONS: Array<{
   value: "all" | SocialAccountDelegationStatus;
   label: string;
@@ -98,6 +101,40 @@ const compactNumberFormatter = new Intl.NumberFormat("id-ID", {
 });
 const PAGE_SIZE = 10;
 const initialMeta: SocialAccountListMeta = { page: 1, limit: PAGE_SIZE, total: 0 };
+type OptionalTableColumnId =
+  | "platform"
+  | "wilayah"
+  | "pic_sosmed"
+  | "followers"
+  | "status"
+  | "delegasi"
+  | "wajib_blast"
+  | "update";
+
+const OPTIONAL_TABLE_COLUMNS: Array<{
+  id: OptionalTableColumnId;
+  label: string;
+}> = [
+  { id: "platform", label: "Platform" },
+  { id: "wilayah", label: "Wilayah" },
+  { id: "pic_sosmed", label: "PIC Sosmed" },
+  { id: "followers", label: "Followers" },
+  { id: "status", label: "Status" },
+  { id: "delegasi", label: "Delegasi" },
+  { id: "wajib_blast", label: "Wajib Blast" },
+  { id: "update", label: "Update" },
+];
+
+const INITIAL_VISIBLE_COLUMNS: Record<OptionalTableColumnId, boolean> = {
+  platform: true,
+  wilayah: true,
+  pic_sosmed: true,
+  followers: false,
+  status: true,
+  delegasi: false,
+  wajib_blast: false,
+  update: false,
+};
 
 function SearchableSelect({
   label,
@@ -223,14 +260,17 @@ export function SocialAccountDirectoryView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingAutoBlastIds, setPendingAutoBlastIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<SocialAccountItem | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<SocialAccountItem | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState<"all" | SocialAccountItem["platform"]>("all");
-  const [verificationFilter, setVerificationFilter] = useState<"all" | SocialAccountVerificationStatus>("all");
+  const [isPlatformFilterOpen, setIsPlatformFilterOpen] = useState(false);
   const [delegationFilter, setDelegationFilter] = useState<"all" | SocialAccountDelegationStatus>("all");
+  const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
+  const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const tableState = useMemo(() => ({ items, meta }), [items, meta]);
   const { displayData, isInitialLoading, isRefreshing } = useSmoothTableData(tableState, isLoading);
@@ -364,6 +404,33 @@ export function SocialAccountDirectoryView() {
     }
   };
 
+  const handleToggleAutoBlast = async (item: SocialAccountItem, enabled: boolean) => {
+    setPendingAutoBlastIds((previous) => (previous.includes(item.id) ? previous : [...previous, item.id]));
+
+    try {
+      const response = await toggleSocialAccountAutoBlast(item.id, { enabled });
+
+      setItems((previous) =>
+        previous.map((entry) =>
+          entry.id === item.id ? { ...entry, auto_blast_enabled: response.data.auto_blast_enabled } : entry,
+        ),
+      );
+
+      toast.success(response.data.message);
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memperbarui pengaturan wajib blast");
+    } finally {
+      setPendingAutoBlastIds((previous) => previous.filter((entryId) => entryId !== item.id));
+    }
+  };
+
+  const handleToggleColumn = (columnId: OptionalTableColumnId, checked: boolean) => {
+    setVisibleColumns((previous) => ({
+      ...previous,
+      [columnId]: checked,
+    }));
+  };
+
   const loadAccounts = useCallback(
     async (signal?: AbortSignal) => {
       setIsLoading(true);
@@ -375,7 +442,6 @@ export function SocialAccountDirectoryView() {
               limit: PAGE_SIZE,
               search,
               platform: platformFilter,
-              verification_status: verificationFilter,
               delegation_status: delegationFilter,
             },
             signal,
@@ -402,7 +468,7 @@ export function SocialAccountDirectoryView() {
         }
       }
     },
-    [delegationFilter, page, platformFilter, search, verificationFilter],
+    [delegationFilter, page, platformFilter, search],
   );
 
   useEffect(() => {
@@ -433,7 +499,9 @@ export function SocialAccountDirectoryView() {
 
   const summaryCards = useMemo(() => {
     const fallbackVerifiedCount = displayedItems.filter((item) => item.verification_status === "verified").length;
-    const fallbackDelegatedCount = displayedItems.filter((item) => item.delegation_status === "sudah_didelegasikan").length;
+    const fallbackDelegatedCount = displayedItems.filter(
+      (item) => item.delegation_status === "sudah_didelegasikan",
+    ).length;
     const fallbackTotalFollowers = displayedItems.reduce((total, item) => total + item.followers, 0);
     const summary = displayedMeta.summary;
     const totalAccounts = summary?.total_accounts ?? displayedItems.length;
@@ -466,12 +534,13 @@ export function SocialAccountDirectoryView() {
   }, [displayedItems, displayedMeta.summary]);
 
   const totalPages = Math.max(1, Math.ceil(displayedMeta.total / displayedMeta.limit));
+  const visibleOptionalColumnCount = OPTIONAL_TABLE_COLUMNS.filter((column) => visibleColumns[column.id]).length;
+  const visibleTableColumnCount = visibleOptionalColumnCount + 2;
   const summaryText =
     displayedMeta.total === 0
       ? "Halaman 1 dari 1 (0 total akun)"
       : `Halaman ${page} dari ${totalPages} (${displayedMeta.total} total akun)`;
-  const hasActiveFilters =
-    Boolean(search) || platformFilter !== "all" || verificationFilter !== "all" || delegationFilter !== "all";
+  const hasActiveFilters = Boolean(search) || platformFilter !== "all" || delegationFilter !== "all";
   const isSearchPending = searchInput.trim() !== search || (isLoading && searchInput.trim().length > 0);
   const showSearchIndicator = useSmoothLoadingState(isSearchPending, { delayMs: 100, minVisibleMs: 260 });
   const loadingLabel = search
@@ -545,44 +614,73 @@ export function SocialAccountDirectoryView() {
                   ) : null}
                 </div>
 
-                <Select
-                  value={platformFilter}
-                  onValueChange={(value) => {
-                    setPlatformFilter(value as typeof platformFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="md:w-[11rem]">
-                    <SelectValue placeholder="Semua Platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Platform</SelectItem>
-                    {PLATFORM_OPTIONS.map((platform) => (
-                      <SelectItem key={platform} value={platform}>
-                        {formatPlatformLabel(platform)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={verificationFilter}
-                  onValueChange={(value) => {
-                    setVerificationFilter(value as typeof verificationFilter);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="md:w-[12rem]">
-                    <SelectValue placeholder="Semua Verifikasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VERIFICATION_FILTER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={isPlatformFilterOpen} onOpenChange={setIsPlatformFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isPlatformFilterOpen}
+                      className="justify-between font-normal md:w-[11rem]"
+                    >
+                      {platformFilter === "all" ? (
+                        <span className="text-muted-foreground">Semua Platform</span>
+                      ) : (
+                        <span className="flex items-center gap-2 truncate">
+                          <PlatformIcon platform={platformFilter} />
+                          <span>{formatPlatformLabel(platformFilter)}</span>
+                        </span>
+                      )}
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setPlatformFilter("all");
+                              setPage(1);
+                              setIsPlatformFilterOpen(false);
+                            }}
+                          >
+                            <span className="flex items-center gap-2">Semua Platform</span>
+                            <Check
+                              className={cn(
+                                "ml-auto size-4 shrink-0",
+                                platformFilter === "all" ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                          </CommandItem>
+                          {PLATFORM_OPTIONS.map((platform) => (
+                            <CommandItem
+                              key={platform}
+                              value={platform}
+                              onSelect={() => {
+                                setPlatformFilter(platform);
+                                setPage(1);
+                                setIsPlatformFilterOpen(false);
+                              }}
+                            >
+                              <span className="flex items-center gap-2">
+                                <PlatformIcon platform={platform} />
+                                <span>{formatPlatformLabel(platform)}</span>
+                              </span>
+                              <Check
+                                className={cn(
+                                  "ml-auto size-4 shrink-0",
+                                  platformFilter === platform ? "opacity-100" : "opacity-0",
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
 
                 <Select
                   value={delegationFilter}
@@ -605,6 +703,40 @@ export function SocialAccountDirectoryView() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 xl:flex-none xl:justify-end">
+                <Popover open={isColumnSelectorOpen} onOpenChange={setIsColumnSelectorOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline">
+                      <SlidersHorizontal className="mr-2 size-4" />
+                      {`Tampilan Kolom (${visibleOptionalColumnCount})`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-60 p-3">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">Pilih kolom yang ditampilkan</p>
+                        <p className="text-muted-foreground text-xs">
+                          Centang kolom yang ingin tetap terlihat di tabel.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        {OPTIONAL_TABLE_COLUMNS.map((column) => (
+                          <label
+                            key={column.id}
+                            htmlFor={`column-visibility-${column.id}`}
+                            className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-sm hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              id={`column-visibility-${column.id}`}
+                              checked={visibleColumns[column.id]}
+                              onCheckedChange={(checked) => handleToggleColumn(column.id, checked === true)}
+                            />
+                            <span>{column.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   type="button"
                   variant="outline"
@@ -613,7 +745,6 @@ export function SocialAccountDirectoryView() {
                     setSearchInput("");
                     setSearch("");
                     setPlatformFilter("all");
-                    setVerificationFilter("all");
                     setDelegationFilter("all");
                     setPage(1);
                   }}
@@ -651,20 +782,21 @@ export function SocialAccountDirectoryView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[260px]">Akun</TableHead>
-                      <TableHead>Platform</TableHead>
-                      <TableHead>Wilayah</TableHead>
-                      <TableHead>PIC Sosmed</TableHead>
-                      <TableHead>Followers</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Delegasi</TableHead>
-                      <TableHead>Update</TableHead>
+                      {visibleColumns.platform ? <TableHead>Platform</TableHead> : null}
+                      {visibleColumns.wilayah ? <TableHead>Wilayah</TableHead> : null}
+                      {visibleColumns.pic_sosmed ? <TableHead>PIC Sosmed</TableHead> : null}
+                      {visibleColumns.followers ? <TableHead>Followers</TableHead> : null}
+                      {visibleColumns.status ? <TableHead>Status</TableHead> : null}
+                      {visibleColumns.delegasi ? <TableHead>Delegasi</TableHead> : null}
+                      {visibleColumns.wajib_blast ? <TableHead>Wajib Blast</TableHead> : null}
+                      {visibleColumns.update ? <TableHead>Update</TableHead> : null}
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayedItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="h-28 text-center text-muted-foreground">
+                        <TableCell colSpan={visibleTableColumnCount} className="h-28 text-center text-muted-foreground">
                           {search
                             ? "Tidak ada akun sosmed yang cocok dengan pencarian."
                             : "Belum ada akun sosmed yang terdaftar."}
@@ -685,70 +817,111 @@ export function SocialAccountDirectoryView() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="align-top">
-                            <div className="space-y-1 text-sm">
-                              <PlatformIcon platform={item.platform} />
-                              <p className="text-muted-foreground capitalize">{item.tipe_akun}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-normal align-top">
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">{item.wilayah_name}</p>
-                              <p className="text-muted-foreground">{item.eselon_2 ?? item.eselon_1 ?? "-"}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[14rem] whitespace-normal align-top">
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">{item.officer_name ?? "Belum didelegasikan"}</p>
-                              <p className="text-muted-foreground">
-                                {item.officer_regional ?? item.added_by.regional ?? "-"}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">{numberFormatter.format(item.followers)}</p>
-                              <p className="text-muted-foreground">
-                                {item.last_stat_update
-                                  ? `Update ${formatTimeAgo(item.last_stat_update)}`
-                                  : "Belum ada snapshot"}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[13rem] whitespace-normal align-top">
-                            <div className="flex flex-col items-start gap-2">
-                              <Badge
-                                variant="outline"
-                                className={cn("rounded-full px-3 py-1", getVerificationBadge(item.verification_status))}
-                              >
-                                {item.verification_status}
-                              </Badge>
-                              {item.verification_note ? (
-                                <p className="max-w-48 whitespace-normal text-muted-foreground text-xs leading-5">
-                                  {item.verification_note}
+                          {visibleColumns.platform ? (
+                            <TableCell className="align-top">
+                              <div className="space-y-1 text-sm">
+                                <PlatformIcon platform={item.platform} />
+                                <p className="text-muted-foreground capitalize">{item.tipe_akun}</p>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.wilayah ? (
+                            <TableCell className="whitespace-normal align-top">
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">{item.wilayah_name}</p>
+                                <p className="text-muted-foreground">{item.eselon_2 ?? item.eselon_1 ?? "-"}</p>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.pic_sosmed ? (
+                            <TableCell className="max-w-[14rem] whitespace-normal align-top">
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">{item.officer_name ?? "Belum didelegasikan"}</p>
+                                <p className="text-muted-foreground">
+                                  {item.officer_regional ?? item.added_by.regional ?? "-"}
                                 </p>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[13rem] whitespace-normal align-top">
-                            <div className="space-y-2">
-                              <Badge
-                                variant="outline"
-                                className={cn("rounded-full px-3 py-1", getDelegationBadge(item.delegation_status))}
-                              >
-                                {item.delegation_status.replaceAll("_", " ")}
-                              </Badge>
-                              <p className="max-w-44 whitespace-normal text-muted-foreground text-xs leading-5">
-                                {item.delegated_by ? `Oleh ${item.delegated_by.name}` : "Belum ada history delegasi"}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-normal align-top">
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">{formatDate(item.created_at)}</p>
-                              <p className="text-muted-foreground">Ditambahkan {formatTimeAgo(item.created_at)}</p>
-                            </div>
-                          </TableCell>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.followers ? (
+                            <TableCell className="align-top">
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">{numberFormatter.format(item.followers)}</p>
+                                <p className="text-muted-foreground">
+                                  {item.last_stat_update
+                                    ? `Update ${formatTimeAgo(item.last_stat_update)}`
+                                    : "Belum ada snapshot"}
+                                </p>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.status ? (
+                            <TableCell className="max-w-[13rem] whitespace-normal align-top">
+                              <div className="flex flex-col items-start gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "rounded-full px-3 py-1",
+                                    getVerificationBadge(item.verification_status),
+                                  )}
+                                >
+                                  {item.verification_status}
+                                </Badge>
+                                {item.verification_note ? (
+                                  <p className="max-w-48 whitespace-normal text-muted-foreground text-xs leading-5">
+                                    {item.verification_note}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.delegasi ? (
+                            <TableCell className="max-w-[13rem] whitespace-normal align-top">
+                              <div className="space-y-2">
+                                <Badge
+                                  variant="outline"
+                                  className={cn("rounded-full px-3 py-1", getDelegationBadge(item.delegation_status))}
+                                >
+                                  {item.delegation_status.replaceAll("_", " ")}
+                                </Badge>
+                                <p className="max-w-44 whitespace-normal text-muted-foreground text-xs leading-5">
+                                  {item.delegated_by ? `Oleh ${item.delegated_by.name}` : "Belum ada history delegasi"}
+                                </p>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.wajib_blast ? (
+                            <TableCell className="max-w-[15rem] whitespace-normal align-top">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-3">
+                                  <Switch
+                                    checked={item.auto_blast_enabled}
+                                    disabled={isLoading || pendingAutoBlastIds.includes(item.id)}
+                                    aria-label={`Toggle wajib blast untuk ${item.nama_profil}`}
+                                    onCheckedChange={(checked) => void handleToggleAutoBlast(item, checked)}
+                                  />
+                                  <span className="font-medium text-sm">
+                                    {item.auto_blast_enabled ? "Aktif" : "Nonaktif"}
+                                  </span>
+                                </div>
+                                <p className="max-w-52 whitespace-normal text-muted-foreground text-xs leading-5">
+                                  {pendingAutoBlastIds.includes(item.id)
+                                    ? "Menyimpan pengaturan wajib blast..."
+                                    : item.auto_blast_enabled
+                                      ? "Posting valid dari akun ini otomatis masuk antrian blast."
+                                      : "Posting valid dari akun ini tetap menunggu keputusan superadmin."}
+                                </p>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                          {visibleColumns.update ? (
+                            <TableCell className="whitespace-normal align-top">
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">{formatDate(item.created_at)}</p>
+                                <p className="text-muted-foreground">Ditambahkan {formatTimeAgo(item.created_at)}</p>
+                              </div>
+                            </TableCell>
+                          ) : null}
                           <TableCell className="align-top">
                             <div className="flex flex-wrap justify-end gap-2">
                               <Button asChild variant="outline" size="sm">

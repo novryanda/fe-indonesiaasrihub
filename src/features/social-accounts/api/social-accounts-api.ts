@@ -10,6 +10,7 @@ import type {
   SocialAccountListMeta,
   SocialAccountScrapedPostDetail,
   SocialPicOption,
+  ToggleSocialAccountAutoBlastPayload,
   UpdateSocialAccountPayload,
   UpsertSocialAccountStatPayload,
   VerifySocialAccountPayload,
@@ -78,6 +79,7 @@ export async function listSocialAccounts(filters: SocialAccountFilters, signal?:
       is_verified: boolean;
       verification_status: SocialAccountItem["verification_status"];
       verification_note: string | null;
+      auto_blast_enabled: boolean;
       screenshot_url: string | null;
       last_stat_update: string | null;
       created_at: string;
@@ -127,6 +129,7 @@ export async function listSocialAccounts(filters: SocialAccountFilters, signal?:
       is_verified: item.is_verified,
       verification_status: item.verification_status,
       verification_note: item.verification_note,
+      auto_blast_enabled: item.auto_blast_enabled,
       screenshot_url: item.screenshot_url,
       last_stat_update: item.last_stat_update,
       created_at: item.created_at,
@@ -194,6 +197,21 @@ export async function updateSocialAccount(id: string, payload: UpdateSocialAccou
 export async function deleteSocialAccount(id: string) {
   return apiClient<{ id: string; deleted_at: string; message: string }>(`/v1/akun-sosmed/${id}`, {
     method: "DELETE",
+  });
+}
+
+export async function toggleSocialAccountAutoBlast(id: string, payload: ToggleSocialAccountAutoBlastPayload) {
+  return apiClient<{
+    id: string;
+    username: string;
+    nama_profil: string;
+    auto_blast_enabled: boolean;
+    queued_count: number;
+    updated_at: string;
+    message: string;
+  }>(`/v1/akun-sosmed/${id}/auto-blast`, {
+    method: "PATCH",
+    body: payload,
   });
 }
 
