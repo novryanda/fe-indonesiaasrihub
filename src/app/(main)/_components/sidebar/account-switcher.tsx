@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatarPlaceholder } from "@/components/ui/user-avatar-placeholder";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +20,7 @@ import { FullScreenLoader } from "@/components/ui/fullscreen-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut, useSession } from "@/lib/auth-client";
 import { ROLE_HOME_COOKIE_NAME } from "@/lib/auth-constants";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function AccountSwitcher() {
   const router = useRouter();
@@ -64,7 +65,9 @@ export function AccountSwitcher() {
         <DropdownMenuTrigger asChild>
           <Avatar className="size-9 cursor-pointer rounded-lg">
             <AvatarImage src={user.avatar || undefined} alt={user.name} />
-            <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
+            <AvatarFallback className="rounded-lg bg-white p-0">
+              <UserAvatarPlaceholder />
+            </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="min-w-56 space-y-1 rounded-lg" side="bottom" align="end" sideOffset={4}>
@@ -72,7 +75,9 @@ export function AccountSwitcher() {
             <div className="flex w-full items-center justify-between gap-2 px-1 py-1.5">
               <Avatar className="size-9 rounded-lg">
                 <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
+                <AvatarFallback className="rounded-lg bg-white p-0">
+                  <UserAvatarPlaceholder />
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>

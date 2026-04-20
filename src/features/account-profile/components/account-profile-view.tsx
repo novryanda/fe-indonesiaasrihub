@@ -16,10 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { UserAvatarPlaceholder } from "@/components/ui/user-avatar-placeholder";
 import { formatDateTime, formatNumber, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { authClient } from "@/lib/auth-client";
 import { isValidIndonesianPhoneNumber, normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
-import { getInitials } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import {
@@ -272,7 +272,9 @@ export function AccountProfileView() {
             <div className="flex items-start gap-4">
               <Avatar className="size-16 rounded-2xl border bg-card shadow-sm">
                 <AvatarImage src={data.user.image ?? undefined} alt={data.user.name} />
-                <AvatarFallback className="rounded-2xl text-lg">{getInitials(data.user.name)}</AvatarFallback>
+                <AvatarFallback className="rounded-2xl bg-white p-0">
+                  <UserAvatarPlaceholder />
+                </AvatarFallback>
               </Avatar>
               <div className="space-y-3">
                 <div className="space-y-2">

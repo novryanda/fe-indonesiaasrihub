@@ -20,10 +20,11 @@ const PLATFORM_LOGO_MAP: Record<ContentPlatform, { src: StaticImageData; alt: st
 interface PlatformLogoProps {
   platform: ContentPlatform;
   className?: string;
+  size?: number;
 }
 
-export function PlatformLogo({ platform, className }: PlatformLogoProps) {
+export function PlatformLogo({ platform, className, size = 18 }: PlatformLogoProps) {
   const logo = PLATFORM_LOGO_MAP[platform];
 
-  return <Image src={logo.src} alt={logo.alt} width={18} height={18} className={className} unoptimized />;
+  return <Image src={logo.src} alt={logo.alt} width={size} height={size} className={className} unoptimized />;
 }

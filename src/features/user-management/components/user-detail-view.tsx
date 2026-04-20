@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { getInitials } from "@/lib/utils";
+import { UserAvatarPlaceholder } from "@/components/ui/user-avatar-placeholder";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getUserDetail } from "../api/get-user-detail";
@@ -191,8 +191,8 @@ export function UserDetailView({ id }: { id: string }) {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
               <Avatar className="size-24 rounded-[2rem] border-4 border-white/75 bg-card/95 shadow-lg ring-1 ring-emerald-100/80 sm:size-28">
                 <AvatarImage src={data.user.image ?? undefined} alt={data.user.name} />
-                <AvatarFallback className="rounded-[2rem] bg-white text-2xl text-foreground">
-                  {getInitials(data.user.name)}
+                <AvatarFallback className="rounded-[2rem] bg-white p-0">
+                  <UserAvatarPlaceholder />
                 </AvatarFallback>
               </Avatar>
 

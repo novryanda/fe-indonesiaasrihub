@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { PlatformLogo } from "@/features/content-shared/components/platform-logo";
 import { formatPlatformLabel, formatTimeAgo } from "@/features/content-shared/utils/content-formatters";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
@@ -225,8 +226,12 @@ export function SocialAccountDetailView({ id }: { id: string }) {
               <AvatarFallback className="rounded-[1.75rem] bg-white">
                 <span
                   aria-hidden="true"
-                  className="size-11 rounded-full border border-border/55 bg-background/70 shadow-inner sm:size-14"
-                />
+                  className="flex size-full items-center justify-center rounded-[inherit] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(248,250,252,0.96))]"
+                >
+                  <span className="flex size-11 items-center justify-center rounded-full border border-border/55 bg-background/80 shadow-inner sm:size-14">
+                    <PlatformLogo platform={data.platform} size={28} className="size-7 object-contain sm:size-8" />
+                  </span>
+                </span>
               </AvatarFallback>
             </Avatar>
 
