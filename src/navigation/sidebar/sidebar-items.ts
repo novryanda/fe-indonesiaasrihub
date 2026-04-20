@@ -154,6 +154,12 @@ export const sidebarItems: NavGroup[] = [
         roles: ["superadmin", "qcc_wcc"],
       },
       {
+        title: "Laporan Monitoring Tugas",
+        url: "/analitik/laporan-monitoring-tugas",
+        icon: ChartColumnIncreasingIcon,
+        roles: ["superadmin"],
+      },
+      {
         title: "Laporan Regional",
         url: "/analitik/laporan-regional",
         icon: ChartColumnIncreasingIcon,

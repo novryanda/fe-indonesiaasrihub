@@ -20,6 +20,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/konten/bank-konten",
     "/konten/bank-materi",
     "/analitik/monitoring-sosmed",
+    "/analitik/laporan-monitoring-tugas",
     "/analitik/laporan-analitik",
     "/akun/akun-sosmed",
     "/akun/daftar-akun",

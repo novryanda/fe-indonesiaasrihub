@@ -19,7 +19,8 @@ import { PlatformIcon } from "@/features/content-shared/components/platform-icon
 import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import {
   listSocialAccounts,
-  triggerManualSocialAccountScrape,
+  triggerManualSocialAccountFullScrape,
+  triggerManualSocialAccountProfileScrape,
 } from "@/features/social-accounts/api/social-accounts-api";
 import type { SocialAccountItem, SocialAccountListMeta } from "@/features/social-accounts/types/social-account.type";
 import { cn } from "@/lib/utils";
@@ -86,7 +87,7 @@ export function ScraperAccountTriggerView() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState<(typeof PLATFORM_FILTERS)[number]>("all");
-  const [runningId, setRunningId] = useState<string | null>(null);
+  const [runningAction, setRunningAction] = useState<string | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -123,15 +124,27 @@ export function ScraperAccountTriggerView() {
 
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit));
 
-  const handleTriggerScrape = async (item: SocialAccountItem) => {
-    setRunningId(item.id);
+  const handleTriggerProfileScrape = async (item: SocialAccountItem) => {
+    setRunningAction(`${item.id}:profile`);
     try {
-      const response = await triggerManualSocialAccountScrape(item.id);
+      const response = await triggerManualSocialAccountProfileScrape(item.id);
       toast.success(response.data.message);
     } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memicu scrape manual");
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memicu tarik data profil");
     } finally {
-      setRunningId(null);
+      setRunningAction(null);
+    }
+  };
+
+  const handleTriggerFullScrape = async (item: SocialAccountItem) => {
+    setRunningAction(`${item.id}:full`);
+    try {
+      const response = await triggerManualSocialAccountFullScrape(item.id);
+      toast.success(response.data.message);
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memicu tarik data keseluruhan akun");
+    } finally {
+      setRunningAction(null);
     }
   };
 
@@ -165,8 +178,8 @@ export function ScraperAccountTriggerView() {
               <div className="space-y-2">
                 <h1 className="font-semibold text-3xl tracking-tight">Tarik Scrape Per Akun</h1>
                 <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-                  Sysadmin dapat memicu scrape manual satu akun per aksi. Gunakan halaman ini untuk refresh data akun
-                  tertentu tanpa menunggu jadwal scraping massal.
+                  Sysadmin dapat memicu dua jenis proses per akun: tarik data profil cepat atau tarik data keseluruhan
+                  akun. Gunakan halaman ini untuk refresh akun tertentu tanpa menunggu jadwal scraping massal.
                 </p>
               </div>
             </div>
@@ -339,12 +352,29 @@ export function ScraperAccountTriggerView() {
                             </a>
                           </Button>
                           <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => void handleTriggerScrape(item)}
-                            disabled={runningId === item.id}
+                            onClick={() => void handleTriggerProfileScrape(item)}
+                            disabled={runningAction !== null}
                           >
-                            {runningId === item.id ? <Spinner className="mr-2" /> : <Play className="mr-2 size-4" />}
-                            Tarik Scrape
+                            {runningAction === `${item.id}:profile` ? (
+                              <Spinner className="mr-2" />
+                            ) : (
+                              <Play className="mr-2 size-4" />
+                            )}
+                            Tarik Profil
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => void handleTriggerFullScrape(item)}
+                            disabled={runningAction !== null}
+                          >
+                            {runningAction === `${item.id}:full` ? (
+                              <Spinner className="mr-2" />
+                            ) : (
+                              <Play className="mr-2 size-4" />
+                            )}
+                            Tarik Semua Data
                           </Button>
                         </div>
                       </TableCell>
