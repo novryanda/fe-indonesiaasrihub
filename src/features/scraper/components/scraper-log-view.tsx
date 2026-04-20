@@ -14,13 +14,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getScraperLogDetail, listScraperLogs } from "../api/scraper-api";
-import type { ScraperLogDetail, ScraperLogItem, ScraperLogsQuery, ScraperRunStatus } from "../types/scraper.type";
+import type {
+  ScraperLogDetail,
+  ScraperLogItem,
+  ScraperLogsMeta,
+  ScraperLogsQuery,
+  ScraperRunStatus,
+} from "../types/scraper.type";
 
 const INITIAL_FILTERS: ScraperLogsQuery = {
   status: "all",
@@ -29,6 +36,12 @@ const INITIAL_FILTERS: ScraperLogsQuery = {
   dateTo: "",
   page: 1,
   limit: 20,
+};
+
+const INITIAL_META: ScraperLogsMeta = {
+  page: 1,
+  limit: 20,
+  total: 0,
 };
 
 function getStatusClass(status: ScraperRunStatus) {
@@ -171,6 +184,7 @@ export function ScraperLogView() {
   const { isAuthorized, isPending } = useRoleGuard(["sysadmin"]);
   const [filters, setFilters] = useState<ScraperLogsQuery>(INITIAL_FILTERS);
   const [logs, setLogs] = useState<ScraperLogItem[]>([]);
+  const [meta, setMeta] = useState<ScraperLogsMeta>(INITIAL_META);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState<ScraperLogDetail | null>(null);
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
@@ -180,6 +194,13 @@ export function ScraperLogView() {
     try {
       const response = await listScraperLogs(filters);
       setLogs(response.data);
+      setMeta(
+        response.meta ?? {
+          page: filters.page ?? INITIAL_META.page,
+          limit: filters.limit ?? INITIAL_META.limit,
+          total: response.data.length,
+        },
+      );
     } catch (errorValue) {
       toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat log scraping");
     } finally {
@@ -209,6 +230,8 @@ export function ScraperLogView() {
       ),
     [logs],
   );
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(meta.total / meta.limit)), [meta.limit, meta.total]);
 
   const handleApplyFilters = async () => {
     await loadLogs();
@@ -264,7 +287,7 @@ export function ScraperLogView() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Total Akun Diproses</CardTitle>
+              <CardTitle>Akun Diproses (Halaman Ini)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl">{formatNumber(totalRunSummary.totalAccounts)}</p>
@@ -272,7 +295,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Total Sukses</CardTitle>
+              <CardTitle>Sukses (Halaman Ini)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-emerald-700">{formatNumber(totalRunSummary.successCount)}</p>
@@ -280,7 +303,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Total Gagal</CardTitle>
+              <CardTitle>Gagal (Halaman Ini)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-rose-700">{formatNumber(totalRunSummary.failCount)}</p>
@@ -288,7 +311,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Total Biaya Apify</CardTitle>
+              <CardTitle>Biaya Apify (Halaman Ini)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-sky-700">
@@ -311,7 +334,11 @@ export function ScraperLogView() {
               <Select
                 value={filters.status ?? "all"}
                 onValueChange={(value) =>
-                  setFilters((previous) => ({ ...previous, status: value as ScraperLogsQuery["status"] }))
+                  setFilters((previous) => ({
+                    ...previous,
+                    status: value as ScraperLogsQuery["status"],
+                    page: 1,
+                  }))
                 }
               >
                 <SelectTrigger>
@@ -332,7 +359,11 @@ export function ScraperLogView() {
               <Select
                 value={filters.platform ?? "all"}
                 onValueChange={(value) =>
-                  setFilters((previous) => ({ ...previous, platform: value as ScraperLogsQuery["platform"] }))
+                  setFilters((previous) => ({
+                    ...previous,
+                    platform: value as ScraperLogsQuery["platform"],
+                    page: 1,
+                  }))
                 }
               >
                 <SelectTrigger>
@@ -354,7 +385,9 @@ export function ScraperLogView() {
               <Input
                 type="date"
                 value={filters.dateFrom ?? ""}
-                onChange={(event) => setFilters((previous) => ({ ...previous, dateFrom: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((previous) => ({ ...previous, dateFrom: event.target.value, page: 1 }))
+                }
               />
             </div>
 
@@ -363,7 +396,7 @@ export function ScraperLogView() {
               <Input
                 type="date"
                 value={filters.dateTo ?? ""}
-                onChange={(event) => setFilters((previous) => ({ ...previous, dateTo: event.target.value }))}
+                onChange={(event) => setFilters((previous) => ({ ...previous, dateTo: event.target.value, page: 1 }))}
               />
             </div>
 
@@ -376,17 +409,6 @@ export function ScraperLogView() {
                 variant="outline"
                 onClick={() => {
                   setFilters(INITIAL_FILTERS);
-                  setIsLoading(true);
-                  void listScraperLogs(INITIAL_FILTERS)
-                    .then((response) => {
-                      setLogs(response.data);
-                    })
-                    .catch((errorValue) => {
-                      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat log scraping");
-                    })
-                    .finally(() => {
-                      setIsLoading(false);
-                    });
                 }}
               >
                 <RefreshCw className="size-4" />
@@ -463,6 +485,18 @@ export function ScraperLogView() {
                 </TableBody>
               </Table>
             )}
+          </CardContent>
+        </Card>
+
+        <Card size="sm">
+          <CardContent>
+            <TablePagination
+              summary={`Halaman ${meta.page} dari ${totalPages} (${meta.total} total run log)`}
+              page={meta.page}
+              totalPages={totalPages}
+              disabled={isLoading}
+              onPageChange={(page) => setFilters((previous) => ({ ...previous, page }))}
+            />
           </CardContent>
         </Card>
       </div>
