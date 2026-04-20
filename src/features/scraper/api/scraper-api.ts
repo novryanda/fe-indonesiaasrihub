@@ -18,6 +18,18 @@ type ApiScraperCostSummary = {
   usage_usd: Record<string, number>;
 };
 
+type ApiScraperLogsMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  summary?: {
+    total_accounts: number;
+    success_count: number;
+    fail_count: number;
+    cost_summary: ApiScraperCostSummary | null;
+  };
+};
+
 function mapCostSummary(item?: ApiScraperCostSummary | null): ScraperCostSummary | null {
   if (!item) {
     return null;
@@ -27,6 +39,24 @@ function mapCostSummary(item?: ApiScraperCostSummary | null): ScraperCostSummary
     usageTotalUsd: item.usage_total_usd,
     computeUnits: item.compute_units,
     usageUsd: item.usage_usd,
+  };
+}
+
+function mapLogsSummary(item?: {
+  total_accounts: number;
+  success_count: number;
+  fail_count: number;
+  cost_summary: ApiScraperCostSummary | null;
+} | null) {
+  if (!item) {
+    return undefined;
+  }
+
+  return {
+    totalAccounts: item.total_accounts,
+    successCount: item.success_count,
+    failCount: item.fail_count,
+    costSummary: mapCostSummary(item.cost_summary),
   };
 }
 
@@ -302,7 +332,7 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
         frequency: ScraperLogItem["schedule"] extends { frequency: infer F } ? F : never;
       } | null;
     }>,
-    ScraperLogsMeta
+    ApiScraperLogsMeta
   >("/v1/scraper/logs", {
     params: {
       status: query.status && query.status !== "all" ? query.status : undefined,
@@ -317,6 +347,12 @@ export async function listScraperLogs(query: ScraperLogsQuery) {
 
   return {
     ...response,
+    meta: response.meta
+      ? {
+          ...response.meta,
+          summary: mapLogsSummary(response.meta.summary),
+        }
+      : response.meta,
     data: response.data.map(mapLog),
   };
 }

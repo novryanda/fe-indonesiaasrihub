@@ -114,6 +114,12 @@ export interface ScraperLogsMeta {
   page: number;
   limit: number;
   total: number;
+  summary?: {
+    totalAccounts: number;
+    successCount: number;
+    failCount: number;
+    costSummary: ScraperCostSummary | null;
+  };
 }
 
 export interface ScraperConnectionStatus {

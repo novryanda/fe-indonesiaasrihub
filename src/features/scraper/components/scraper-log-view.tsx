@@ -214,22 +214,28 @@ export function ScraperLogView() {
     }
   }, [isAuthorized, isPending, loadLogs]);
 
-  const totalRunSummary = useMemo(
-    () =>
-      logs.reduce(
-        (summary, log) => ({
-          totalAccounts: summary.totalAccounts + log.totalAccounts,
-          successCount: summary.successCount + log.successCount,
-          failCount: summary.failCount + log.failCount,
-          totalCost:
-            summary.totalCost +
-            (typeof log.costSummary?.usageTotalUsd === "number" ? log.costSummary.usageTotalUsd : 0),
-          hasCost: summary.hasCost || typeof log.costSummary?.usageTotalUsd === "number",
-        }),
-        { totalAccounts: 0, successCount: 0, failCount: 0, totalCost: 0, hasCost: false },
-      ),
-    [logs],
-  );
+  const totalRunSummary = useMemo(() => {
+    if (meta.summary) {
+      return {
+        totalAccounts: meta.summary.totalAccounts,
+        successCount: meta.summary.successCount,
+        failCount: meta.summary.failCount,
+        totalCost: meta.summary.costSummary?.usageTotalUsd ?? 0,
+        hasCost: typeof meta.summary.costSummary?.usageTotalUsd === "number",
+      };
+    }
+
+    return logs.reduce(
+      (summary, log) => ({
+        totalAccounts: summary.totalAccounts + log.totalAccounts,
+        successCount: summary.successCount + log.successCount,
+        failCount: summary.failCount + log.failCount,
+        totalCost: summary.totalCost + (typeof log.costSummary?.usageTotalUsd === "number" ? log.costSummary.usageTotalUsd : 0),
+        hasCost: summary.hasCost || typeof log.costSummary?.usageTotalUsd === "number",
+      }),
+      { totalAccounts: 0, successCount: 0, failCount: 0, totalCost: 0, hasCost: false },
+    );
+  }, [logs, meta.summary]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(meta.total / meta.limit)), [meta.limit, meta.total]);
 
@@ -287,7 +293,7 @@ export function ScraperLogView() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Akun Diproses (Halaman Ini)</CardTitle>
+              <CardTitle>Total Akun Diproses</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl">{formatNumber(totalRunSummary.totalAccounts)}</p>
@@ -295,7 +301,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Sukses (Halaman Ini)</CardTitle>
+              <CardTitle>Total Sukses</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-emerald-700">{formatNumber(totalRunSummary.successCount)}</p>
@@ -303,7 +309,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Gagal (Halaman Ini)</CardTitle>
+              <CardTitle>Total Gagal</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-rose-700">{formatNumber(totalRunSummary.failCount)}</p>
@@ -311,7 +317,7 @@ export function ScraperLogView() {
           </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Biaya Apify (Halaman Ini)</CardTitle>
+              <CardTitle>Total Biaya Apify</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="font-semibold text-2xl text-sky-700">
