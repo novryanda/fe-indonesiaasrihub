@@ -24,10 +24,12 @@ import {
 } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { getMonitoringTugasData } from "@/features/monitoring-tugas/api/monitoring-tugas-api";
 import type { MonitoringPlatform, MonitoringTugasData } from "@/features/monitoring-tugas/types/monitoring-tugas.type";
 import { ESELON_2_OPTIONS } from "@/features/social-accounts/constants/social-account-eselon";
+import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
@@ -211,14 +213,21 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
   const isPicView = viewer === "pic";
   const copy = isPicView
     ? {
-        pageTitle: "Penilaian Posting Saya",
+        pageTitle: "Analitik Tugas Saya",
         pageDescription:
-          "Pantau performa URL posting yang Anda submit sendiri berdasarkan hasil scrape yang berhasil dipadankan.",
+          "Pantau performa link posting yang Anda submit sendiri, lengkap dengan ranking Anda di antara PIC regional yang sama.",
         scopePrefix: "Scope posting Anda",
         scoreTitle: "Skor Engagement Rata-Rata",
         totalViewsLabel: "Total Views Posting",
         totalPostsLabel: "URL Tersubmit",
         activeAccountsLabel: "Akun Sosmed Terpakai",
+        rankHighlightTitle: "Ranking Anda Saat Ini",
+        rankHighlightDescription:
+          "Posisi Anda dihitung dari performa link tugas yang berhasil tercatat pada periode aktif.",
+        picLeaderboardTitle: "PIC Leaderboard Tugas",
+        picLeaderboardDescription: "Ranking PIC di regional Anda berdasarkan link tugas yang berhasil disubmit.",
+        regionalLeaderboardTitle: "",
+        regionalLeaderboardDescription: "",
         trendTitle: "Tren Skor Posting Saya",
         trendDescription: "Perubahan skor engagement harian dari URL posting yang Anda submit pada periode",
         trendEmpty: "Belum ada tren performa posting Anda pada periode ini.",
@@ -240,14 +249,22 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
         accountsEmpty: "Belum ada akun sosmed yang terkait pada periode ini.",
       }
     : {
-        pageTitle: "Laporan Monitoring Tugas",
+        pageTitle: "Laporan & Analitik Tugas",
         pageDescription:
-          "Pantau engagement score, tren performa harian, dan ranking posting berdasarkan URL yang disubmit PIC sosmed.",
+          "Pantau engagement score, tren performa harian, ranking PIC, dan ranking regional berdasarkan link tugas yang disubmit PIC sosmed.",
         scopePrefix: "Scope",
         scoreTitle: "Avg. Engagement Score",
         totalViewsLabel: "Total Views",
         totalPostsLabel: "Total Posting",
         activeAccountsLabel: "Akun Aktif Posting",
+        rankHighlightTitle: "",
+        rankHighlightDescription: "",
+        picLeaderboardTitle: "PIC Leaderboard Tugas",
+        picLeaderboardDescription:
+          "Ranking PIC berdasarkan performa link tugas yang berhasil disubmit pada periode aktif.",
+        regionalLeaderboardTitle: "Regional Leaderboard Tugas",
+        regionalLeaderboardDescription:
+          "Ranking regional, termasuk Indonesia, berdasarkan performa link tugas PIC pada periode aktif.",
         trendTitle: "Engagement Score Trends",
         trendDescription: "Perubahan skor engagement harian dari posting tugas PIC pada periode",
         trendEmpty: "Belum ada data tren engagement pada periode ini.",
@@ -292,7 +309,7 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
         setData(response.data);
       })
       .catch((caught) => {
-        const message = caught instanceof Error ? caught.message : "Gagal memuat laporan monitoring tugas.";
+        const message = caught instanceof Error ? caught.message : "Gagal memuat laporan analitik tugas.";
         setError(message);
       })
       .finally(() => setLoading(false));
@@ -300,6 +317,14 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
 
   const scoreTrendRows = useMemo(() => data?.engagement_score_trends ?? [], [data]);
   const engagementDetailRows = useMemo(() => data?.engagement_details ?? [], [data]);
+  const picLeaderboardRows = useMemo(() => data?.pic_leaderboard ?? [], [data]);
+  const regionalLeaderboardRows = useMemo(() => data?.regional_leaderboard ?? [], [data]);
+  const topPicLeaderboardRows = useMemo(() => picLeaderboardRows.slice(0, 10), [picLeaderboardRows]);
+  const topRegionalLeaderboardRows = useMemo(() => regionalLeaderboardRows.slice(0, 10), [regionalLeaderboardRows]);
+  const viewerLeaderboardRow = useMemo(
+    () => picLeaderboardRows.find((row) => row.pic_id === data?.scope.pic_id) ?? null,
+    [data?.scope.pic_id, picLeaderboardRows],
+  );
   const scoreTrendTicks = useMemo(() => buildAdaptiveDateTicks(scoreTrendRows), [scoreTrendRows]);
   const engagementDetailTicks = useMemo(() => buildAdaptiveDateTicks(engagementDetailRows), [engagementDetailRows]);
   const scoreTrendLabelIndex = scoreTrendRows.length - 1;
@@ -332,7 +357,7 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
       <Card>
         <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
           <Spinner />
-          <span>Memuat dashboard laporan monitoring tugas...</span>
+          <span>Memuat dashboard laporan analitik tugas...</span>
         </CardContent>
       </Card>
     );
@@ -342,7 +367,7 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
     return (
       <Card>
         <CardContent className="space-y-3 py-12 text-center">
-          <p className="font-medium">Laporan monitoring tugas belum bisa dimuat.</p>
+          <p className="font-medium">Laporan analitik tugas belum bisa dimuat.</p>
           <p className="text-muted-foreground text-sm">{error ?? "Terjadi kesalahan yang belum teridentifikasi."}</p>
         </CardContent>
       </Card>
@@ -658,6 +683,168 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
           )}
         </CardContent>
       </Card>
+
+      {isPicView && data.viewer_rank ? (
+        <Card className="border-emerald-200 bg-emerald-50/70 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">{copy.rankHighlightTitle}</CardTitle>
+            <CardDescription>{copy.rankHighlightDescription}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-emerald-200 bg-white/80 p-4">
+              <p className="text-muted-foreground text-sm">Posisi Anda</p>
+              <p className="mt-2 font-semibold text-4xl tracking-tight">
+                {data.viewer_rank.rank ? `#${data.viewer_rank.rank}` : "-"}
+              </p>
+              <p className="mt-2 text-muted-foreground text-sm">
+                dari {formatNumber(data.viewer_rank.total_participants)} PIC di {data.viewer_rank.scope_label}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-white/80 p-4">
+              <p className="text-muted-foreground text-sm">Skor Final Anda</p>
+              <p className="mt-2 font-semibold text-4xl tracking-tight">
+                {formatPercent(data.viewer_rank.score_final)}
+              </p>
+              <p className="mt-2 text-muted-foreground text-sm">Berdasarkan performa link tugas pada periode aktif.</p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-white/80 p-4">
+              <p className="text-muted-foreground text-sm">Total Posting Dinilai</p>
+              <p className="mt-2 font-semibold text-4xl tracking-tight">
+                {formatNumber(data.viewer_rank.total_posting)}
+              </p>
+              <p className="mt-2 text-muted-foreground text-sm">
+                Jumlah link tugas Anda yang ikut masuk perhitungan ranking.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className={cn("grid gap-4", isPicView ? "xl:grid-cols-1" : "xl:grid-cols-2")}>
+        <Card className="border-foreground/10">
+          <CardHeader>
+            <CardTitle className="text-xl">{copy.picLeaderboardTitle}</CardTitle>
+            <CardDescription>{copy.picLeaderboardDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rank</TableHead>
+                  <TableHead>Nama PIC</TableHead>
+                  {!isPicView ? <TableHead>Regional</TableHead> : null}
+                  <TableHead>Posting</TableHead>
+                  <TableHead>Views</TableHead>
+                  <TableHead>Engagement</TableHead>
+                  <TableHead>On Time</TableHead>
+                  <TableHead>Skor Final</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topPicLeaderboardRows.map((row) => (
+                  <TableRow
+                    key={row.pic_id}
+                    className={cn(
+                      isPicView && row.pic_id === data.scope.pic_id ? "border-emerald-200 bg-emerald-50/60" : undefined,
+                    )}
+                  >
+                    <TableCell className="font-semibold">#{row.rank}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{row.pic_name}</p>
+                        {isPicView && row.pic_id === data.scope.pic_id ? (
+                          <p className="text-emerald-700 text-xs">Ini posisi Anda</p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    {!isPicView ? (
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{row.wilayah_nama}</p>
+                          <p className="text-muted-foreground text-xs">{row.wilayah_kode}</p>
+                        </div>
+                      </TableCell>
+                    ) : null}
+                    <TableCell>{formatNumber(row.total_posting)}</TableCell>
+                    <TableCell>{formatCompact(row.total_views)}</TableCell>
+                    <TableCell>{formatPercent(row.engagement_rate)}</TableCell>
+                    <TableCell>{formatPercent(row.on_time_rate)}</TableCell>
+                    <TableCell className="font-semibold">{formatPercent(row.score_final)}</TableCell>
+                  </TableRow>
+                ))}
+                {topPicLeaderboardRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isPicView ? 7 : 8} className="py-8 text-center text-muted-foreground">
+                      Belum ada ranking PIC pada periode ini.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+
+            {isPicView && viewerLeaderboardRow && viewerLeaderboardRow.rank > 10 ? (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+                <p className="font-medium text-emerald-800">Posisi Anda belum masuk 10 besar.</p>
+                <p className="mt-1 text-emerald-700 text-sm">
+                  Anda saat ini di peringkat #{viewerLeaderboardRow.rank} dengan skor{" "}
+                  {formatPercent(viewerLeaderboardRow.score_final)}.
+                </p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        {!isPicView ? (
+          <Card className="border-foreground/10">
+            <CardHeader>
+              <CardTitle className="text-xl">{copy.regionalLeaderboardTitle}</CardTitle>
+              <CardDescription>{copy.regionalLeaderboardDescription}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Regional</TableHead>
+                    <TableHead>Total PIC</TableHead>
+                    <TableHead>Posting</TableHead>
+                    <TableHead>Views</TableHead>
+                    <TableHead>Engagement</TableHead>
+                    <TableHead>On Time</TableHead>
+                    <TableHead>Skor Final</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topRegionalLeaderboardRows.map((row) => (
+                    <TableRow key={row.wilayah_id}>
+                      <TableCell className="font-semibold">#{row.rank}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{row.wilayah_nama}</p>
+                          <p className="text-muted-foreground text-xs">{row.wilayah_kode}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatNumber(row.total_pic)}</TableCell>
+                      <TableCell>{formatNumber(row.total_posting)}</TableCell>
+                      <TableCell>{formatCompact(row.total_views)}</TableCell>
+                      <TableCell>{formatPercent(row.engagement_rate)}</TableCell>
+                      <TableCell>{formatPercent(row.on_time_rate)}</TableCell>
+                      <TableCell className="font-semibold">{formatPercent(row.score_final)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {topRegionalLeaderboardRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                        Belum ada ranking regional pada periode ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <Card className="flex h-[720px] flex-col overflow-hidden border-foreground/10 xl:h-[760px]">
