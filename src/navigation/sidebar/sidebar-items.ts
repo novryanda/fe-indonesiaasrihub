@@ -98,6 +98,12 @@ export const sidebarItems: NavGroup[] = [
         roles: ["pic_sosmed"],
       },
       {
+        title: "Laporan Tugas Saya",
+        url: "/dashboard/laporan-monitoring-tugas",
+        icon: ChartColumnIncreasingIcon,
+        roles: ["pic_sosmed"],
+      },
+      {
         title: "Aktivitas Blast",
         url: "/blast/aktivitas",
         icon: Radio,
@@ -151,13 +157,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Monitoring Sosmed",
         url: "/analitik/monitoring-sosmed",
         icon: MonitorPlay,
-        roles: ["superadmin", "qcc_wcc"],
+        roles: ["superadmin", "supervisi", "qcc_wcc"],
       },
       {
         title: "Laporan Monitoring Tugas",
         url: "/analitik/laporan-monitoring-tugas",
         icon: ChartColumnIncreasingIcon,
-        roles: ["superadmin"],
+        roles: ["superadmin", "supervisi"],
       },
       {
         title: "Laporan Regional",

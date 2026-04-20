@@ -198,7 +198,7 @@ function createDefaultDateRange(): DateRange {
 }
 
 export function MonitoringSosmedDashboard() {
-  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "qcc_wcc"]);
+  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "supervisi", "qcc_wcc"]);
   const [data, setData] = useState<MonitoringSosmedData | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => createDefaultDateRange());
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");

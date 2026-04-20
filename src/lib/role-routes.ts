@@ -27,7 +27,12 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/verifikasi-akun",
     "/pengaturan/manajemen-user",
   ],
-  supervisi: ["/dashboard/approval", "/konten/bank-konten"],
+  supervisi: [
+    "/dashboard/approval",
+    "/konten/bank-konten",
+    "/analitik/monitoring-sosmed",
+    "/analitik/laporan-monitoring-tugas",
+  ],
   sysadmin: [
     "/system/whatsapp-automation",
     "/system/whatsapp-gateway",
@@ -55,6 +60,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/notifikasi",
   ],
   pic_sosmed: [
+    "/dashboard/laporan-monitoring-tugas",
     "/dashboard/postingan-saya",
     "/aksi/submit-posting",
     "/konten/bank-konten",

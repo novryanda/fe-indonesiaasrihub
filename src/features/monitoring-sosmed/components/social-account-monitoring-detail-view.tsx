@@ -148,7 +148,7 @@ function getPicTone(status: SocialPostPicStatus) {
 }
 
 export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
-  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "qcc_wcc"]);
+  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "supervisi", "qcc_wcc"]);
   const now = new Date();
   const [data, setData] = useState<SocialAccountDetail | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));

@@ -1,10 +1,12 @@
 export type MonitoringPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | "x";
 
 export interface MonitoringTugasScope {
-  mode: "nasional" | "regional";
+  mode: "nasional" | "regional" | "pribadi";
   wilayah_id: string | null;
   wilayah_nama: string;
   wilayah_kode: string;
+  pic_id: string | null;
+  pic_name: string | null;
 }
 
 export interface MonitoringTugasFilters {
@@ -51,6 +53,7 @@ export interface MonitoringTopAccountItem {
 
 export interface MonitoringTopPostItem {
   id: string;
+  posting_proof_id: string;
   detail_post_id?: string | null;
   social_account_id: string | null;
   platform: MonitoringPlatform;
@@ -83,6 +86,7 @@ export interface MonitoringTopCommentItem {
   post: {
     id: string;
     social_account_id: string;
+    posting_proof_id: string | null;
     url: string;
     short_code: string | null;
     caption: string | null;

@@ -30,6 +30,7 @@ import type {
   MonitoringTugasData,
 } from "@/features/monitoring-tugas/types/monitoring-tugas.type";
 import { ESELON_2_OPTIONS } from "@/features/social-accounts/constants/social-account-eselon";
+import type { UserRole } from "@/app/(auth)/auth/types/auth.types";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 const numberFormatter = new Intl.NumberFormat("id-ID");
@@ -197,14 +198,79 @@ function createDefaultDateRange(): DateRange {
   return { from, to };
 }
 
-export function MonitoringTugasDashboard() {
-  const { isAuthorized, isPending } = useRoleGuard(["superadmin"]);
+type MonitoringTugasDashboardProps = {
+  viewer?: "superadmin" | "pic";
+};
+
+export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTugasDashboardProps) {
+  const allowedRoles: UserRole[] = viewer === "pic" ? ["pic_sosmed"] : ["superadmin", "supervisi"];
+  const { isAuthorized, isPending } = useRoleGuard(allowedRoles);
   const [data, setData] = useState<MonitoringTugasData | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => createDefaultDateRange());
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [selectedEselon2, setSelectedEselon2] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isPicView = viewer === "pic";
+  const copy = isPicView
+    ? {
+        pageTitle: "Penilaian Posting Saya",
+        pageDescription:
+          "Pantau performa URL posting yang Anda submit sendiri berdasarkan hasil scrape yang berhasil dipadankan.",
+        scopePrefix: "Scope posting Anda",
+        scoreTitle: "Skor Engagement Rata-Rata",
+        totalViewsLabel: "Total Views Posting",
+        totalPostsLabel: "URL Tersubmit",
+        activeAccountsLabel: "Akun Sosmed Terpakai",
+        trendTitle: "Tren Skor Posting Saya",
+        trendDescription: "Perubahan skor engagement harian dari URL posting yang Anda submit pada periode",
+        trendEmpty: "Belum ada tren performa posting Anda pada periode ini.",
+        detailTitle: "Rincian Performa Posting Saya",
+        detailDescription:
+          "Rincian likes, views, dan comments dari URL posting Anda yang berhasil terbaca dalam hasil scrape.",
+        detailEmpty: "Belum ada rincian performa posting Anda pada periode ini.",
+        topPostsTitle: "Posting Terbaik Saya",
+        topPostsDescription: "URL posting Anda dengan performa terbaik pada periode terpilih.",
+        topPostsEmpty: "Belum ada URL posting Anda pada periode ini.",
+        topPostsAction: "Lihat Penilaian",
+        topCommentsTitle: "Komentar Teratas di Posting Saya",
+        topCommentsDescription:
+          "Komentar dengan likes tertinggi pada posting Anda yang berhasil dipadankan dengan hasil scrape.",
+        topCommentsEmpty: "Belum ada komentar scrape dari posting Anda pada periode ini.",
+        topCommentsAction: "Lihat Penilaian",
+        accountsTitle: "Akun Sosmed Terkait",
+        accountsDescription: "Akun sosial yang memuat posting Anda selama periode terpilih.",
+        accountsEmpty: "Belum ada akun sosmed yang terkait pada periode ini.",
+      }
+    : {
+        pageTitle: "Laporan Monitoring Tugas",
+        pageDescription:
+          "Pantau engagement score, tren performa harian, dan ranking posting berdasarkan URL yang disubmit PIC sosmed.",
+        scopePrefix: "Scope",
+        scoreTitle: "Avg. Engagement Score",
+        totalViewsLabel: "Total Views",
+        totalPostsLabel: "Total Posting",
+        activeAccountsLabel: "Akun Aktif Posting",
+        trendTitle: "Engagement Score Trends",
+        trendDescription: "Perubahan skor engagement harian dari posting tugas PIC pada periode",
+        trendEmpty: "Belum ada data tren engagement pada periode ini.",
+        detailTitle: "Engagement Details",
+        detailDescription: "Detail performa harian untuk likes, views, dan comments pada URL posting tugas yang masuk filter.",
+        detailEmpty: "Belum ada detail engagement pada periode ini.",
+        topPostsTitle: "Top Posts 10",
+        topPostsDescription:
+          "URL posting tugas PIC terbaik pada periode terpilih dengan status validasi sebagai marker operasional.",
+        topPostsEmpty: "Belum ada URL posting tugas pada periode ini.",
+        topPostsAction: "Detail Tugas",
+        topCommentsTitle: "Top Comment 10",
+        topCommentsDescription:
+          "Komentar dengan likes terbanyak pada posting tugas yang berhasil dipadankan dengan hasil scrape.",
+        topCommentsEmpty: "Belum ada komentar scrape pada periode ini.",
+        topCommentsAction: "Detail Tugas",
+        accountsTitle: "Akun Top 10",
+        accountsDescription: "Urutan akun berdasarkan performa URL tugas PIC yang terhubung ke akun sosial pada filter aktif.",
+        accountsEmpty: "Belum ada akun yang masuk ranking pada periode ini.",
+      };
 
   const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined;
   const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined;
@@ -221,7 +287,7 @@ export function MonitoringTugasDashboard() {
       startDate,
       endDate,
       platform: selectedPlatform === "all" ? undefined : selectedPlatform,
-      eselon2: selectedEselon2 === "all" ? undefined : selectedEselon2,
+      eselon2: isPicView || selectedEselon2 === "all" ? undefined : selectedEselon2,
     })
       .then((response) => {
         setData(response.data);
@@ -231,7 +297,7 @@ export function MonitoringTugasDashboard() {
         setError(message);
       })
       .finally(() => setLoading(false));
-  }, [endDate, isAuthorized, isPending, selectedEselon2, selectedPlatform, startDate]);
+  }, [endDate, isAuthorized, isPending, isPicView, selectedEselon2, selectedPlatform, startDate]);
 
   const scoreTrendRows = useMemo(() => data?.engagement_score_trends ?? [], [data]);
   const engagementDetailRows = useMemo(() => data?.engagement_details ?? [], [data]);
@@ -289,11 +355,8 @@ export function MonitoringTugasDashboard() {
       <Card className="border-foreground/10">
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-xl">Laporan Monitoring Tugas</CardTitle>
-            <CardDescription>
-              Pantau engagement score, tren performa harian, dan ranking posting berdasarkan URL yang disubmit PIC
-              sosmed.
-            </CardDescription>
+            <CardTitle className="text-xl">{copy.pageTitle}</CardTitle>
+            <CardDescription>{copy.pageDescription}</CardDescription>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
@@ -309,19 +372,21 @@ export function MonitoringTugasDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedEselon2} onValueChange={setSelectedEselon2}>
-              <SelectTrigger className="min-w-[260px]">
-                <SelectValue placeholder="Pilih unit kerja" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Unit Kerja</SelectItem>
-                {ESELON_2_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!isPicView ? (
+              <Select value={selectedEselon2} onValueChange={setSelectedEselon2}>
+                <SelectTrigger className="min-w-[260px]">
+                  <SelectValue placeholder="Pilih unit kerja" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Unit Kerja</SelectItem>
+                  {ESELON_2_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
         </CardHeader>
@@ -331,11 +396,13 @@ export function MonitoringTugasDashboard() {
             <span>
               Periode {data.selected_period.label}
               {data.filters.platform ? ` • ${formatPlatformLabel(data.filters.platform)}` : " • Semua platform"}
-              {data.filters.eselon_2 ? ` • ${data.filters.eselon_2}` : " • Semua unit kerja"}
+              {!isPicView ? data.filters.eselon_2 ? ` • ${data.filters.eselon_2}` : " • Semua unit kerja" : ""}
             </span>
           </div>
           <div>
-            Scope {data.scope.wilayah_nama} • Update scrape terakhir {formatDateTime(data.latest_scraped_at)}
+            {isPicView
+              ? `${copy.scopePrefix} • ${data.scope.pic_name ?? "PIC"} • Update scrape terakhir ${formatDateTime(data.latest_scraped_at)}`
+              : `${copy.scopePrefix} ${data.scope.wilayah_nama} • Update scrape terakhir ${formatDateTime(data.latest_scraped_at)}`}
           </div>
         </CardContent>
       </Card>
@@ -349,7 +416,7 @@ export function MonitoringTugasDashboard() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <Card className="border-foreground/10">
           <CardHeader>
-            <CardTitle className="text-xl">Avg. Engagement Score</CardTitle>
+            <CardTitle className="text-xl">{copy.scoreTitle}</CardTitle>
           </CardHeader>
           <CardContent className="flex min-h-[280px] flex-col justify-between">
             <div className="space-y-4">
@@ -358,17 +425,17 @@ export function MonitoringTugasDashboard() {
               </div>
               <div className="grid gap-3 rounded-3xl border border-foreground/10 bg-muted/15 p-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">Total Views</span>
+                  <span className="text-muted-foreground">{copy.totalViewsLabel}</span>
                   <span className="font-semibold text-foreground">{formatNumber(data.stats.total_views)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">Total Posting</span>
+                  <span className="text-muted-foreground">{copy.totalPostsLabel}</span>
                   <span className="font-semibold text-foreground">
                     {formatNumber(data.stats.total_posting_bulan_ini)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">Akun Aktif Posting</span>
+                  <span className="text-muted-foreground">{copy.activeAccountsLabel}</span>
                   <span className="font-semibold text-foreground">{formatNumber(data.stats.akun_posting_aktif)}</span>
                 </div>
               </div>
@@ -378,10 +445,9 @@ export function MonitoringTugasDashboard() {
 
         <Card className="border-foreground/10">
           <CardHeader>
-            <CardTitle className="text-xl">Engagement Score Trends</CardTitle>
+            <CardTitle className="text-xl">{copy.trendTitle}</CardTitle>
             <CardDescription>
-              Perubahan skor engagement harian dari posting tugas PIC pada periode{" "}
-              {data.selected_period.label.toLowerCase()}.
+              {copy.trendDescription} {data.selected_period.label.toLowerCase()}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -452,7 +518,7 @@ export function MonitoringTugasDashboard() {
               </ChartContainer>
             ) : (
               <div className="rounded-3xl border border-foreground/20 border-dashed py-16 text-center text-muted-foreground">
-                Belum ada data tren engagement pada periode ini.
+                {copy.trendEmpty}
               </div>
             )}
           </CardContent>
@@ -461,10 +527,8 @@ export function MonitoringTugasDashboard() {
 
       <Card className="border-foreground/10">
         <CardHeader>
-          <CardTitle className="text-xl">Engagement Details</CardTitle>
-          <CardDescription>
-            Detail performa harian untuk likes, views, dan comments pada URL posting tugas yang masuk filter.
-          </CardDescription>
+          <CardTitle className="text-xl">{copy.detailTitle}</CardTitle>
+          <CardDescription>{copy.detailDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {engagementDetailRows.length > 0 ? (
@@ -590,7 +654,7 @@ export function MonitoringTugasDashboard() {
             </ChartContainer>
           ) : (
             <div className="rounded-3xl border border-foreground/20 border-dashed py-16 text-center text-muted-foreground">
-              Belum ada detail engagement pada periode ini.
+              {copy.detailEmpty}
             </div>
           )}
         </CardContent>
@@ -601,11 +665,9 @@ export function MonitoringTugasDashboard() {
           <CardHeader className="shrink-0 border-b pb-4">
             <CardTitle className="flex items-center gap-2 text-xl">
               <TrendingUp className="size-5 text-rose-600" />
-              Top Posts 10
+              {copy.topPostsTitle}
             </CardTitle>
-            <CardDescription>
-              URL posting tugas PIC terbaik pada periode terpilih dengan status validasi sebagai marker operasional.
-            </CardDescription>
+            <CardDescription>{copy.topPostsDescription}</CardDescription>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
@@ -647,7 +709,17 @@ export function MonitoringTugasDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {post.detail_post_id && post.social_account_id ? (
+                    {isPicView ? (
+                      post.posting_proof_id ? (
+                        <Button asChild className="flex-1">
+                          <Link href={`/dashboard/postingan-saya/${post.posting_proof_id}`}>{copy.topPostsAction}</Link>
+                        </Button>
+                      ) : (
+                        <Button className="flex-1" variant="outline" disabled>
+                          Detail Belum Ada
+                        </Button>
+                      )
+                    ) : post.detail_post_id && post.social_account_id ? (
                       <Button asChild className="flex-1">
                         <Link href={`/analitik/monitoring-sosmed/${post.social_account_id}/postingan/${post.detail_post_id}`}>
                           Detail Post
@@ -668,7 +740,7 @@ export function MonitoringTugasDashboard() {
               ))}
               {data.top_posts.length === 0 && (
                 <div className="col-span-full rounded-3xl border border-foreground/20 border-dashed p-8 text-center text-muted-foreground">
-                  Belum ada URL posting tugas pada periode ini.
+                  {copy.topPostsEmpty}
                 </div>
               )}
             </div>
@@ -677,10 +749,8 @@ export function MonitoringTugasDashboard() {
 
         <Card className="flex h-[720px] flex-col overflow-hidden border-foreground/10 xl:h-[760px]">
           <CardHeader className="shrink-0 border-b pb-4">
-            <CardTitle className="text-xl">Top Comment 10</CardTitle>
-            <CardDescription>
-              Komentar dengan likes terbanyak pada posting tugas yang berhasil dipadankan dengan hasil scrape.
-            </CardDescription>
+            <CardTitle className="text-xl">{copy.topCommentsTitle}</CardTitle>
+            <CardDescription>{copy.topCommentsDescription}</CardDescription>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
             {data.top_comments.map((comment, index) => (
@@ -704,13 +774,27 @@ export function MonitoringTugasDashboard() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button asChild className="flex-1">
-                    <Link
-                      href={`/analitik/monitoring-sosmed/${comment.post.social_account_id}/postingan/${comment.post.id}`}
-                    >
-                      Detail Post
-                    </Link>
-                  </Button>
+                  {isPicView ? (
+                    comment.post.posting_proof_id ? (
+                      <Button asChild className="flex-1">
+                        <Link href={`/dashboard/postingan-saya/${comment.post.posting_proof_id}`}>
+                          {copy.topCommentsAction}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button className="flex-1" variant="outline" disabled>
+                        Detail Belum Ada
+                      </Button>
+                    )
+                  ) : (
+                    <Button asChild className="flex-1">
+                      <Link
+                        href={`/analitik/monitoring-sosmed/${comment.post.social_account_id}/postingan/${comment.post.id}`}
+                      >
+                        Detail Post
+                      </Link>
+                    </Button>
+                  )}
                   <Button asChild variant="outline" className="flex-1">
                     <a href={comment.post.url} target="_blank" rel="noreferrer">
                       Buka Source
@@ -721,7 +805,7 @@ export function MonitoringTugasDashboard() {
             ))}
             {data.top_comments.length === 0 && (
               <div className="rounded-3xl border border-foreground/20 border-dashed p-8 text-center text-muted-foreground">
-                Belum ada komentar scrape pada periode ini.
+                {copy.topCommentsEmpty}
               </div>
             )}
           </CardContent>
@@ -730,10 +814,8 @@ export function MonitoringTugasDashboard() {
 
       <Card className="border-foreground/10">
         <CardHeader>
-          <CardTitle className="text-xl">Akun Top 10</CardTitle>
-          <CardDescription>
-            Urutan akun berdasarkan performa URL tugas PIC yang terhubung ke akun sosial pada filter aktif.
-          </CardDescription>
+          <CardTitle className="text-xl">{copy.accountsTitle}</CardTitle>
+          <CardDescription>{copy.accountsDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
@@ -769,14 +851,16 @@ export function MonitoringTugasDashboard() {
                     <p className="mt-1 font-semibold">{formatPercent(account.engagement_rate)}</p>
                   </div>
                 </div>
-                <Button asChild variant="outline">
-                  <Link href={`/analitik/monitoring-sosmed/${account.id}`}>Buka Akun Sosmed</Link>
-                </Button>
+                {!isPicView ? (
+                  <Button asChild variant="outline">
+                    <Link href={`/analitik/monitoring-sosmed/${account.id}`}>Buka Akun Sosmed</Link>
+                  </Button>
+                ) : null}
               </div>
             ))}
             {data.top_accounts.length === 0 && (
               <div className="rounded-3xl border border-foreground/20 border-dashed p-8 text-center text-muted-foreground xl:col-span-2 2xl:col-span-3">
-                Belum ada akun yang masuk ranking pada periode ini.
+                {copy.accountsEmpty}
               </div>
             )}
           </div>

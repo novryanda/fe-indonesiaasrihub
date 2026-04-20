@@ -70,7 +70,7 @@ function getPicTone(status: SocialPostPicStatus) {
 }
 
 export function SocialAccountPostDetailView({ accountId, postId }: { accountId: string; postId: string }) {
-  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "qcc_wcc"]);
+  const { isAuthorized, isPending } = useRoleGuard(["superadmin", "supervisi", "qcc_wcc"]);
   const [data, setData] = useState<SocialAccountScrapedPostDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
