@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { BellRing, BriefcaseBusiness, Eye, MessageCircleHeart, MonitorPlay, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, Eye, FileText, MessageCircleHeart, MonitorPlay, UsersRound } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
@@ -121,22 +121,22 @@ export function RegionalDashboardView() {
         icon: BriefcaseBusiness,
       },
       {
-        label: "Akun Sosmed",
+        label: "Jumlah Akun Sosmed Terdaftar",
         value: formatNumber(data.stats.total_akun_sosmed),
-        helper: "Akun regional terdaftar",
+        helper: "Akun sosmed regional terdaftar",
         icon: MonitorPlay,
       },
       {
-        label: "Posting Valid",
+        label: "Total Posting Bulan Ini",
         value: formatNumber(data.stats.total_posting_valid),
         helper: data.selected_period.label,
         icon: Eye,
       },
       {
-        label: "Menunggu Validasi",
-        value: formatNumber(data.stats.bukti_menunggu_validasi),
-        helper: "Queue regional saat ini",
-        icon: BellRing,
+        label: "Jumlah Bank Konten Bulan Ini",
+        value: formatNumber(data.stats.total_bank_konten_bulan_ini),
+        helper: data.selected_period.label,
+        icon: FileText,
       },
       {
         label: "Overdue PIC",
@@ -376,11 +376,15 @@ export function RegionalDashboardView() {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
-                  <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Bukti Menunggu Validasi</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">
+                    Bukti Posting Menunggu Validasi
+                  </p>
                   <p className="mt-2 font-semibold text-3xl text-sky-700">
                     {formatNumber(data.alerts.bukti_menunggu_validasi)}
                   </p>
-                  <p className="mt-1 text-sm text-sky-700/90">Posting yang masih menunggu pengecekan QCC</p>
+                  <p className="mt-1 text-sm text-sky-700/90">
+                    Bank konten dengan bukti posting menunggu pengecekan QCC
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
                   <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Reminder Bulan Ini</p>

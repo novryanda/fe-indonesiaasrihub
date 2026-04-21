@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { Activity, BellRing, Eye, Globe2, MapPinned, MessageCircleHeart, UsersRound } from "lucide-react";
+import { Activity, Eye, FileText, Globe2, MapPinned, MessageCircleHeart, UsersRound } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 import { IndonesiaMap } from "@/components/shadcnmaps/maps/indonesia";
@@ -19,8 +19,12 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { getNationalDashboard } from "@/features/dashboard/api/dashboard-api";
 import {
@@ -40,6 +44,7 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 const numberFormatter = new Intl.NumberFormat("id-ID");
 const compactFormatter = new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 });
 const MONITORING_PLATFORMS: MonitoringPlatform[] = ["instagram", "tiktok", "youtube", "facebook", "x"];
+const DASHBOARD_TABLE_PAGE_SIZE = 10;
 const monthOptions = [
   { value: "1", label: "Januari" },
   { value: "2", label: "Februari" },
@@ -63,6 +68,24 @@ const platformColors: Record<string, string> = {
   x: "#334155",
 };
 
+function formatDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getMonthDateRange(month: number, year: number) {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+
+  return {
+    from: formatDateInput(start),
+    to: formatDateInput(end),
+  };
+}
+
 function formatNumber(value: number) {
   return numberFormatter.format(value);
 }
@@ -83,6 +106,36 @@ function formatDateTime(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatDateOnly(value: string) {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatValidationStatus(value: string) {
+  if (value === "valid") {
+    return "Valid";
+  }
+  if (value === "ditolak") {
+    return "Ditolak";
+  }
+
+  return "Menunggu";
+}
+
+function getValidationStatusTone(value: string) {
+  if (value === "valid") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+  if (value === "ditolak") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
 function aggregateMonitoringDailyMetrics(items: MonitoringDailyPlatformAreaItem[]) {
@@ -169,8 +222,13 @@ function findSelectedRegion(data: NationalDashboardData | null, regionId: string
 export function NationalDashboardView() {
   const { isAuthorized, isPending } = useRoleGuard(["superadmin"]);
   const now = new Date();
+  const initialDailyPostingRange = getMonthDateRange(now.getMonth() + 1, now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
+  const [dailyPostingDateFrom, setDailyPostingDateFrom] = useState(initialDailyPostingRange.from);
+  const [dailyPostingDateTo, setDailyPostingDateTo] = useState(initialDailyPostingRange.to);
+  const [dailyPostingPage, setDailyPostingPage] = useState(1);
+  const [monthlyAccountPostingPage, setMonthlyAccountPostingPage] = useState(1);
   const [data, setData] = useState<NationalDashboardData | null>(null);
   const [monitoringData, setMonitoringData] = useState<MonitoringSosmedData | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
@@ -178,6 +236,24 @@ export function NationalDashboardView() {
   const [error, setError] = useState<string | null>(null);
 
   const yearOptions = Array.from({ length: 5 }, (_, index) => String(now.getFullYear() - index));
+
+  function handleMonthChange(value: string) {
+    setSelectedMonth(value);
+    setDailyPostingPage(1);
+    setMonthlyAccountPostingPage(1);
+    const range = getMonthDateRange(Number(value), Number(selectedYear));
+    setDailyPostingDateFrom(range.from);
+    setDailyPostingDateTo(range.to);
+  }
+
+  function handleYearChange(value: string) {
+    setSelectedYear(value);
+    setDailyPostingPage(1);
+    setMonthlyAccountPostingPage(1);
+    const range = getMonthDateRange(Number(selectedMonth), Number(value));
+    setDailyPostingDateFrom(range.from);
+    setDailyPostingDateTo(range.to);
+  }
 
   useEffect(() => {
     if (!isAuthorized || isPending) {
@@ -188,10 +264,19 @@ export function NationalDashboardView() {
     setError(null);
     setMonitoringData(null);
 
+    const dailyPostingDateParams =
+      dailyPostingDateFrom && dailyPostingDateTo
+        ? {
+            dailyDateFrom: dailyPostingDateFrom,
+            dailyDateTo: dailyPostingDateTo,
+          }
+        : {};
+
     void Promise.all([
       getNationalDashboard({
         month: Number(selectedMonth),
         year: Number(selectedYear),
+        ...dailyPostingDateParams,
       }),
       getMonitoringSosmedData({
         month: Number(selectedMonth),
@@ -207,7 +292,7 @@ export function NationalDashboardView() {
         setError(message);
       })
       .finally(() => setLoading(false));
-  }, [isAuthorized, isPending, selectedMonth, selectedYear]);
+  }, [dailyPostingDateFrom, dailyPostingDateTo, isAuthorized, isPending, selectedMonth, selectedYear]);
 
   const selectedRegion = useMemo(() => findSelectedRegion(data, selectedRegionId), [data, selectedRegionId]);
 
@@ -362,6 +447,42 @@ export function NationalDashboardView() {
     return [indonesiaRegion, ...data.top_regions.filter((region) => region.region_id !== "ID").slice(0, 4)];
   }, [data]);
 
+  const dailyPostingActivities = useMemo(() => data?.daily_posting_activities ?? [], [data]);
+  const monthlyAccountPostingSummary = useMemo(() => data?.monthly_social_account_posting_summary ?? [], [data]);
+  const dailyPostingTotalPages = Math.max(1, Math.ceil(dailyPostingActivities.length / DASHBOARD_TABLE_PAGE_SIZE));
+  const monthlyAccountPostingTotalPages = Math.max(
+    1,
+    Math.ceil(monthlyAccountPostingSummary.length / DASHBOARD_TABLE_PAGE_SIZE),
+  );
+  const pagedDailyPostingActivities = useMemo(
+    () =>
+      dailyPostingActivities.slice(
+        (dailyPostingPage - 1) * DASHBOARD_TABLE_PAGE_SIZE,
+        dailyPostingPage * DASHBOARD_TABLE_PAGE_SIZE,
+      ),
+    [dailyPostingActivities, dailyPostingPage],
+  );
+  const pagedMonthlyAccountPostingSummary = useMemo(
+    () =>
+      monthlyAccountPostingSummary.slice(
+        (monthlyAccountPostingPage - 1) * DASHBOARD_TABLE_PAGE_SIZE,
+        monthlyAccountPostingPage * DASHBOARD_TABLE_PAGE_SIZE,
+      ),
+    [monthlyAccountPostingPage, monthlyAccountPostingSummary],
+  );
+
+  useEffect(() => {
+    if (dailyPostingPage > dailyPostingTotalPages) {
+      setDailyPostingPage(dailyPostingTotalPages);
+    }
+  }, [dailyPostingPage, dailyPostingTotalPages]);
+
+  useEffect(() => {
+    if (monthlyAccountPostingPage > monthlyAccountPostingTotalPages) {
+      setMonthlyAccountPostingPage(monthlyAccountPostingTotalPages);
+    }
+  }, [monthlyAccountPostingPage, monthlyAccountPostingTotalPages]);
+
   const trendDescription = monitoringData?.latest_scraped_at
     ? `Pergerakan posting valid harian dan tayangan/engagement dari hasil scraping. Sinkronisasi terakhir ${formatDateTime(
         monitoringData.latest_scraped_at,
@@ -397,28 +518,28 @@ export function NationalDashboardView() {
 
     return [
       {
-        label: "User Aktif",
-        value: formatNumber(data.stats.total_user_aktif),
-        helper: "Total PIC sosmed aktif",
+        label: "PIC Terdaftar",
+        value: formatNumber(data.stats.total_pic_terdaftar),
+        helper: "Total PIC sosmed terdaftar",
         icon: UsersRound,
       },
       {
-        label: "Akun Sosmed",
+        label: "Jumlah Akun Sosmed Terdaftar",
         value: formatNumber(data.stats.total_akun_sosmed),
-        helper: "Semua akun terdaftar",
+        helper: "Semua akun sosmed terdaftar",
         icon: Globe2,
       },
       {
-        label: "Posting Valid",
+        label: "Total Posting Bulan Ini",
         value: formatNumber(data.stats.total_posting_valid),
         helper: data.selected_period.label,
         icon: Activity,
       },
       {
-        label: "Menunggu Validasi",
-        value: formatNumber(data.stats.bukti_menunggu_validasi),
-        helper: "Queue validasi berjalan",
-        icon: BellRing,
+        label: "Jumlah Bank Konten Bulan Ini",
+        value: formatNumber(data.stats.total_bank_konten_bulan_ini),
+        helper: data.selected_period.label,
+        icon: FileText,
       },
       {
         label: "Tayangan",
@@ -551,7 +672,7 @@ export function NationalDashboardView() {
             </div>
             <div className="app-panel-glass grid gap-2 rounded-2xl border p-4 shadow-sm backdrop-blur">
               <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">Periode</p>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
                 <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih bulan" />
                 </SelectTrigger>
@@ -563,7 +684,7 @@ export function NationalDashboardView() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <Select value={selectedYear} onValueChange={handleYearChange}>
                 <SelectTrigger className="app-control-surface min-w-52">
                   <SelectValue placeholder="Pilih tahun" />
                 </SelectTrigger>
@@ -656,6 +777,62 @@ export function NationalDashboardView() {
               </CardContent>
             </Card>
 
+            <Card className="border-foreground/10">
+              <CardHeader>
+                <CardTitle>Distribusi Per Platform</CardTitle>
+                <CardDescription>{platformDescription}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                <ChartContainer config={pieChartConfig} className="mx-auto h-[280px] w-full max-w-[360px]">
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent nameKey="platform" hideLabel />} />
+                    <Pie
+                      data={platformDistributionItems}
+                      dataKey="share_value"
+                      nameKey="platform"
+                      innerRadius={72}
+                      outerRadius={110}
+                      strokeWidth={4}
+                    >
+                      {platformDistributionItems.map((item) => (
+                        <Cell key={item.platform} fill={platformColors[item.platform]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+                <div className="space-y-3">
+                  {platformDistributionItems.map((item) => (
+                    <div
+                      key={item.platform}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="inline-flex h-3 w-3 rounded-full"
+                          style={{ backgroundColor: platformColors[item.platform] }}
+                        />
+                        <div>
+                          <p className="font-medium">{formatPlatformLabel(item.platform)}</p>
+                          <p className="text-muted-foreground">{formatNumber(item.account_count)} akun</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          {item.total_views > 0 ? formatCompact(item.total_views) : formatNumber(item.post_count)}
+                        </p>
+                        <p className="text-muted-foreground">{item.total_views > 0 ? "tayangan" : "posting"}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatNumber(item.post_count)} posting • {formatCompact(item.total_interactions)} interaksi
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <Card className="pt-0">
               <CardHeader className="border-b py-5">
                 <div className="grid gap-1">
@@ -751,62 +928,6 @@ export function NationalDashboardView() {
                 </ChartContainer>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-            <Card className="border-foreground/10">
-              <CardHeader>
-                <CardTitle>Distribusi Per Platform</CardTitle>
-                <CardDescription>{platformDescription}</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-[1fr_auto]">
-                <ChartContainer config={pieChartConfig} className="mx-auto h-[280px] w-full max-w-[360px]">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="platform" hideLabel />} />
-                    <Pie
-                      data={platformDistributionItems}
-                      dataKey="share_value"
-                      nameKey="platform"
-                      innerRadius={72}
-                      outerRadius={110}
-                      strokeWidth={4}
-                    >
-                      {platformDistributionItems.map((item) => (
-                        <Cell key={item.platform} fill={platformColors[item.platform]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-                <div className="space-y-3">
-                  {platformDistributionItems.map((item) => (
-                    <div
-                      key={item.platform}
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-muted/20 px-4 py-3 text-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="inline-flex h-3 w-3 rounded-full"
-                          style={{ backgroundColor: platformColors[item.platform] }}
-                        />
-                        <div>
-                          <p className="font-medium">{formatPlatformLabel(item.platform)}</p>
-                          <p className="text-muted-foreground">{formatNumber(item.account_count)} akun</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          {item.total_views > 0 ? formatCompact(item.total_views) : formatNumber(item.post_count)}
-                        </p>
-                        <p className="text-muted-foreground">{item.total_views > 0 ? "tayangan" : "posting"}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {formatNumber(item.post_count)} posting • {formatCompact(item.total_interactions)} interaksi
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
 
             <Card className="border-foreground/10">
               <CardHeader>
@@ -858,7 +979,7 @@ export function NationalDashboardView() {
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {topNationalAccounts.map((account) => (
-                <div key={account.id} className="rounded-3xl border border-foreground/10 app-bg-surface p-5 shadow-sm">
+                <div key={account.id} className="app-bg-surface rounded-3xl border border-foreground/10 p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <Badge variant="outline" className="border-foreground/10">
                       {formatPlatformLabel(account.platform)}
@@ -899,6 +1020,201 @@ export function NationalDashboardView() {
               ))}
             </CardContent>
           </Card>
+
+          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <Card className="border-foreground/10">
+              <CardHeader className="gap-4">
+                <div>
+                  <CardTitle>Log Posting Harian PIC</CardTitle>
+                  <CardDescription>
+                    Aktivitas posting PIC berdasarkan tanggal posting yang masuk ke sistem.
+                  </CardDescription>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="daily-posting-date-from">Tanggal Dari</Label>
+                    <Input
+                      id="daily-posting-date-from"
+                      type="date"
+                      value={dailyPostingDateFrom}
+                      onChange={(event) => {
+                        setDailyPostingPage(1);
+                        setDailyPostingDateFrom(event.target.value);
+                      }}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="daily-posting-date-to">Tanggal Sampai</Label>
+                    <Input
+                      id="daily-posting-date-to"
+                      type="date"
+                      value={dailyPostingDateTo}
+                      onChange={(event) => {
+                        setDailyPostingPage(1);
+                        setDailyPostingDateTo(event.target.value);
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[520px] overflow-auto rounded-2xl border border-foreground/10">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Waktu</TableHead>
+                        <TableHead>PIC</TableHead>
+                        <TableHead>Akun</TableHead>
+                        <TableHead>Bank Konten</TableHead>
+                        <TableHead>Platform</TableHead>
+                        <TableHead>Views</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Link</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dailyPostingActivities.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                            Belum ada posting PIC pada rentang tanggal ini.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        pagedDailyPostingActivities.map((activity) => (
+                          <TableRow key={activity.id}>
+                            <TableCell className="min-w-36 align-top">
+                              <div className="space-y-1 text-sm">
+                                <p>{formatDateTime(activity.posted_at)}</p>
+                                <p className="text-muted-foreground">{formatDateOnly(activity.posted_at)}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="min-w-44 align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{activity.pic.name}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {activity.pic.wilayah?.nama ?? "Tanpa wilayah"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="min-w-44 align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">
+                                  {activity.social_account?.profile_name ?? "Akun tidak tertaut"}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  {activity.social_account?.username ?? "-"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="min-w-56 align-top">
+                              <p className="line-clamp-2 text-sm">{activity.bank_content.title}</p>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <Badge variant="outline">{formatPlatformLabel(activity.platform)}</Badge>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">{formatCompact(activity.total_views)}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {formatNumber(activity.total_interactions)} interaksi
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <Badge variant="outline" className={getValidationStatusTone(activity.validation_status)}>
+                                {formatValidationStatus(activity.validation_status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right align-top">
+                              <Button asChild size="sm" variant="outline">
+                                <a href={activity.post_url} target="_blank" rel="noreferrer">
+                                  Buka
+                                </a>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4">
+                  <TablePagination
+                    summary={`Halaman ${dailyPostingPage} dari ${dailyPostingTotalPages} (${formatNumber(
+                      dailyPostingActivities.length,
+                    )} total posting)`}
+                    page={dailyPostingPage}
+                    totalPages={dailyPostingTotalPages}
+                    onPageChange={setDailyPostingPage}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-foreground/10">
+              <CardHeader>
+                <CardTitle>Posting Akun Sosmed Bulanan</CardTitle>
+                <CardDescription>Jumlah posting tiap akun sosmed pada {data.selected_period.label}.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[520px] overflow-auto rounded-2xl border border-foreground/10">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Akun Sosmed</TableHead>
+                        <TableHead>Platform</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Valid</TableHead>
+                        <TableHead>Views</TableHead>
+                        <TableHead>Terakhir</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthlyAccountPostingSummary.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            Belum ada posting akun sosmed dari PIC pada periode ini.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        pagedMonthlyAccountPostingSummary.map((account) => (
+                          <TableRow key={account.account_id}>
+                            <TableCell className="min-w-44 align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{account.profile_name}</p>
+                                <p className="text-muted-foreground text-xs">{account.username}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <Badge variant="outline">{formatPlatformLabel(account.platform)}</Badge>
+                            </TableCell>
+                            <TableCell className="align-top font-semibold">
+                              {formatNumber(account.total_posting)}
+                            </TableCell>
+                            <TableCell className="align-top">{formatNumber(account.valid_posting)}</TableCell>
+                            <TableCell className="align-top">{formatCompact(account.total_views)}</TableCell>
+                            <TableCell className="min-w-32 align-top text-muted-foreground text-sm">
+                              {account.last_activity ? formatDateTime(account.last_activity) : "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4">
+                  <TablePagination
+                    summary={`Halaman ${monthlyAccountPostingPage} dari ${monthlyAccountPostingTotalPages} (${formatNumber(
+                      monthlyAccountPostingSummary.length,
+                    )} total akun)`}
+                    page={monthlyAccountPostingPage}
+                    totalPages={monthlyAccountPostingTotalPages}
+                    onPageChange={setMonthlyAccountPostingPage}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </>
       ) : null}
     </div>

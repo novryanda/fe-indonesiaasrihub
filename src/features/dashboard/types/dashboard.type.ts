@@ -48,6 +48,58 @@ export interface DashboardTopAccountItem {
   } | null;
 }
 
+export interface DashboardDailyPostingActivityItem {
+  id: string;
+  posted_at: string;
+  platform: DashboardPlatform;
+  post_url: string;
+  validation_status: "menunggu" | "valid" | "ditolak";
+  total_views: number;
+  total_interactions: number;
+  bank_content: {
+    id: string;
+    title: string;
+  };
+  pic: {
+    id: string;
+    name: string;
+    email: string;
+    wilayah: {
+      id: string;
+      nama: string;
+      kode: string;
+    } | null;
+  };
+  social_account: {
+    id: string;
+    platform: DashboardPlatform;
+    username: string;
+    profile_name: string;
+    wilayah: {
+      id: string;
+      nama: string;
+      kode: string;
+    } | null;
+  } | null;
+}
+
+export interface DashboardMonthlySocialAccountPostingSummaryItem {
+  account_id: string;
+  platform: DashboardPlatform;
+  username: string;
+  profile_name: string;
+  account_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+  } | null;
+  total_posting: number;
+  valid_posting: number;
+  total_views: number;
+  total_interactions: number;
+  last_activity: string | null;
+}
+
 export interface DashboardMapRegionItem {
   region_id: string;
   wilayah_id: string | null;
@@ -63,11 +115,19 @@ export interface DashboardMapRegionItem {
 export interface NationalDashboardData {
   scope: DashboardScope;
   selected_period: DashboardSelectedPeriod;
+  daily_posting_filter: {
+    date_from: string;
+    date_to: string;
+    label: string;
+  };
   stats: {
     total_user_aktif: number;
+    total_pic_terdaftar: number;
     total_akun_sosmed: number;
     total_posting_valid: number;
+    total_bank_konten_bulan_ini: number;
     bukti_menunggu_validasi: number;
+    bank_konten_menunggu_validasi: number;
     total_tayangan: number;
     total_interaksi: number;
     avg_engagement_rate: number;
@@ -77,6 +137,8 @@ export interface NationalDashboardData {
   platform_distribution: DashboardPlatformDistributionItem[];
   top_regions: DashboardMapRegionItem[];
   top_accounts: DashboardTopAccountItem[];
+  daily_posting_activities: DashboardDailyPostingActivityItem[];
+  monthly_social_account_posting_summary: DashboardMonthlySocialAccountPostingSummaryItem[];
 }
 
 export interface RegionalDashboardData {
@@ -87,7 +149,9 @@ export interface RegionalDashboardData {
     total_pic_wilayah: number;
     total_akun_sosmed: number;
     total_posting_valid: number;
+    total_bank_konten_bulan_ini: number;
     bukti_menunggu_validasi: number;
+    bank_konten_menunggu_validasi: number;
     overdue_bank_content_pic: number;
   };
   trend: DashboardTrendItem[];
@@ -111,6 +175,7 @@ export interface RegionalDashboardData {
   alerts: {
     overdue_pic_count: number;
     bukti_menunggu_validasi: number;
+    bank_konten_menunggu_validasi: number;
     reminder_sent_bulan_ini: number;
   };
 }

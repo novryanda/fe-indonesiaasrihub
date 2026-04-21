@@ -215,17 +215,18 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
     ? {
         pageTitle: "Analitik Tugas Saya",
         pageDescription:
-          "Pantau performa link posting yang Anda submit sendiri, lengkap dengan ranking Anda di antara PIC regional yang sama.",
+          "Pantau performa link posting yang Anda submit sendiri, lengkap dengan ranking akun sosmed Anda di regional yang sama.",
         scopePrefix: "Scope posting Anda",
         scoreTitle: "Skor Engagement Rata-Rata",
         totalViewsLabel: "Total Views Posting",
         totalPostsLabel: "URL Tersubmit",
         activeAccountsLabel: "Akun Sosmed Terpakai",
-        rankHighlightTitle: "Ranking Anda Saat Ini",
+        rankHighlightTitle: "Ranking Akun Anda Saat Ini",
         rankHighlightDescription:
-          "Posisi Anda dihitung dari performa link tugas yang berhasil tercatat pada periode aktif.",
-        picLeaderboardTitle: "PIC Leaderboard Tugas",
-        picLeaderboardDescription: "Ranking PIC di regional Anda berdasarkan link tugas yang berhasil disubmit.",
+          "Posisi dihitung dari performa akun sosmed yang berhasil mencatat link tugas pada periode aktif.",
+        picLeaderboardTitle: "Akun Sosmed Leaderboard Tugas",
+        picLeaderboardDescription:
+          "Ranking akun sosmed di regional Anda berdasarkan link tugas yang berhasil disubmit.",
         regionalLeaderboardTitle: "",
         regionalLeaderboardDescription: "",
         trendTitle: "Tren Skor Posting Saya",
@@ -251,7 +252,7 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
     : {
         pageTitle: "Laporan & Analitik Tugas",
         pageDescription:
-          "Pantau engagement score, tren performa harian, ranking PIC, dan ranking regional berdasarkan link tugas yang disubmit PIC sosmed.",
+          "Pantau engagement score, tren performa harian, ranking akun sosmed, dan ranking regional berdasarkan link tugas yang disubmit PIC sosmed.",
         scopePrefix: "Scope",
         scoreTitle: "Avg. Engagement Score",
         totalViewsLabel: "Total Views",
@@ -259,9 +260,9 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
         activeAccountsLabel: "Akun Aktif Posting",
         rankHighlightTitle: "",
         rankHighlightDescription: "",
-        picLeaderboardTitle: "PIC Leaderboard Tugas",
+        picLeaderboardTitle: "Akun Sosmed Leaderboard Tugas",
         picLeaderboardDescription:
-          "Ranking PIC berdasarkan performa link tugas yang berhasil disubmit pada periode aktif.",
+          "Ranking akun sosmed berdasarkan akumulasi link tugas yang berhasil disubmit pada periode aktif.",
         regionalLeaderboardTitle: "Regional Leaderboard Tugas",
         regionalLeaderboardDescription:
           "Ranking regional, termasuk Indonesia, berdasarkan performa link tugas PIC pada periode aktif.",
@@ -317,13 +318,13 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
 
   const scoreTrendRows = useMemo(() => data?.engagement_score_trends ?? [], [data]);
   const engagementDetailRows = useMemo(() => data?.engagement_details ?? [], [data]);
-  const picLeaderboardRows = useMemo(() => data?.pic_leaderboard ?? [], [data]);
+  const accountLeaderboardRows = useMemo(() => data?.account_leaderboard ?? [], [data]);
   const regionalLeaderboardRows = useMemo(() => data?.regional_leaderboard ?? [], [data]);
-  const topPicLeaderboardRows = useMemo(() => picLeaderboardRows.slice(0, 10), [picLeaderboardRows]);
+  const topAccountLeaderboardRows = useMemo(() => accountLeaderboardRows.slice(0, 10), [accountLeaderboardRows]);
   const topRegionalLeaderboardRows = useMemo(() => regionalLeaderboardRows.slice(0, 10), [regionalLeaderboardRows]);
   const viewerLeaderboardRow = useMemo(
-    () => picLeaderboardRows.find((row) => row.pic_id === data?.scope.pic_id) ?? null,
-    [data?.scope.pic_id, picLeaderboardRows],
+    () => accountLeaderboardRows.find((row) => row.officer_id === data?.scope.pic_id) ?? null,
+    [accountLeaderboardRows, data?.scope.pic_id],
   );
   const scoreTrendTicks = useMemo(() => buildAdaptiveDateTicks(scoreTrendRows), [scoreTrendRows]);
   const engagementDetailTicks = useMemo(() => buildAdaptiveDateTicks(engagementDetailRows), [engagementDetailRows]);
@@ -697,15 +698,19 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
                 {data.viewer_rank.rank ? `#${data.viewer_rank.rank}` : "-"}
               </p>
               <p className="mt-2 text-muted-foreground text-sm">
-                dari {formatNumber(data.viewer_rank.total_participants)} PIC di {data.viewer_rank.scope_label}
+                dari {formatNumber(data.viewer_rank.total_participants)} akun sosmed di {data.viewer_rank.scope_label}
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white/80 p-4">
-              <p className="text-muted-foreground text-sm">Skor Final Anda</p>
+              <p className="text-muted-foreground text-sm">Skor Final Akun</p>
               <p className="mt-2 font-semibold text-4xl tracking-tight">
                 {formatPercent(data.viewer_rank.score_final)}
               </p>
-              <p className="mt-2 text-muted-foreground text-sm">Berdasarkan performa link tugas pada periode aktif.</p>
+              <p className="mt-2 text-muted-foreground text-sm">
+                {data.viewer_rank.account_username
+                  ? `Akun terbaik: ${data.viewer_rank.account_username}`
+                  : "Belum ada akun sosmed yang masuk ranking periode ini."}
+              </p>
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-white/80 p-4">
               <p className="text-muted-foreground text-sm">Total Posting Dinilai</p>
@@ -731,7 +736,8 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
               <TableHeader>
                 <TableRow>
                   <TableHead>Rank</TableHead>
-                  <TableHead>Nama PIC</TableHead>
+                  <TableHead>Akun Sosmed</TableHead>
+                  <TableHead>Platform</TableHead>
                   {!isPicView ? <TableHead>Regional</TableHead> : null}
                   <TableHead>Posting</TableHead>
                   <TableHead>Views</TableHead>
@@ -741,21 +747,27 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topPicLeaderboardRows.map((row) => (
+                {topAccountLeaderboardRows.map((row) => (
                   <TableRow
-                    key={row.pic_id}
+                    key={row.account_id}
                     className={cn(
-                      isPicView && row.pic_id === data.scope.pic_id ? "border-emerald-200 bg-emerald-50/60" : undefined,
+                      isPicView && row.officer_id === data.scope.pic_id
+                        ? "border-emerald-200 bg-emerald-50/60"
+                        : undefined,
                     )}
                   >
                     <TableCell className="font-semibold">#{row.rank}</TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{row.pic_name}</p>
-                        {isPicView && row.pic_id === data.scope.pic_id ? (
-                          <p className="text-emerald-700 text-xs">Ini posisi Anda</p>
+                        <p className="font-medium">{row.profile_name}</p>
+                        <p className="text-muted-foreground text-xs">{row.username}</p>
+                        {isPicView && row.officer_id === data.scope.pic_id ? (
+                          <p className="text-emerald-700 text-xs">Akun Anda</p>
                         ) : null}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getPlatformTone(row.platform)}>{formatPlatformLabel(row.platform)}</Badge>
                     </TableCell>
                     {!isPicView ? (
                       <TableCell>
@@ -772,10 +784,10 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
                     <TableCell className="font-semibold">{formatPercent(row.score_final)}</TableCell>
                   </TableRow>
                 ))}
-                {topPicLeaderboardRows.length === 0 ? (
+                {topAccountLeaderboardRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isPicView ? 7 : 8} className="py-8 text-center text-muted-foreground">
-                      Belum ada ranking PIC pada periode ini.
+                    <TableCell colSpan={isPicView ? 8 : 9} className="py-8 text-center text-muted-foreground">
+                      Belum ada ranking akun sosmed pada periode ini.
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -784,9 +796,9 @@ export function MonitoringTugasDashboard({ viewer = "superadmin" }: MonitoringTu
 
             {isPicView && viewerLeaderboardRow && viewerLeaderboardRow.rank > 10 ? (
               <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-                <p className="font-medium text-emerald-800">Posisi Anda belum masuk 10 besar.</p>
+                <p className="font-medium text-emerald-800">Akun terbaik Anda belum masuk 10 besar.</p>
                 <p className="mt-1 text-emerald-700 text-sm">
-                  Anda saat ini di peringkat #{viewerLeaderboardRow.rank} dengan skor{" "}
+                  {viewerLeaderboardRow.username} saat ini di peringkat #{viewerLeaderboardRow.rank} dengan skor{" "}
                   {formatPercent(viewerLeaderboardRow.score_final)}.
                 </p>
               </div>

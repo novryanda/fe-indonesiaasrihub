@@ -163,12 +163,36 @@ export interface MonitoringTaskPicLeaderboardItem {
   score_final: number;
 }
 
+export interface MonitoringTaskAccountLeaderboardItem {
+  rank: number;
+  account_id: string;
+  officer_id: string | null;
+  platform: MonitoringPlatform;
+  username: string;
+  profile_name: string;
+  wilayah_id: string | null;
+  wilayah_nama: string;
+  wilayah_kode: string;
+  total_posting: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+  total_shares: number;
+  total_reposts: number;
+  engagement_rate: number;
+  on_time_rate: number;
+  score_timeliness: number;
+  score_engagement: number;
+  score_final: number;
+}
+
 export interface MonitoringTaskRegionalLeaderboardItem {
   rank: number;
   wilayah_id: string;
   wilayah_nama: string;
   wilayah_kode: string;
   total_pic: number;
+  total_account: number;
   total_posting: number;
   total_views: number;
   total_likes: number;
@@ -186,6 +210,9 @@ export interface MonitoringViewerRank {
   score_final: number;
   total_posting: number;
   scope_label: string;
+  account_id: string | null;
+  account_username: string | null;
+  account_profile_name: string | null;
 }
 
 export interface MonitoringTugasData {
@@ -206,6 +233,7 @@ export interface MonitoringTugasData {
   daily_platform_area: MonitoringDailyPlatformAreaItem[];
   platform_average_bar: MonitoringPlatformAverageBarItem[];
   platform_content_radar: MonitoringPlatformContentRadarItem[];
+  account_leaderboard: MonitoringTaskAccountLeaderboardItem[];
   pic_leaderboard: MonitoringTaskPicLeaderboardItem[];
   regional_leaderboard: MonitoringTaskRegionalLeaderboardItem[];
   viewer_rank: MonitoringViewerRank | null;
