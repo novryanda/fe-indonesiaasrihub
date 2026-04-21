@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ApiError } from "@/shared/api/api-client";
 
-import { decideBlast } from "../api/decide-blast";
 import { createBlastActivity } from "../api/create-blast-activity";
+import { createManualBlastQueue } from "../api/create-manual-blast-queue";
+import { decideBlast } from "../api/decide-blast";
 import { getBlastActivities } from "../api/get-blast-activities";
 import { getBlastCandidates } from "../api/get-blast-candidates";
 import { getBlastFeed } from "../api/get-blast-feed";
@@ -21,6 +22,8 @@ import type {
   BlastReferenceStatus,
   CreateBlastActivityPayload,
   CreateBlastActivityResult,
+  CreateManualBlastQueuePayload,
+  CreateManualBlastQueueResult,
   DecideBlastPayload,
 } from "../types/blast-activity.type";
 
@@ -191,6 +194,26 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
     [fetchCandidates, fetchFeed],
   );
 
+  const createManualQueue = useCallback(
+    async (payload: CreateManualBlastQueuePayload): Promise<CreateManualBlastQueueResult> => {
+      setSubmitting(true);
+
+      try {
+        const response = await createManualBlastQueue(payload);
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal membuat antrian blast manual");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
+
   const activityTotalPages = useMemo(() => {
     if (!activityMeta) {
       return 1;
@@ -227,5 +250,6 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
     refetchActivities: fetchActivities,
     create,
     decide,
+    createManualQueue,
   };
 }

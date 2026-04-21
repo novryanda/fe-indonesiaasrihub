@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -18,6 +18,8 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { Textarea } from "@/components/ui/textarea";
 import { PlatformIcon } from "@/features/content-shared/components/platform-icon";
 import { formatDateTime, formatNumber, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
+import { listSocialAccounts } from "@/features/social-accounts/api/social-accounts-api";
+import type { SocialAccountItem } from "@/features/social-accounts/types/social-account.type";
 import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
@@ -188,10 +190,14 @@ export function BlastActivityView({
     resetFeedFilters,
     create,
     decide,
+    createManualQueue,
   } = useBlastActivity(mode, mode === "blast" ? referenceStatusPreset : "all");
 
   const [selectedReference, setSelectedReference] = useState<BlastFeedItem | null>(null);
   const blastFormRef = useRef<HTMLDivElement | null>(null);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccountItem[]>([]);
+  const [isSocialAccountsLoading, setSocialAccountsLoading] = useState(mode === "superadmin");
+  const [socialAccountsError, setSocialAccountsError] = useState<string | null>(null);
   const [formState, setFormState] = useState({
     platform: "instagram",
     post_url: "",
@@ -204,11 +210,27 @@ export function BlastActivityView({
     reposts: "0",
     notes: "",
   });
+  const [manualQueueFormState, setManualQueueFormState] = useState({
+    social_account_id: "",
+    reference_title: "",
+    post_url: "",
+    caption: "",
+    posted_at: "",
+    note: "",
+  });
   const tableState = useMemo(() => ({ activities, stats, activityMeta }), [activities, activityMeta, stats]);
   const { displayData, isInitialLoading, isRefreshing } = useSmoothTableData(tableState, isActivitiesLoading);
   const displayedActivities = displayData.activities;
   const displayedStats = displayData.stats;
   const displayedActivityMeta = displayData.activityMeta;
+  const selectedManualSocialAccount = useMemo(
+    () => socialAccounts.find((item) => item.id === manualQueueFormState.social_account_id) ?? null,
+    [manualQueueFormState.social_account_id, socialAccounts],
+  );
+  const sortedSocialAccounts = useMemo(
+    () => [...socialAccounts].sort((left, right) => left.username.localeCompare(right.username, "id")),
+    [socialAccounts],
+  );
 
   const isRepeatMode = mode === "blast" && referenceStatusPreset === "blasted";
   const title = mode === "blast" ? (isRepeatMode ? "Blast Ulang" : "Aktivitas Blast") : "Monitoring Blast";
@@ -226,6 +248,10 @@ export function BlastActivityView({
       : "Tentukan apakah postingan yang sudah valid oleh QCC perlu masuk antrian blast, lalu pantau eksekusinya dari satu halaman.";
 
   const canSubmit = mode === "blast" && Boolean(selectedReference);
+  const canCreateManualQueue =
+    mode === "superadmin" &&
+    Boolean(manualQueueFormState.social_account_id) &&
+    Boolean(manualQueueFormState.post_url.trim());
 
   const selectedPlatform = selectedReference?.platform ?? formState.platform;
 
@@ -260,6 +286,46 @@ export function BlastActivityView({
       toast.error(error instanceof Error ? error.message : "Gagal menyimpan keputusan blast");
     }
   };
+
+  useEffect(() => {
+    if (mode !== "superadmin") {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchSocialAccounts = async () => {
+      setSocialAccountsLoading(true);
+      setSocialAccountsError(null);
+
+      try {
+        const response = await listSocialAccounts(
+          {
+            platform: "all",
+            verification_status: "verified",
+            delegation_status: "all",
+            search: "",
+            page: 1,
+            limit: 100,
+          },
+          controller.signal,
+        );
+        setSocialAccounts(response.data);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setSocialAccountsError(error instanceof Error ? error.message : "Gagal memuat akun sosmed");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSocialAccountsLoading(false);
+        }
+      }
+    };
+
+    void fetchSocialAccounts();
+
+    return () => controller.abort();
+  }, [mode]);
 
   const handleSubmit = async () => {
     if (!selectedReference) {
@@ -298,6 +364,41 @@ export function BlastActivityView({
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menyimpan aktivitas blast");
+    }
+  };
+
+  const handleCreateManualQueue = async () => {
+    if (!manualQueueFormState.social_account_id) {
+      toast.error("Pilih akun sosmed target terlebih dahulu.");
+      return;
+    }
+
+    if (!manualQueueFormState.post_url.trim()) {
+      toast.error("Link URL manual wajib diisi.");
+      return;
+    }
+
+    try {
+      const result = await createManualQueue({
+        social_account_id: manualQueueFormState.social_account_id,
+        reference_title: manualQueueFormState.reference_title.trim() || undefined,
+        post_url: manualQueueFormState.post_url.trim(),
+        caption: manualQueueFormState.caption.trim() || undefined,
+        posted_at: manualQueueFormState.posted_at ? new Date(manualQueueFormState.posted_at).toISOString() : undefined,
+        note: manualQueueFormState.note.trim() || undefined,
+      });
+
+      toast.success(result.message);
+      setManualQueueFormState({
+        social_account_id: "",
+        reference_title: "",
+        post_url: "",
+        caption: "",
+        posted_at: "",
+        note: "",
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal membuat antrian blast manual");
     }
   };
 
@@ -458,11 +559,7 @@ export function BlastActivityView({
                   />
                 </div>
 
-                <Button
-                  variant="outline"
-                  onClick={() => resetFeedFilters()}
-                  disabled={!hasFeedFilters}
-                >
+                <Button variant="outline" onClick={() => resetFeedFilters()} disabled={!hasFeedFilters}>
                   Reset Filter
                 </Button>
               </div>
@@ -681,94 +778,272 @@ export function BlastActivityView({
       ) : null}
 
       {mode === "superadmin" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Keputusan Blast</CardTitle>
-            <CardDescription>
-              Pilih postingan yang sudah valid oleh QCC untuk dimasukkan ke antrian blast atau ditandai tidak perlu
-              blast.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
-              <Select
-                value={candidateFilters.platform}
-                onValueChange={(value) =>
-                  setCandidateFilters((previous) => ({
-                    ...previous,
-                    platform: value as typeof previous.platform,
-                    page: 1,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua Platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Platform</SelectItem>
-                  {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
-                    <SelectItem key={platform} value={platform}>
-                      {formatPlatformLabel(platform as never)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Link Blast Manual</CardTitle>
+              <CardDescription>
+                Superadmin dapat menambahkan link referensi secara manual agar langsung muncul di antrian blast sesuai
+                akun sosmed target.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="manual-social-account" className="font-medium text-sm">
+                    Akun Sosmed Target
+                  </label>
+                  <Select
+                    value={manualQueueFormState.social_account_id}
+                    onValueChange={(value) =>
+                      setManualQueueFormState((previous) => ({
+                        ...previous,
+                        social_account_id: value,
+                      }))
+                    }
+                    disabled={isSocialAccountsLoading}
+                  >
+                    <SelectTrigger id="manual-social-account">
+                      <SelectValue
+                        placeholder={
+                          isSocialAccountsLoading ? "Memuat akun sosmed..." : "Pilih akun sosmed target blast"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortedSocialAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          @{account.username} • {account.wilayah_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {socialAccountsError ? <p className="text-destructive text-xs">{socialAccountsError}</p> : null}
+                </div>
 
-              <div className="relative">
-                <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <label htmlFor="manual-posted-at" className="font-medium text-sm">
+                    Tanggal Posting
+                  </label>
+                  <Input
+                    id="manual-posted-at"
+                    type="datetime-local"
+                    value={manualQueueFormState.posted_at}
+                    onChange={(event) =>
+                      setManualQueueFormState((previous) => ({
+                        ...previous,
+                        posted_at: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              {selectedManualSocialAccount ? (
+                <div className="grid gap-3 rounded-2xl border bg-muted/20 p-4 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Platform</p>
+                    <p className="font-medium">{formatPlatformLabel(selectedManualSocialAccount.platform)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Wilayah Target</p>
+                    <p className="font-medium">{selectedManualSocialAccount.wilayah_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Akun</p>
+                    <p className="font-medium">@{selectedManualSocialAccount.username}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <label htmlFor="manual-reference-title" className="font-medium text-sm">
+                  Judul Referensi
+                </label>
                 <Input
-                  className="pl-9"
-                  placeholder="Cari link posting, judul konten, PIC, atau wilayah"
-                  value={candidateFilters.search}
+                  id="manual-reference-title"
+                  value={manualQueueFormState.reference_title}
                   onChange={(event) =>
-                    setCandidateFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
+                    setManualQueueFormState((previous) => ({
+                      ...previous,
+                      reference_title: event.target.value,
+                    }))
                   }
+                  placeholder="Opsional, misalnya: Blast Kreatif KLH 21 April"
                 />
               </div>
 
-              <Button
-                variant="outline"
-                onClick={() =>
-                  setCandidateFilters({
-                    platform: "all",
-                    search: "",
-                    page: 1,
-                    limit: candidateFilters.limit,
-                  })
-                }
-                disabled={!hasCandidateFilters}
-              >
-                Reset Filter
-              </Button>
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="manual-post-url" className="font-medium text-sm">
+                  Link URL
+                </label>
+                <Input
+                  id="manual-post-url"
+                  value={manualQueueFormState.post_url}
+                  onChange={(event) =>
+                    setManualQueueFormState((previous) => ({
+                      ...previous,
+                      post_url: event.target.value,
+                    }))
+                  }
+                  placeholder="https://www.instagram.com/p/..."
+                />
+              </div>
 
-            {candidateError ? (
-              <div className="text-destructive text-sm">{candidateError}</div>
-            ) : isCandidatesLoading ? (
-              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-                <Spinner />
-                <span>Memuat postingan valid...</span>
+              <div className="space-y-2">
+                <label htmlFor="manual-caption" className="font-medium text-sm">
+                  Caption
+                </label>
+                <Textarea
+                  id="manual-caption"
+                  value={manualQueueFormState.caption}
+                  onChange={(event) =>
+                    setManualQueueFormState((previous) => ({
+                      ...previous,
+                      caption: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  placeholder="Opsional, isi caption atau ringkasan referensi posting"
+                />
               </div>
-            ) : (
-              <div className="grid gap-4 xl:grid-cols-2">
-                {candidateItems.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
-                    Belum ada postingan valid yang menunggu keputusan blast.
-                  </div>
-                ) : (
-                  candidateItems.map((item) => (
-                    <CandidateCard
-                      key={item.id}
-                      item={item}
-                      isSubmitting={isSubmitting}
-                      onDecide={handleDecideCandidate}
-                    />
-                  ))
-                )}
+
+              <div className="space-y-2">
+                <label htmlFor="manual-note" className="font-medium text-sm">
+                  Catatan Internal
+                </label>
+                <Textarea
+                  id="manual-note"
+                  value={manualQueueFormState.note}
+                  onChange={(event) =>
+                    setManualQueueFormState((previous) => ({
+                      ...previous,
+                      note: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder="Opsional, catatan internal untuk tim blast"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setManualQueueFormState({
+                      social_account_id: "",
+                      reference_title: "",
+                      post_url: "",
+                      caption: "",
+                      posted_at: "",
+                      note: "",
+                    })
+                  }
+                >
+                  Reset
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCreateManualQueue}
+                  disabled={!canCreateManualQueue || isSubmitting}
+                >
+                  <Send className="mr-2 size-4" />
+                  {isSubmitting ? "Membuat Antrian..." : "Masukkan ke Antrian Blast"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Keputusan Blast</CardTitle>
+              <CardDescription>
+                Pilih postingan yang sudah valid oleh QCC untuk dimasukkan ke antrian blast atau ditandai tidak perlu
+                blast.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
+                <Select
+                  value={candidateFilters.platform}
+                  onValueChange={(value) =>
+                    setCandidateFilters((previous) => ({
+                      ...previous,
+                      platform: value as typeof previous.platform,
+                      page: 1,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Semua Platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Platform</SelectItem>
+                    {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
+                      <SelectItem key={platform} value={platform}>
+                        {formatPlatformLabel(platform as never)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="relative">
+                  <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Cari link posting, judul konten, PIC, atau wilayah"
+                    value={candidateFilters.search}
+                    onChange={(event) =>
+                      setCandidateFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
+                    }
+                  />
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setCandidateFilters({
+                      platform: "all",
+                      search: "",
+                      page: 1,
+                      limit: candidateFilters.limit,
+                    })
+                  }
+                  disabled={!hasCandidateFilters}
+                >
+                  Reset Filter
+                </Button>
+              </div>
+
+              {candidateError ? (
+                <div className="text-destructive text-sm">{candidateError}</div>
+              ) : isCandidatesLoading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                  <Spinner />
+                  <span>Memuat postingan valid...</span>
+                </div>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {candidateItems.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
+                      Belum ada postingan valid yang menunggu keputusan blast.
+                    </div>
+                  ) : (
+                    candidateItems.map((item) => (
+                      <CandidateCard
+                        key={item.id}
+                        item={item}
+                        isSubmitting={isSubmitting}
+                        onDecide={handleDecideCandidate}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       ) : null}
 
       <Card>

@@ -196,4 +196,35 @@ export interface DecideBlastPayload {
   note?: string;
 }
 
+export interface CreateManualBlastQueuePayload {
+  social_account_id: string;
+  post_url: string;
+  reference_title?: string;
+  caption?: string;
+  posted_at?: string;
+  note?: string;
+}
+
+export interface CreateManualBlastQueueResult {
+  id: string;
+  status: BlastAssignmentStatus;
+  platform: ContentPlatform;
+  post_url: string;
+  submission_code: string | null;
+  reference_title: string;
+  social_account: {
+    id: string;
+    username: string;
+    profile_name: string;
+    profile_url: string;
+  };
+  target_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  };
+  message: string;
+}
+
 export type BlastMeta = PaginatedMeta;
