@@ -92,7 +92,7 @@ export function ContentSubmissionView() {
         <CardContent className="py-10 text-center">
           <p className="font-medium text-destructive">{loadError}</p>
           <p className="mt-2 text-muted-foreground text-sm">
-            Buka ulang dari halaman Konten Saya untuk melanjutkan resubmit lewat wizard.
+            Buka ulang dari halaman Konten Saya untuk melanjutkan edit atau resubmit lewat wizard.
           </p>
         </CardContent>
       </Card>

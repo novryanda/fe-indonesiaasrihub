@@ -14,6 +14,8 @@ function formatActionLabel(action: ReviewHistoryItem["action"]) {
       return "Disetujui";
     case "rejected":
       return "Ditolak";
+    case "resubmitted":
+      return "Diperbarui";
     default:
       return "Dikirim";
   }

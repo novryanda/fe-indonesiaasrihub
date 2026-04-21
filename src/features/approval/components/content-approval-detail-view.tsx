@@ -46,8 +46,7 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { finalApproveContent } from "../api/final-approve-content";
 import { reviewContent } from "../api/review-content";
-import type { ApprovalBoardMode } from "../types/content-approval.type";
-import type { ReviewDecisionPayload } from "../types/content-approval.type";
+import type { ApprovalBoardMode, ReviewDecisionPayload } from "../types/content-approval.type";
 import { ReviewDecisionDialog } from "./review-decision-dialog";
 
 function getDetailConfig(mode: ApprovalBoardMode) {
@@ -77,7 +76,7 @@ function formatHistoryActionLabel(action: ReviewHistoryItem["action"]) {
     case "rejected":
       return "Ditolak";
     case "resubmitted":
-      return "Dikirim Ulang";
+      return "Diperbarui";
     default:
       return "Dikirim";
   }

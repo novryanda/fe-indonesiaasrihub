@@ -28,7 +28,7 @@ interface SubmissionReviewStepProps {
   draft: ContentSubmissionDraft;
   summaryPlatformLabels: string;
   errors: FormErrorState;
-  mode?: "create" | "resubmit";
+  mode?: "create" | "edit" | "resubmit";
   onFieldChange: <TKey extends keyof ContentSubmissionDraft>(field: TKey, value: ContentSubmissionDraft[TKey]) => void;
 }
 
@@ -43,11 +43,15 @@ export function SubmissionReviewStep({
     <>
       <Alert className="border-amber-200 bg-amber-50 text-amber-900">
         <ClipboardCheck className="size-4" />
-        <AlertTitle>Periksa kembali sebelum submit</AlertTitle>
+        <AlertTitle>
+          {mode === "edit" ? "Periksa kembali sebelum menyimpan" : "Periksa kembali sebelum submit"}
+        </AlertTitle>
         <AlertDescription>
-          {mode === "resubmit"
-            ? "Setelah dikirim ulang, revisi akan langsung masuk kembali ke antrian final approval Superadmin."
-            : "Setelah dikirim, konten akan langsung masuk ke antrian final approval Superadmin. Perubahan setelah submit hanya bisa dilakukan jika reviewer meminta revisi."}
+          {mode === "create"
+            ? "Setelah dikirim, konten akan langsung masuk ke antrian final approval Superadmin. Selama belum disetujui, submission masih bisa diedit oleh WCC pengaju."
+            : mode === "edit"
+              ? "Setelah disimpan, konten tetap berada di antrian final approval Superadmin dan masih bisa diedit sampai disetujui."
+              : "Setelah dikirim ulang, revisi akan langsung masuk kembali ke antrian final approval Superadmin."}
         </AlertDescription>
       </Alert>
 

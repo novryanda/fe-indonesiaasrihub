@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { CalendarClock, FolderOpen, History, Plus, Search, Send } from "lucide-react";
+import { CalendarClock, FolderOpen, History, Pencil, Plus, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +89,20 @@ function getStatusSummary(items: ContentItem[]) {
       needsAttention: 0,
     },
   );
+}
+
+function getSubmissionActionLabel(status: ContentStatus) {
+  switch (status) {
+    case "disetujui":
+      return null;
+    case "revisi":
+    case "ditolak":
+      return "Resubmit";
+    case "draft":
+      return "Lanjutkan";
+    default:
+      return "Edit";
+  }
 }
 
 export function MyContentsView() {
@@ -315,9 +329,16 @@ export function MyContentsView() {
                         <TableCell className="align-top">{formatDate(item.updated_at)}</TableCell>
                         <TableCell className="align-top">
                           <div className="flex justify-end gap-2">
-                            {["revisi", "ditolak"].includes(item.status) ? (
+                            {getSubmissionActionLabel(item.status) ? (
                               <Button asChild size="sm">
-                                <Link href={`/aksi/submit-konten?mode=resubmit&contentId=${item.id}`}>Resubmit</Link>
+                                <Link href={`/aksi/submit-konten?mode=resubmit&contentId=${item.id}`}>
+                                  {item.status === "revisi" || item.status === "ditolak" ? (
+                                    <Send className="mr-2 size-4" />
+                                  ) : (
+                                    <Pencil className="mr-2 size-4" />
+                                  )}
+                                  {getSubmissionActionLabel(item.status)}
+                                </Link>
                               </Button>
                             ) : null}
                             <Button

@@ -41,6 +41,7 @@ import { SubmissionSidebarSummary } from "./submission-sidebar-summary";
 import { SubmissionStepper, WIZARD_STEPS, type WizardStep } from "./submission-stepper";
 
 const CREATE_STORAGE_KEY = "asrihub.submit-konten.draft";
+type SubmissionOperationMode = "create" | "edit" | "resubmit";
 
 function createInitialDraft(): ContentSubmissionDraft {
   return {
@@ -126,6 +127,12 @@ export function ContentSubmissionWizard({
   const { submitContent, submitResubmission, runDriveValidation, isSubmitting, isValidatingDrive } =
     useContentSubmission(accessToken);
   const isResubmitMode = mode === "resubmit" && Boolean(contentId);
+  const submissionMode: SubmissionOperationMode = !isResubmitMode
+    ? "create"
+    : initialContent?.status === "revisi" || initialContent?.status === "ditolak"
+      ? "resubmit"
+      : "edit";
+  const isEditMode = submissionMode === "edit";
   const storageKey = useMemo(() => getStorageKey(mode, contentId), [contentId, mode]);
 
   const [step, setStep] = useState<WizardStep>(1);
@@ -296,7 +303,11 @@ export function ContentSubmissionWizard({
         setStep(1);
         setDriveValidation(null);
         setErrors({});
-        toast.success("Konten berhasil dikirim ulang untuk final approval.");
+        toast.success(
+          isEditMode
+            ? "Konten berhasil diperbarui dan tetap menunggu final approval."
+            : "Konten berhasil dikirim ulang untuk final approval.",
+        );
         return;
       }
 
@@ -331,16 +342,26 @@ export function ContentSubmissionWizard({
                   variant="outline"
                   className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
                 >
-                  {isResubmitMode ? "WCC / Resubmit Konten" : "WCC / Submit Konten Baru"}
+                  {submissionMode === "create"
+                    ? "WCC / Submit Konten Baru"
+                    : isEditMode
+                      ? "WCC / Edit Konten"
+                      : "WCC / Resubmit Konten"}
                 </Badge>
                 <div className="space-y-2">
                   <h1 className="font-semibold text-3xl tracking-tight">
-                    {isResubmitMode ? "Perbaiki dan Kirim Ulang Konten" : "Submit Konten Baru"}
+                    {submissionMode === "create"
+                      ? "Submit Konten Baru"
+                      : isEditMode
+                        ? "Edit Submission Konten"
+                        : "Perbaiki dan Kirim Ulang Konten"}
                   </h1>
                   <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                    {isResubmitMode
-                      ? "Gunakan kembali wizard ini untuk menindaklanjuti catatan reviewer. Semua field dapat diperbarui sebelum dikirim ulang ke final approval."
-                      : "Rancang konten dari brief sampai siap final approval. Wizard ini mengikuti kontrak API WCC dan menyimpan draft lokal."}
+                    {submissionMode === "create"
+                      ? "Rancang konten dari brief sampai siap final approval. Selama belum disetujui, submission masih bisa diedit dari Konten Saya."
+                      : isEditMode
+                        ? "Perbarui submission yang masih menunggu final approval. Semua field dapat diedit sebelum konten disetujui."
+                        : "Gunakan kembali wizard ini untuk menindaklanjuti catatan reviewer. Semua field dapat diperbarui sebelum dikirim ulang ke final approval."}
                   </p>
                 </div>
               </div>
@@ -394,7 +415,7 @@ export function ContentSubmissionWizard({
                   draft={draft}
                   summaryPlatformLabels={summaryPlatformLabels}
                   errors={errors}
-                  mode={mode}
+                  mode={submissionMode}
                   onFieldChange={setFieldValue}
                 />
               )}
@@ -445,7 +466,11 @@ export function ContentSubmissionWizard({
               ) : (
                 <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
                   {isSubmitting && <Spinner className="mr-2" />}
-                  {isResubmitMode ? "Kirim Ulang untuk Final Approval" : "Submit untuk Final Approval"}
+                  {submissionMode === "create"
+                    ? "Submit untuk Final Approval"
+                    : isEditMode
+                      ? "Simpan Perubahan"
+                      : "Kirim Ulang untuk Final Approval"}
                   {!isSubmitting && <ArrowRight className="ml-2 size-4" />}
                 </Button>
               )}
@@ -466,11 +491,19 @@ export function ContentSubmissionWizard({
       <Dialog open={Boolean(successState)} onOpenChange={(open) => !open && setSuccessState(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{isResubmitMode ? "Konten berhasil dikirim ulang" : "Konten berhasil dikirim"}</DialogTitle>
+            <DialogTitle>
+              {submissionMode === "create"
+                ? "Konten berhasil dikirim"
+                : isEditMode
+                  ? "Konten berhasil diperbarui"
+                  : "Konten berhasil dikirim ulang"}
+            </DialogTitle>
             <DialogDescription>
-              {isResubmitMode
-                ? "Revisi langsung masuk kembali ke antrian final approval Superadmin."
-                : "Submission langsung masuk ke antrian final approval Superadmin."}
+              {submissionMode === "create"
+                ? "Submission langsung masuk ke antrian final approval Superadmin."
+                : isEditMode
+                  ? "Submission tetap berada di antrian final approval Superadmin."
+                  : "Revisi langsung masuk kembali ke antrian final approval Superadmin."}
             </DialogDescription>
           </DialogHeader>
 
