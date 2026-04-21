@@ -678,10 +678,6 @@ export function BankContentDetailView() {
                               }))
                             }
                           />
-                          <p className="text-muted-foreground text-xs">
-                            Setelah disubmit, link akan diverifikasi otomatis via Apify dan waktu posting akan diisi
-                            dari hasil scrape actor posting metrics.
-                          </p>
                         </div>
                       </div>
                     );
