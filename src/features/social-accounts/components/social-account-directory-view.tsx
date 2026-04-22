@@ -106,7 +106,6 @@ type OptionalTableColumnId =
   | "wilayah"
   | "pic_sosmed"
   | "followers"
-  | "status"
   | "delegasi"
   | "wajib_blast"
   | "update";
@@ -119,7 +118,6 @@ const OPTIONAL_TABLE_COLUMNS: Array<{
   { id: "wilayah", label: "Wilayah" },
   { id: "pic_sosmed", label: "PIC Sosmed" },
   { id: "followers", label: "Followers" },
-  { id: "status", label: "Status" },
   { id: "delegasi", label: "Delegasi" },
   { id: "wajib_blast", label: "Wajib Blast" },
   { id: "update", label: "Update" },
@@ -130,7 +128,6 @@ const INITIAL_VISIBLE_COLUMNS: Record<OptionalTableColumnId, boolean> = {
   wilayah: true,
   pic_sosmed: true,
   followers: false,
-  status: true,
   delegasi: false,
   wajib_blast: false,
   update: false,
@@ -786,7 +783,7 @@ export function SocialAccountDirectoryView() {
                       {visibleColumns.wilayah ? <TableHead>Wilayah</TableHead> : null}
                       {visibleColumns.pic_sosmed ? <TableHead>PIC Sosmed</TableHead> : null}
                       {visibleColumns.followers ? <TableHead>Followers</TableHead> : null}
-                      {visibleColumns.status ? <TableHead>Status</TableHead> : null}
+                      {/* Status column removed */}
                       {visibleColumns.delegasi ? <TableHead>Delegasi</TableHead> : null}
                       {visibleColumns.wajib_blast ? <TableHead>Wajib Blast</TableHead> : null}
                       {visibleColumns.update ? <TableHead>Update</TableHead> : null}
@@ -855,26 +852,7 @@ export function SocialAccountDirectoryView() {
                               </div>
                             </TableCell>
                           ) : null}
-                          {visibleColumns.status ? (
-                            <TableCell className="max-w-[13rem] whitespace-normal align-top">
-                              <div className="flex flex-col items-start gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "rounded-full px-3 py-1",
-                                    getVerificationBadge(item.verification_status),
-                                  )}
-                                >
-                                  {item.verification_status}
-                                </Badge>
-                                {item.verification_note ? (
-                                  <p className="max-w-48 whitespace-normal text-muted-foreground text-xs leading-5">
-                                    {item.verification_note}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </TableCell>
-                          ) : null}
+                          {/* Status column removed */}
                           {visibleColumns.delegasi ? (
                             <TableCell className="max-w-[13rem] whitespace-normal align-top">
                               <div className="space-y-2">

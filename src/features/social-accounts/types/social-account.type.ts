@@ -278,6 +278,7 @@ export interface SocialAccountDetail {
     apify_run_id: string | null;
     dataset_id: string | null;
     observed_posts_count: number;
+    historical_posts_count: number;
     observed_comments_count: number;
     observed_replies_count: number;
     summary: unknown;

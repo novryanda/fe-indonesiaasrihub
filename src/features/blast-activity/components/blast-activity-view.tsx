@@ -4,13 +4,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { ExternalLink, Eye, Heart, MessageCircle, Radio, Repeat2, Search, Send, Share2 } from "lucide-react";
+import { Check, ChevronsUpDown, ExternalLink, Eye, Heart, MessageCircle, Radio, Repeat2, Search, Send, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -210,6 +220,8 @@ export function BlastActivityView({
     reposts: "0",
     notes: "",
   });
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [manualQueueFormState, setManualQueueFormState] = useState({
     social_account_id: "",
     reference_title: "",
@@ -397,6 +409,7 @@ export function BlastActivityView({
         posted_at: "",
         note: "",
       });
+      setIsManualModalOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal membuat antrian blast manual");
     }
@@ -778,46 +791,77 @@ export function BlastActivityView({
       ) : null}
 
       {mode === "superadmin" ? (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Link Blast Manual</CardTitle>
-              <CardDescription>
-                Superadmin dapat menambahkan link referensi secara manual agar langsung muncul di antrian blast sesuai
-                akun sosmed target.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex justify-end">
+          <Dialog open={isManualModalOpen} onOpenChange={setIsManualModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Input Link Blast Manual</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Input Link Blast Manual</DialogTitle>
+                <DialogDescription>
+                  Superadmin dapat menambahkan link referensi secara manual agar langsung muncul di antrian blast sesuai
+                  akun sosmed target.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="manual-social-account" className="font-medium text-sm">
                     Akun Sosmed Target
                   </label>
-                  <Select
-                    value={manualQueueFormState.social_account_id}
-                    onValueChange={(value) =>
-                      setManualQueueFormState((previous) => ({
-                        ...previous,
-                        social_account_id: value,
-                      }))
-                    }
-                    disabled={isSocialAccountsLoading}
-                  >
-                    <SelectTrigger id="manual-social-account">
-                      <SelectValue
-                        placeholder={
-                          isSocialAccountsLoading ? "Memuat akun sosmed..." : "Pilih akun sosmed target blast"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedSocialAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          @{account.username} • {account.wilayah_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="manual-social-account"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isComboboxOpen}
+                        className="w-full justify-between font-normal disabled:opacity-50"
+                        disabled={isSocialAccountsLoading}
+                      >
+                        <span className={cn("truncate", !manualQueueFormState.social_account_id && "text-muted-foreground")}>
+                          {isSocialAccountsLoading
+                            ? "Memuat akun sosmed..."
+                            : manualQueueFormState.social_account_id
+                              ? `${selectedManualSocialAccount ? `${selectedManualSocialAccount.username} • ${selectedManualSocialAccount.wilayah_name}` : "Akun tidak ditemukan"}`
+                              : "Pilih akun sosmed target blast"}
+                        </span>
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Cari akun sosmed..." />
+                        <CommandList>
+                          <CommandEmpty>Akun sosmed tidak ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {sortedSocialAccounts.map((account) => (
+                              <CommandItem
+                                key={account.id}
+                                value={`${account.username} ${account.wilayah_name}`}
+                                onSelect={() => {
+                                  setManualQueueFormState((previous) => ({
+                                    ...previous,
+                                    social_account_id: account.id,
+                                  }));
+                                  setIsComboboxOpen(false);
+                                }}
+                              >
+                                <span className="truncate max-w-full">{account.username} • {account.wilayah_name}</span>
+                                <Check
+                                  className={cn(
+                                    "ml-auto size-4 shrink-0",
+                                    manualQueueFormState.social_account_id === account.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {socialAccountsError ? <p className="text-destructive text-xs">{socialAccountsError}</p> : null}
                 </div>
 
@@ -851,7 +895,7 @@ export function BlastActivityView({
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Akun</p>
-                    <p className="font-medium">@{selectedManualSocialAccount.username}</p>
+                    <p className="font-medium">{selectedManualSocialAccount.username}</p>
                   </div>
                 </div>
               ) : null}
@@ -925,12 +969,12 @@ export function BlastActivityView({
                   placeholder="Opsional, catatan internal untuk tim blast"
                 />
               </div>
-
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
+                  onClick={() => {
+                    setIsManualModalOpen(false);
                     setManualQueueFormState({
                       social_account_id: "",
                       reference_title: "",
@@ -938,10 +982,10 @@ export function BlastActivityView({
                       caption: "",
                       posted_at: "",
                       note: "",
-                    })
-                  }
+                    });
+                  }}
                 >
-                  Reset
+                  Batal
                 </Button>
                 <Button
                   type="button"
@@ -952,16 +996,16 @@ export function BlastActivityView({
                   {isSubmitting ? "Membuat Antrian..." : "Masukkan ke Antrian Blast"}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Keputusan Blast</CardTitle>
-              <CardDescription>
-                Pilih postingan yang sudah valid oleh QCC untuk dimasukkan ke antrian blast atau ditandai tidak perlu
-                blast.
-              </CardDescription>
+      {mode === "superadmin" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Keputusan Blast</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
@@ -1043,7 +1087,6 @@ export function BlastActivityView({
               )}
             </CardContent>
           </Card>
-        </>
       ) : null}
 
       <Card>

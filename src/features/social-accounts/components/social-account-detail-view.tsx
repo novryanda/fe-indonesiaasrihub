@@ -157,7 +157,7 @@ export function SocialAccountDetailView({ id }: { id: string }) {
       {
         label: "Posting",
         value: numberFormatter.format(data.metrics.total_posting),
-        helper: `${numberFormatter.format(data.scraped_posts.length)} hasil scrape`,
+        helper: `${numberFormatter.format(data.scrape_overview?.historical_posts_count ?? data.scraped_posts.length)} total histori`,
       },
       {
         label: "Views",
@@ -308,7 +308,7 @@ export function SocialAccountDetailView({ id }: { id: string }) {
                     </p>
                     <p className="text-muted-foreground text-xs leading-5">
                       {data.scrape_overview
-                        ? `${numberFormatter.format(data.scrape_overview.observed_posts_count)} post terpantau`
+                        ? `${numberFormatter.format(data.scrape_overview.historical_posts_count)} total histori scrape`
                         : "Belum ada data scrape"}
                     </p>
                   </div>
@@ -357,11 +357,20 @@ export function SocialAccountDetailView({ id }: { id: string }) {
           <CardContent className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl border bg-muted/20 p-4">
-                <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Observed Posts</p>
+                <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Posting Periode</p>
                 <p className="mt-2 font-semibold text-2xl">
                   {numberFormatter.format(data.scrape_overview?.observed_posts_count ?? 0)}
                 </p>
-                <p className="mt-1 text-muted-foreground text-sm">Jumlah post yang ikut termonitor saat scrape.</p>
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Jumlah post yang masuk pada periode aktif {data.selected_period.label}.
+                </p>
+              </div>
+              <div className="rounded-3xl border bg-muted/20 p-4">
+                <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Histori Scrape</p>
+                <p className="mt-2 font-semibold text-2xl">
+                  {numberFormatter.format(data.scrape_overview?.historical_posts_count ?? 0)}
+                </p>
+                <p className="mt-1 text-muted-foreground text-sm">Total posting historis yang sudah tersimpan.</p>
               </div>
               <div className="rounded-3xl border bg-muted/20 p-4">
                 <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Observed Comments</p>
@@ -497,8 +506,9 @@ export function SocialAccountDetailView({ id }: { id: string }) {
                 <div>
                   <p className="font-medium">Konten Terpantau</p>
                   <p className="mt-1 text-muted-foreground text-sm leading-6">
-                    Sistem sudah membaca {numberFormatter.format(data.scraped_posts.length)} posting hasil scrape dan{" "}
-                    {numberFormatter.format(data.posting_links.length)} bukti posting terkait akun ini.
+                    Sistem sudah menyimpan {numberFormatter.format(data.scrape_overview?.historical_posts_count ?? data.scraped_posts.length)} posting historis,
+                    dengan {numberFormatter.format(data.scraped_posts.length)} post tampil pada periode {data.selected_period.label}
+                    {" "}dan {numberFormatter.format(data.posting_links.length)} bukti posting terkait akun ini.
                   </p>
                 </div>
               </div>

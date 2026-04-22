@@ -347,7 +347,7 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
                 {data.username} • {data.wilayah?.nama ?? "Tanpa wilayah"} • PIC {data.officer?.name ?? "belum ada"}
               </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
                 <p className="text-white/60 text-xs uppercase tracking-[0.18em]">Freshness</p>
                 <p className="mt-2 font-semibold text-lg">
@@ -355,9 +355,15 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
-                <p className="text-white/60 text-xs uppercase tracking-[0.18em]">Observed Posts</p>
+                <p className="text-white/60 text-xs uppercase tracking-[0.18em]">Posting Periode</p>
                 <p className="mt-2 font-semibold text-2xl">
                   {formatNumber(data.scrape_overview?.observed_posts_count ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <p className="text-white/60 text-xs uppercase tracking-[0.18em]">Histori Scrape</p>
+                <p className="mt-2 font-semibold text-2xl">
+                  {formatNumber(data.scrape_overview?.historical_posts_count ?? 0)}
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
@@ -424,7 +430,7 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
             label: "Posting",
             value: formatNumber(data.metrics.total_posting),
             icon: Layers3,
-            helper: `${formatNumber(data.scraped_posts.length)} post scrape`,
+            helper: `${formatNumber(data.scrape_overview?.historical_posts_count ?? data.scraped_posts.length)} total histori`,
           },
           {
             label: "Views",
@@ -673,7 +679,8 @@ export function SocialAccountMonitoringDetailView({ id }: { id: string }) {
           <CardHeader>
             <CardTitle>Postingan Hasil Scrape</CardTitle>
             <CardDescription>
-              Layer utama monitoring untuk akun ini. Marker PIC ditampilkan di setiap posting.
+              Data di bawah mengikuti periode {data.selected_period.label}. Total histori scrape akun ini
+              {" "}{formatNumber(data.scrape_overview?.historical_posts_count ?? data.scraped_posts.length)} posting.
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[920px] overflow-y-auto pr-2">
