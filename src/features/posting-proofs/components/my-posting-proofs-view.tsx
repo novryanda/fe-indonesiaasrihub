@@ -147,7 +147,9 @@ export function MyPostingProofsView() {
               <SelectValue placeholder="Semua status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua status</SelectItem>
+              <SelectItem value="all">Semua task</SelectItem>
+              <SelectItem value="unsubmitted">Belum Submit</SelectItem>
+              <SelectItem value="submitted">Sudah Submit</SelectItem>
               <SelectItem value="menunggu_bukti_posting">Menunggu Bukti</SelectItem>
               <SelectItem value="bukti_dikirim">Bukti Dikirim</SelectItem>
               <SelectItem value="bukti_valid">Bukti Valid</SelectItem>
@@ -181,7 +183,7 @@ export function MyPostingProofsView() {
                 {items.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Belum ada bukti posting yang cocok dengan filter saat ini.
+                      Belum ada task posting yang cocok dengan filter saat ini.
                     </TableCell>
                   </TableRow>
                 ) : (

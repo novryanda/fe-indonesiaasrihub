@@ -2,6 +2,8 @@ import type { ContentPlatform } from "@/features/content-shared/types/content.ty
 
 export type PostingProofStatus = "menunggu_bukti_posting" | "bukti_dikirim" | "bukti_valid" | "bukti_ditolak";
 export type PostingProofValidationAction = "valid" | "tidak_valid" | "tidak_sesuai";
+export type PostingProofSubmissionStatus = "submitted" | "unsubmitted";
+export type PostingProofTaskFilterStatus = PostingProofStatus | PostingProofSubmissionStatus | "all";
 
 export interface PostingProofSocialAccountRef {
   id: string;
@@ -71,7 +73,7 @@ export interface PostingProofListMeta {
 }
 
 export interface PostingProofFilters {
-  status?: PostingProofStatus | "all";
+  status?: PostingProofTaskFilterStatus;
   platform?: ContentPlatform | "all";
   wilayah_id?: string;
   search?: string;

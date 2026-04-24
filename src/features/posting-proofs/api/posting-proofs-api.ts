@@ -45,7 +45,10 @@ export async function listPostingProofs(filters: PostingProofFilters) {
     PostingProofListMeta
   >("/v1/bukti-posting", {
     params: {
-      status: filters.status && filters.status !== "all" ? filters.status : undefined,
+      status:
+        filters.status && !["all", "submitted", "unsubmitted"].includes(filters.status) ? filters.status : undefined,
+      submission_status:
+        filters.status === "submitted" || filters.status === "unsubmitted" ? filters.status : undefined,
       platform: filters.platform && filters.platform !== "all" ? filters.platform : undefined,
       wilayah_id: filters.wilayah_id,
       search: filters.search,
