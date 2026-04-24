@@ -36,6 +36,8 @@ export interface BankContentItem {
     assignment_generated_at: string | null;
     approval_at: string | null;
   };
+  tanggal_posting?: string | null;
+  jam_posting?: string | null;
   uploaded_by: string;
   created_at: string;
 }
@@ -148,6 +150,18 @@ export interface UploadBankContentPayload {
 export interface UploadBankContentResponse {
   id: string;
   judul: string;
+  message: string;
+}
+
+export interface UpdateBankContentContentDetailsPayload {
+  caption: string;
+  hashtags: string[];
+}
+
+export interface UpdateBankContentContentDetailsResponse {
+  id: string;
+  caption: string;
+  hashtags: string[];
   message: string;
 }
 

@@ -1,5 +1,5 @@
-import type { ContentItem, PaginatedMeta } from "@/features/content-shared/types/content.type";
 import { mapContentListResponse } from "@/features/content-shared/api/content-response-mapper";
+import type { ContentItem, PaginatedMeta } from "@/features/content-shared/types/content.type";
 import { apiClient } from "@/shared/api/api-client";
 
 import type { MyContentsFilters } from "../types/my-contents.type";

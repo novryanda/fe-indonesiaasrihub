@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ContentPlatform } from "@/features/content-shared/types/content.type";
 import {
+  composePostingTimeRange,
   formatJenisKontenLabel,
   formatPlatformLabel,
   formatPostingSchedule,
@@ -22,7 +23,8 @@ interface SubmissionSidebarSummaryProps {
   platform: ContentPlatform[];
   jenisKonten: string;
   tanggalPosting: string;
-  jamPosting: string;
+  jamPostingMulai: string;
+  jamPostingSelesai: string;
   urgensi: string;
 }
 
@@ -32,7 +34,8 @@ export function SubmissionSidebarSummary({
   platform,
   jenisKonten,
   tanggalPosting,
-  jamPosting,
+  jamPostingMulai,
+  jamPostingSelesai,
   urgensi,
 }: SubmissionSidebarSummaryProps) {
   return (
@@ -75,7 +78,9 @@ export function SubmissionSidebarSummary({
             <div className="flex items-center gap-3">
               <CalendarClock className="size-4 text-[color:var(--brand-hero)]" />
               <span>
-                {tanggalPosting ? formatPostingSchedule(tanggalPosting, jamPosting) : "Jadwal belum dipilih"}
+                {tanggalPosting
+                  ? formatPostingSchedule(tanggalPosting, composePostingTimeRange(jamPostingMulai, jamPostingSelesai))
+                  : "Jadwal belum dipilih"}
               </span>
             </div>
             <div className="flex items-center gap-3">

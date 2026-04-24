@@ -32,6 +32,8 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
     task_summary: BankContentDetail["task_summary"];
     uploaded_by: string;
     source_content?: BankContentDetail["source_content"];
+    tanggal_posting: string | null;
+    jam_posting: string | null;
     jumlah_posting_digunakan: number;
     jumlah_konten_turunan: number;
     penugasan_posting: Array<{
@@ -121,6 +123,8 @@ export async function getBankContentDetail(contentId: string, _accessToken?: str
       assignment_scope: response.data.assignment_scope,
       assignment_targets: response.data.assignment_targets,
       task_summary: response.data.task_summary,
+      tanggal_posting: response.data.tanggal_posting,
+      jam_posting: response.data.jam_posting,
       regional_terbatas: response.data.visibility_targets.map((item) => item.nama),
       uploaded_by: response.data.uploaded_by,
       source_content: response.data.source_content ?? null,

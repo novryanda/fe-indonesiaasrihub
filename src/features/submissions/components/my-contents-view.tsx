@@ -21,8 +21,8 @@ import type { ContentItem, ContentStatus } from "@/features/content-shared/types
 import {
   formatContentStatusLabel,
   formatDate,
-  formatPostingSchedule,
   formatPlatformLabel,
+  formatPostingSchedule,
   formatTopikLabel,
   getStatusAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";

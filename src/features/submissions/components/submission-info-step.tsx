@@ -131,16 +131,30 @@ export function SubmissionInfoStep({ draft, errors, onFieldChange, disabled = fa
           {errors.tanggal_posting && <p className="text-destructive text-xs">{errors.tanggal_posting}</p>}
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="jam-posting">Jam Posting</Label>
-          <Input
-            id="jam-posting"
-            type="time"
-            value={draft.jam_posting}
-            disabled={disabled}
-            onChange={(event) => onFieldChange("jam_posting", event.target.value)}
-          />
-          {errors.jam_posting && <p className="text-destructive text-xs">{errors.jam_posting}</p>}
+        <div className="grid gap-2 md:grid-cols-2 md:gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="jam-posting-mulai">Jam Mulai</Label>
+            <Input
+              id="jam-posting-mulai"
+              type="time"
+              value={draft.jam_posting_mulai}
+              disabled={disabled}
+              onChange={(event) => onFieldChange("jam_posting_mulai", event.target.value)}
+            />
+            {errors.jam_posting_mulai && <p className="text-destructive text-xs">{errors.jam_posting_mulai}</p>}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="jam-posting-selesai">Jam Selesai</Label>
+            <Input
+              id="jam-posting-selesai"
+              type="time"
+              value={draft.jam_posting_selesai}
+              disabled={disabled}
+              onChange={(event) => onFieldChange("jam_posting_selesai", event.target.value)}
+            />
+            {errors.jam_posting_selesai && <p className="text-destructive text-xs">{errors.jam_posting_selesai}</p>}
+          </div>
         </div>
       </div>
     </>

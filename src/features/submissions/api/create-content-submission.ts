@@ -1,3 +1,4 @@
+import { composePostingTimeRange } from "@/features/content-shared/utils/content-formatters";
 import { apiClient } from "@/shared/api/api-client";
 
 import type { ContentSubmissionPayload, CreateContentSubmissionResponse } from "../types/content-submission.type";
@@ -9,7 +10,7 @@ export function buildContentSubmissionRequestBody(payload: ContentSubmissionPayl
     jenis_konten: payload.jenis_konten,
     topik: payload.topik,
     tanggal_posting: payload.tanggal_posting,
-    jam_posting: payload.jam_posting,
+    jam_posting: composePostingTimeRange(payload.jam_posting_mulai, payload.jam_posting_selesai),
     drive_link: payload.drive_link,
     caption: payload.caption,
     hashtags: payload.hashtags,

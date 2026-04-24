@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
+  composePostingTimeRange,
   formatDurasiLabel,
   formatJenisKontenLabel,
   formatPostingSchedule,
@@ -61,7 +62,13 @@ export function SubmissionReviewStep({
           <PreviewListRow label="Platform" value={summaryPlatformLabels} />
           <PreviewListRow label="Jenis" value={formatJenisKontenLabel(draft.jenis_konten)} />
           <PreviewListRow label="Topik" value={formatTopikLabel(draft.topik)} />
-          <PreviewListRow label="Jadwal" value={formatPostingSchedule(draft.tanggal_posting, draft.jam_posting)} />
+          <PreviewListRow
+            label="Jadwal"
+            value={formatPostingSchedule(
+              draft.tanggal_posting,
+              composePostingTimeRange(draft.jam_posting_mulai, draft.jam_posting_selesai),
+            )}
+          />
           <PreviewListRow label="Drive Link" value={draft.drive_link || "-"} />
           <PreviewListRow label="Urgensi" value={formatUrgensiLabel(draft.urgensi)} />
           <PreviewListRow label="Durasi" value={formatDurasiLabel(draft.durasi_konten)} />

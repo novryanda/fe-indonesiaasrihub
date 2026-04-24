@@ -28,6 +28,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { Textarea } from "@/components/ui/textarea";
+import { HashtagInput } from "@/features/content-shared/components/hashtag-input";
 import type { ContentPlatform } from "@/features/content-shared/types/content.type";
 import {
   formatDate,
@@ -35,6 +37,8 @@ import {
   formatJenisKontenLabel,
   formatNumber,
   formatPlatformLabel,
+  formatPostingSchedule,
+  formatPostingTimeLabel,
   formatTopikLabel,
   getPlatformAccentClassName,
 } from "@/features/content-shared/utils/content-formatters";
@@ -46,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getBankContentDetail } from "../api/get-bank-content-detail";
+import { updateBankContentContentDetails } from "../api/update-bank-content-content-details";
 import type { BankContentDetail } from "../types/content-library.type";
 
 type UsageFilter = "all" | "posted" | "pending";
@@ -137,6 +142,10 @@ export function BankContentDetailView() {
   );
   const [usageFilter, setUsageFilter] = useState<UsageFilter>("all");
   const [usagePage, setUsagePage] = useState(1);
+  const [isEditingContentDetails, setEditingContentDetails] = useState(false);
+  const [editedCaption, setEditedCaption] = useState("");
+  const [editedHashtags, setEditedHashtags] = useState<string[]>([]);
+  const [isSavingContentDetails, setSavingContentDetails] = useState(false);
   const canViewUsage = role === "superadmin" || role === "supervisi";
   const currentPostingTask = detail?.current_posting_task ?? null;
   const canSubmitPostingDirectly = role === "pic_sosmed" && Boolean(currentPostingTask);
@@ -260,6 +269,11 @@ export function BankContentDetailView() {
     );
   }, [currentPostingTask]);
 
+  useEffect(() => {
+    setEditedCaption(detail?.deskripsi ?? "");
+    setEditedHashtags(detail?.hashtags ?? []);
+  }, [detail]);
+
   const handleSubmitPosting = useCallback(async () => {
     if (!currentPostingTask) {
       return;
@@ -290,6 +304,30 @@ export function BankContentDetailView() {
       setSubmittingPosting(false);
     }
   }, [contentId, currentPostingTask, loadDetail, picDrafts]);
+
+  const handleSaveContentDetails = useCallback(async () => {
+    const normalizedCaption = editedCaption.trim();
+
+    if (!normalizedCaption) {
+      toast.error("Caption bank konten wajib diisi.");
+      return;
+    }
+
+    setSavingContentDetails(true);
+    try {
+      const response = await updateBankContentContentDetails(contentId, {
+        caption: normalizedCaption,
+        hashtags: editedHashtags,
+      });
+      toast.success(response.data.message);
+      setEditingContentDetails(false);
+      await loadDetail();
+    } catch (errorValue) {
+      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memperbarui caption bank konten");
+    } finally {
+      setSavingContentDetails(false);
+    }
+  }, [contentId, editedCaption, editedHashtags, loadDetail]);
 
   if (isPending || isLoading) {
     return (
@@ -378,6 +416,7 @@ export function BankContentDetailView() {
           usagePage * usagePageSize,
           filteredUsageRows.length,
         )} dari ${filteredUsageRows.length} data`;
+  const canEditContentDetails = role === "wcc" && Boolean(detail.source_content);
 
   return (
     <div className="space-y-6">
@@ -459,24 +498,107 @@ export function BankContentDetailView() {
                 </Badge>
               </div>
 
-              <button
-                type="button"
-                className="w-full rounded-3xl bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
-                onClick={() => void handleCopy(detail.deskripsi?.trim() ?? "", "Deskripsi")}
-              >
+              <div className="w-full rounded-3xl bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-sm">Deskripsi</p>
-                  <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                    <Copy className="size-3.5" />
-                    Klik untuk salin
-                  </span>
+                  <p className="font-medium text-sm">Caption</p>
+                  {canEditContentDetails ? (
+                    <div className="flex items-center gap-2">
+                      {isEditingContentDetails ? (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleSaveContentDetails();
+                            }}
+                            disabled={isSavingContentDetails}
+                          >
+                            {isSavingContentDetails ? <Spinner className="mr-2" /> : null}
+                            Simpan
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setEditedCaption(detail.deskripsi ?? "");
+                              setEditedHashtags(detail.hashtags ?? []);
+                              setEditingContentDetails(false);
+                            }}
+                            disabled={isSavingContentDetails}
+                          >
+                            Batal
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void handleCopy(detail.deskripsi?.trim() ?? "", "Caption")}
+                          >
+                            <Copy className="mr-2 size-3.5" />
+                            Salin Caption
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setEditingContentDetails(true);
+                            }}
+                          >
+                            Edit Caption & Hashtag
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleCopy(detail.deskripsi?.trim() ?? "", "Caption")}
+                    >
+                      <Copy className="mr-2 size-3.5" />
+                      Salin Caption
+                    </Button>
+                  )}
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
-                  {detail.deskripsi?.trim() || "Deskripsi belum tersedia."}
-                </p>
-              </button>
+                {isEditingContentDetails ? (
+                  <div className="mt-3 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bank-content-caption">Caption</Label>
+                      <Textarea
+                        id="bank-content-caption"
+                        value={editedCaption}
+                        rows={8}
+                        disabled={isSavingContentDetails}
+                        onChange={(event) => setEditedCaption(event.target.value)}
+                      />
+                      <p className="text-muted-foreground text-xs">{editedCaption.trim().length}/2200</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hashtag</Label>
+                      <HashtagInput
+                        value={editedHashtags}
+                        disabled={isSavingContentDetails}
+                        onChange={setEditedHashtags}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
+                    {detail.deskripsi?.trim() || "Caption belum tersedia."}
+                  </p>
+                )}
+              </div>
 
-              {detail.hashtags.length > 0 && (
+              {detail.hashtags.length > 0 && !isEditingContentDetails && (
                 <div className="space-y-2">
                   <p className="font-medium text-sm">Hashtag</p>
                   <div className="flex flex-wrap gap-2">
@@ -505,6 +627,18 @@ export function BankContentDetailView() {
               <DetailRow label="Jenis Konten" value={formatJenisKontenLabel(detail.jenis_konten as never)} />
               <DetailRow label="Regional Asal" value={detail.regional_asal} />
               <DetailRow label="Status Akses" value={formatAccessLabel(detail.status_akses)} />
+              <DetailRow
+                label="Tanggal Jadwal Posting"
+                value={detail.tanggal_posting ? formatDate(detail.tanggal_posting) : "-"}
+              />
+              <DetailRow
+                label="Jam Jadwal Posting"
+                value={detail.jam_posting ? `${formatPostingTimeLabel(detail.jam_posting)} WIB` : "-"}
+              />
+              <DetailRow
+                label="Jadwal Posting"
+                value={formatPostingSchedule(detail.tanggal_posting, detail.jam_posting)}
+              />
               <DetailRow label="Uploader" value={detail.uploaded_by} />
               <DetailRow label="Tanggal Dibuat" value={formatDate(detail.created_at)} />
               <DetailRow label="Drive Link" value={detail.drive_link} href={detail.drive_link} />

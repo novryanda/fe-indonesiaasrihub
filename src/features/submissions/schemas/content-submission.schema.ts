@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { CONTENT_TOPIC_OPTIONS } from "@/features/content-shared/constants/content-options";
 
+const TIME_ONLY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const topikSchema = z
   .string({ message: "Topik kampanye wajib dipilih" })
   .trim()
@@ -26,9 +28,10 @@ const contentSubmissionSchemaBase = z.object({
   tanggal_posting: z
     .string({ message: "Tanggal posting wajib diisi" })
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal posting wajib diisi"),
-  jam_posting: z
-    .string({ message: "Jam posting wajib diisi" })
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Jam posting wajib diisi"),
+  jam_posting_mulai: z.string({ message: "Jam mulai wajib diisi" }).regex(TIME_ONLY_PATTERN, "Jam mulai wajib diisi"),
+  jam_posting_selesai: z
+    .string({ message: "Jam selesai wajib diisi" })
+    .regex(TIME_ONLY_PATTERN, "Jam selesai wajib diisi"),
   drive_link: z
     .string({ message: "Link Google Drive wajib diisi" })
     .url("Link Google Drive tidak valid")
@@ -58,6 +61,17 @@ const contentSubmissionSchemaBase = z.object({
 });
 
 export const contentSubmissionSchema = contentSubmissionSchemaBase.superRefine((value, context) => {
+  const [startHour, startMinute] = value.jam_posting_mulai.split(":").map(Number);
+  const [endHour, endMinute] = value.jam_posting_selesai.split(":").map(Number);
+
+  if (endHour * 60 + endMinute < startHour * 60 + startMinute) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["jam_posting_selesai"],
+      message: "Jam selesai tidak boleh lebih awal dari jam mulai",
+    });
+  }
+
   if (value.visibility_scope === "targeted_regions" && value.visibility_target_wilayah_ids.length === 0) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -81,7 +95,8 @@ export const contentSubmissionInfoSchema = contentSubmissionSchemaBase.pick({
   jenis_konten: true,
   topik: true,
   tanggal_posting: true,
-  jam_posting: true,
+  jam_posting_mulai: true,
+  jam_posting_selesai: true,
 });
 
 export const contentSubmissionDriveSchema = contentSubmissionSchemaBase.pick({

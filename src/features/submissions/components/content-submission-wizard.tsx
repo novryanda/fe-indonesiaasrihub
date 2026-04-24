@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import type { ContentItem } from "@/features/content-shared/types/content.type";
-import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
+import { formatPlatformLabel, splitPostingTimeRange } from "@/features/content-shared/utils/content-formatters";
 
 import { useContentSubmission } from "../hooks/use-content-submission";
 import {
@@ -50,7 +50,8 @@ function createInitialDraft(): ContentSubmissionDraft {
     jenis_konten: "foto_poster",
     topik: "",
     tanggal_posting: "",
-    jam_posting: "",
+    jam_posting_mulai: "",
+    jam_posting_selesai: "",
     drive_link: "",
     caption: "",
     hashtags: [],
@@ -66,13 +67,16 @@ function createInitialDraft(): ContentSubmissionDraft {
 }
 
 function createDraftFromContent(content: ContentItem): ContentSubmissionDraft {
+  const { startTime, endTime } = splitPostingTimeRange(content.jam_posting);
+
   return {
     judul: content.judul,
     platform: content.platform,
     jenis_konten: content.jenis_konten,
     topik: content.topik,
     tanggal_posting: content.tanggal_posting,
-    jam_posting: content.jam_posting ?? "",
+    jam_posting_mulai: startTime,
+    jam_posting_selesai: endTime,
     drive_link: content.drive_link,
     caption: content.caption ?? "",
     hashtags: content.hashtags ?? [],
@@ -160,10 +164,15 @@ export function ContentSubmissionWizard({
     }
 
     try {
-      const parsed = JSON.parse(rawDraft) as Partial<ContentSubmissionDraft>;
+      const parsed = JSON.parse(rawDraft) as Partial<ContentSubmissionDraft> & {
+        jam_posting?: string;
+      };
+      const legacyPostingTime = splitPostingTimeRange(parsed.jam_posting);
       setDraft({
         ...baseDraft,
         ...parsed,
+        jam_posting_mulai: parsed.jam_posting_mulai ?? legacyPostingTime.startTime ?? baseDraft.jam_posting_mulai,
+        jam_posting_selesai: parsed.jam_posting_selesai ?? legacyPostingTime.endTime ?? baseDraft.jam_posting_selesai,
         review_confirmation: false,
       });
     } catch {
@@ -486,7 +495,8 @@ export function ContentSubmissionWizard({
           platform={draft.platform}
           jenisKonten={draft.jenis_konten}
           tanggalPosting={draft.tanggal_posting}
-          jamPosting={draft.jam_posting}
+          jamPostingMulai={draft.jam_posting_mulai}
+          jamPostingSelesai={draft.jam_posting_selesai}
           urgensi={draft.urgensi}
         />
       </div>

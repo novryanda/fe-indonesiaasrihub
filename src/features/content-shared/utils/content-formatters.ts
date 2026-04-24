@@ -16,6 +16,8 @@ import type {
 } from "../types/content.type";
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_ONLY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const POSTING_TIME_RANGE_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(?:-([01]\d|2[0-3]):[0-5]\d)?$/;
 
 function getOptionLabel<TValue extends string>(
   options: Array<{ value: TValue; label: string }>,
@@ -126,14 +128,81 @@ export function formatDateTime(value: string | null | undefined) {
   });
 }
 
-export function formatPostingSchedule(tanggalPosting: string | null | undefined, jamPosting: string | null | undefined) {
+export function composePostingTimeRange(startTime: string | null | undefined, endTime: string | null | undefined) {
+  const start = startTime?.trim() ?? "";
+  const end = endTime?.trim() ?? "";
+
+  if (!start) {
+    return "";
+  }
+
+  if (!end || start === end) {
+    return start;
+  }
+
+  return `${start}-${end}`;
+}
+
+export function splitPostingTimeRange(postingTime: string | null | undefined) {
+  const normalized = postingTime?.trim().replace(/\s*-\s*/g, "-") ?? "";
+
+  if (!normalized) {
+    return {
+      startTime: "",
+      endTime: "",
+    };
+  }
+
+  if (POSTING_TIME_RANGE_PATTERN.test(normalized) && normalized.includes("-")) {
+    const [startTime, endTime] = normalized.split("-");
+
+    return {
+      startTime: startTime ?? "",
+      endTime: endTime ?? startTime ?? "",
+    };
+  }
+
+  if (TIME_ONLY_PATTERN.test(normalized)) {
+    return {
+      startTime: normalized,
+      endTime: normalized,
+    };
+  }
+
+  return {
+    startTime: "",
+    endTime: "",
+  };
+}
+
+export function formatPostingTimeLabel(postingTime: string | null | undefined) {
+  const normalized = postingTime?.trim().replace(/\s*-\s*/g, "-") ?? "";
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (POSTING_TIME_RANGE_PATTERN.test(normalized) && normalized.includes("-")) {
+    const [startTime, endTime] = normalized.split("-");
+    return endTime ? `${startTime} - ${endTime}` : startTime;
+  }
+
+  return normalized;
+}
+
+export function formatPostingSchedule(
+  tanggalPosting: string | null | undefined,
+  jamPosting: string | null | undefined,
+) {
   const dateLabel = formatDate(tanggalPosting);
 
   if (dateLabel === "-") {
     return "-";
   }
 
-  return jamPosting?.trim() ? `${dateLabel} • ${jamPosting} WIB` : dateLabel;
+  const postingTimeLabel = formatPostingTimeLabel(jamPosting);
+
+  return postingTimeLabel ? `${dateLabel} • ${postingTimeLabel} WIB` : dateLabel;
 }
 
 export function formatNumber(value: number | null | undefined) {
