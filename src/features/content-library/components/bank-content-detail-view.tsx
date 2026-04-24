@@ -37,7 +37,6 @@ import {
   formatJenisKontenLabel,
   formatNumber,
   formatPlatformLabel,
-  formatPostingSchedule,
   formatPostingTimeLabel,
   formatTopikLabel,
   getPlatformAccentClassName,
@@ -634,10 +633,6 @@ export function BankContentDetailView() {
               <DetailRow
                 label="Jam Jadwal Posting"
                 value={detail.jam_posting ? `${formatPostingTimeLabel(detail.jam_posting)} WIB` : "-"}
-              />
-              <DetailRow
-                label="Jadwal Posting"
-                value={formatPostingSchedule(detail.tanggal_posting, detail.jam_posting)}
               />
               <DetailRow label="Uploader" value={detail.uploaded_by} />
               <DetailRow label="Tanggal Dibuat" value={formatDate(detail.created_at)} />
