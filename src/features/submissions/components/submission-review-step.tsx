@@ -63,7 +63,7 @@ export function SubmissionReviewStep({
           <PreviewListRow label="Jenis" value={formatJenisKontenLabel(draft.jenis_konten)} />
           <PreviewListRow label="Topik" value={formatTopikLabel(draft.topik)} />
           <PreviewListRow
-            label="Jadwal"
+            label="Target Posting"
             value={formatPostingSchedule(
               draft.tanggal_posting,
               composePostingTimeRange(draft.jam_posting_mulai, draft.jam_posting_selesai),

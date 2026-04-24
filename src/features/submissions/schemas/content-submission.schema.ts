@@ -28,10 +28,12 @@ const contentSubmissionSchemaBase = z.object({
   tanggal_posting: z
     .string({ message: "Tanggal posting wajib diisi" })
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal posting wajib diisi"),
-  jam_posting_mulai: z.string({ message: "Jam mulai wajib diisi" }).regex(TIME_ONLY_PATTERN, "Jam mulai wajib diisi"),
+  jam_posting_mulai: z
+    .string({ message: "Jam awal rentang target wajib diisi" })
+    .regex(TIME_ONLY_PATTERN, "Jam awal rentang target wajib diisi"),
   jam_posting_selesai: z
-    .string({ message: "Jam selesai wajib diisi" })
-    .regex(TIME_ONLY_PATTERN, "Jam selesai wajib diisi"),
+    .string({ message: "Jam akhir rentang target wajib diisi" })
+    .regex(TIME_ONLY_PATTERN, "Jam akhir rentang target wajib diisi"),
   drive_link: z
     .string({ message: "Link Google Drive wajib diisi" })
     .url("Link Google Drive tidak valid")
@@ -68,7 +70,7 @@ export const contentSubmissionSchema = contentSubmissionSchemaBase.superRefine((
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["jam_posting_selesai"],
-      message: "Jam selesai tidak boleh lebih awal dari jam mulai",
+      message: "Jam akhir rentang target tidak boleh lebih awal dari jam awal",
     });
   }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDays, Clock3 } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -118,43 +120,77 @@ export function SubmissionInfoStep({ draft, errors, onFieldChange, disabled = fa
         {errors.urgensi && <p className="text-destructive text-xs">{errors.urgensi}</p>}
       </div>
 
-      <div className="grid gap-4 md:max-w-xl md:grid-cols-[minmax(0,220px)_minmax(0,160px)]">
-        <div className="grid gap-2">
-          <Label htmlFor="tanggal-posting">Rencana Tanggal Posting</Label>
-          <Input
-            id="tanggal-posting"
-            type="date"
-            value={draft.tanggal_posting}
-            disabled={disabled}
-            onChange={(event) => onFieldChange("tanggal_posting", event.target.value)}
-          />
-          {errors.tanggal_posting && <p className="text-destructive text-xs">{errors.tanggal_posting}</p>}
-        </div>
-
-        <div className="grid gap-2 md:grid-cols-2 md:gap-4">
+      <div className="rounded-3xl border border-border/60 bg-muted/20 p-4 md:p-5">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:items-end">
           <div className="grid gap-2">
-            <Label htmlFor="jam-posting-mulai">Jam Mulai</Label>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="size-4" />
+              <Label htmlFor="tanggal-posting" className="text-foreground">
+                Rencana Tanggal Posting
+              </Label>
+            </div>
             <Input
-              id="jam-posting-mulai"
-              type="time"
-              value={draft.jam_posting_mulai}
+              id="tanggal-posting"
+              type="date"
+              value={draft.tanggal_posting}
               disabled={disabled}
-              onChange={(event) => onFieldChange("jam_posting_mulai", event.target.value)}
+              className="bg-background"
+              onChange={(event) => onFieldChange("tanggal_posting", event.target.value)}
             />
-            {errors.jam_posting_mulai && <p className="text-destructive text-xs">{errors.jam_posting_mulai}</p>}
+            {errors.tanggal_posting && <p className="text-destructive text-xs">{errors.tanggal_posting}</p>}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="jam-posting-selesai">Jam Selesai</Label>
-            <Input
-              id="jam-posting-selesai"
-              type="time"
-              value={draft.jam_posting_selesai}
-              disabled={disabled}
-              onChange={(event) => onFieldChange("jam_posting_selesai", event.target.value)}
-            />
-            {errors.jam_posting_selesai && <p className="text-destructive text-xs">{errors.jam_posting_selesai}</p>}
-          </div>
+          <fieldset className="grid gap-3">
+            <legend className="flex items-center gap-2 font-medium text-foreground text-sm">
+              <Clock3 className="size-4 text-muted-foreground" />
+              Rentang Target Posting
+            </legend>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs">
+                Isi jam target publikasi, misalnya antara 16:00 sampai 18:00 WIB.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="jam-posting-mulai"
+                  className="text-muted-foreground text-xs uppercase tracking-[0.18em]"
+                >
+                  Dari
+                </Label>
+                <Input
+                  id="jam-posting-mulai"
+                  type="time"
+                  value={draft.jam_posting_mulai}
+                  disabled={disabled}
+                  className="bg-background"
+                  onChange={(event) => onFieldChange("jam_posting_mulai", event.target.value)}
+                />
+                {errors.jam_posting_mulai && <p className="text-destructive text-xs">{errors.jam_posting_mulai}</p>}
+              </div>
+
+              <div className="hidden h-10 items-center justify-center text-muted-foreground text-sm sm:flex">s/d</div>
+
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="jam-posting-selesai"
+                  className="text-muted-foreground text-xs uppercase tracking-[0.18em]"
+                >
+                  Sampai
+                </Label>
+                <Input
+                  id="jam-posting-selesai"
+                  type="time"
+                  value={draft.jam_posting_selesai}
+                  disabled={disabled}
+                  className="bg-background"
+                  onChange={(event) => onFieldChange("jam_posting_selesai", event.target.value)}
+                />
+                {errors.jam_posting_selesai && <p className="text-destructive text-xs">{errors.jam_posting_selesai}</p>}
+              </div>
+            </div>
+          </fieldset>
         </div>
       </div>
     </>

@@ -80,7 +80,7 @@ export function SubmissionSidebarSummary({
               <span>
                 {tanggalPosting
                   ? formatPostingSchedule(tanggalPosting, composePostingTimeRange(jamPostingMulai, jamPostingSelesai))
-                  : "Jadwal belum dipilih"}
+                  : "Target posting belum dipilih"}
               </span>
             </div>
             <div className="flex items-center gap-3">
