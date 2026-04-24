@@ -141,15 +141,6 @@ export function SubmissionInfoStep({ draft, errors, onFieldChange, disabled = fa
           </div>
 
           <fieldset className="grid gap-3">
-            <legend className="flex items-center gap-2 font-medium text-foreground text-sm">
-              <Clock3 className="size-4 text-muted-foreground" />
-              Rentang Target Posting
-            </legend>
-            <div className="space-y-1">
-              <p className="text-muted-foreground text-xs">
-                Isi jam target publikasi, misalnya antara 16:00 sampai 18:00 WIB.
-              </p>
-            </div>
 
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start">
               <div className="grid gap-2">
