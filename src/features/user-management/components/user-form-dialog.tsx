@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { normalizeIndonesianPhoneNumber } from "@/lib/phone-number";
@@ -310,9 +311,8 @@ export function UserFormDialog({
           {mode === "create" ? (
             <div className="grid gap-2">
               <Label htmlFor="user-password">Password</Label>
-              <Input
+              <PasswordInput
                 id="user-password"
-                type="password"
                 value={draft.password}
                 onChange={(event) => handleFieldChange("password", event.target.value)}
                 placeholder="Minimal 8 karakter"

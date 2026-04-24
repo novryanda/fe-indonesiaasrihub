@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/spinner";
 import { PLATFORM_OPTIONS } from "@/features/content-shared/constants/content-options";
 import { formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
@@ -681,8 +682,7 @@ export function ScraperConfigurationView() {
                   </Badge>
                 </div>
               </div>
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Tempel token baru hanya jika ingin mengganti"
                 value={apifyForm.apifyApiToken}
                 onChange={(event) => handleApifyFormChange("apifyApiToken", event.target.value)}
@@ -756,8 +756,7 @@ export function ScraperConfigurationView() {
                   </Badge>
                 </div>
               </div>
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Minimal 32 karakter"
                 value={apifyForm.apifyWebhookSecret}
                 onChange={(event) => handleApifyFormChange("apifyWebhookSecret", event.target.value)}
@@ -1058,9 +1057,8 @@ export function ScraperConfigurationView() {
                 <Label htmlFor="waha-api-key" className="sr-only">
                   WAHA API Key
                 </Label>
-                <Input
+                <PasswordInput
                   id="waha-api-key"
-                  type="password"
                   placeholder="Tempel nilai baru hanya jika ingin mengganti"
                   value={integrationForm.wahaApiKey}
                   onChange={(event) => handleIntegrationFormChange("wahaApiKey", event.target.value)}

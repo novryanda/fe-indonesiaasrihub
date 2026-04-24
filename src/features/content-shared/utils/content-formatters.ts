@@ -15,6 +15,8 @@ import type {
   ReviewStep,
 } from "../types/content.type";
 
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 function getOptionLabel<TValue extends string>(
   options: Array<{ value: TValue; label: string }>,
   value: TValue | null | undefined,
@@ -103,12 +105,15 @@ export function formatDate(value: string | null | undefined, options?: Intl.Date
     return "-";
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const parsed = parseDateValue(value);
+  if (!parsed) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("id-ID", options ?? { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("id-ID", {
+    ...(options ?? { day: "2-digit", month: "short", year: "numeric" }),
+    ...(parsed.timeZone ? { timeZone: parsed.timeZone } : {}),
+  }).format(parsed.date);
 }
 
 export function formatDateTime(value: string | null | undefined) {
@@ -119,6 +124,16 @@ export function formatDateTime(value: string | null | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+export function formatPostingSchedule(tanggalPosting: string | null | undefined, jamPosting: string | null | undefined) {
+  const dateLabel = formatDate(tanggalPosting);
+
+  if (dateLabel === "-") {
+    return "-";
+  }
+
+  return jamPosting?.trim() ? `${dateLabel} • ${jamPosting} WIB` : dateLabel;
 }
 
 export function formatNumber(value: number | null | undefined) {
@@ -161,4 +176,25 @@ export function formatTimeAgo(value: string | null | undefined) {
   }
 
   return formatDate(value);
+}
+
+function parseDateValue(value: string) {
+  if (DATE_ONLY_PATTERN.test(value)) {
+    const [year, month, day] = value.split("-").map((part) => Number(part));
+
+    return {
+      date: new Date(Date.UTC(year, month - 1, day)),
+      timeZone: "UTC",
+    };
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return {
+    date,
+    timeZone: undefined,
+  };
 }

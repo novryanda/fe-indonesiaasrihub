@@ -19,6 +19,7 @@ import { PlatformIconList } from "@/features/content-shared/components/platform-
 import {
   formatContentStatusLabel,
   formatDate,
+  formatPostingSchedule,
   formatPlatformLabel,
   formatTimeAgo,
   formatTopikLabel,
@@ -270,7 +271,7 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
                       <TableHead className="min-w-[8.5rem]">Platform</TableHead>
                       <TableHead className="min-w-[6.5rem]">Topik</TableHead>
                       <TableHead className="min-w-[6.5rem]">Urgensi</TableHead>
-                      <TableHead className="min-w-[6rem]">Posting</TableHead>
+                      <TableHead className="min-w-[10rem]">Jadwal</TableHead>
                       <TableHead className="min-w-[8rem]">Status</TableHead>
                       <TableHead className="min-w-[7rem]">Dibuat</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
@@ -329,7 +330,9 @@ export function ContentApprovalBoard({ mode }: { mode: ApprovalBoardMode }) {
                               {formatUrgensiLabel(item.urgensi)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="py-3 align-top">{formatDate(item.tanggal_posting)}</TableCell>
+                          <TableCell className="py-3 align-top">
+                            {formatPostingSchedule(item.tanggal_posting, item.jam_posting)}
+                          </TableCell>
                           <TableCell className="py-3 align-top">
                             <Badge
                               variant="outline"

@@ -6,9 +6,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
-  formatDate,
   formatDurasiLabel,
   formatJenisKontenLabel,
+  formatPostingSchedule,
   formatTopikLabel,
   formatUrgensiLabel,
 } from "@/features/content-shared/utils/content-formatters";
@@ -61,10 +61,7 @@ export function SubmissionReviewStep({
           <PreviewListRow label="Platform" value={summaryPlatformLabels} />
           <PreviewListRow label="Jenis" value={formatJenisKontenLabel(draft.jenis_konten)} />
           <PreviewListRow label="Topik" value={formatTopikLabel(draft.topik)} />
-          <PreviewListRow
-            label="Tgl. Posting"
-            value={draft.tanggal_posting ? formatDate(draft.tanggal_posting) : "-"}
-          />
+          <PreviewListRow label="Jadwal" value={formatPostingSchedule(draft.tanggal_posting, draft.jam_posting)} />
           <PreviewListRow label="Drive Link" value={draft.drive_link || "-"} />
           <PreviewListRow label="Urgensi" value={formatUrgensiLabel(draft.urgensi)} />
           <PreviewListRow label="Durasi" value={formatDurasiLabel(draft.durasi_konten)} />
@@ -78,8 +75,7 @@ export function SubmissionReviewStep({
           onCheckedChange={(checked) => onFieldChange("review_confirmation", checked === true)}
         />
         <Label htmlFor="review-confirmation" className="text-sm leading-6">
-          Saya menyatakan konten ini sesuai dengan panduan komunikasi pemerintah, tidak mengandung informasi
-          menyesatkan, dan telah memperoleh persetujuan internal sebelum dikirim.
+          apakah submit yang anda masukkan sudah sesuai.
         </Label>
       </div>
       {errors.review_confirmation && <p className="text-destructive text-xs">{errors.review_confirmation}</p>}

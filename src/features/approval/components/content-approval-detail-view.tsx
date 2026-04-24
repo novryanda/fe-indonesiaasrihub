@@ -31,6 +31,7 @@ import {
   formatDurasiLabel,
   formatJenisKontenLabel,
   formatPlatformLabel,
+  formatPostingSchedule,
   formatReviewStepLabel,
   formatTimeAgo,
   formatTopikLabel,
@@ -339,7 +340,7 @@ export function ContentApprovalDetailView({ mode }: { mode: ApprovalBoardMode })
               <DetailRow label="Platform" value={platformLabels} />
               <DetailRow label="Jenis Konten" value={formatJenisKontenLabel(detail.jenis_konten)} />
               <DetailRow label="Topik" value={formatTopikLabel(detail.topik)} />
-              <DetailRow label="Tanggal Posting" value={formatDate(detail.tanggal_posting)} />
+              <DetailRow label="Jadwal Posting" value={formatPostingSchedule(detail.tanggal_posting, detail.jam_posting)} />
               <DetailRow label="Durasi" value={formatDurasiLabel(detail.durasi_konten)} />
               <DetailRow label="Urgensi" value={formatUrgensiLabel(detail.urgensi)} />
             </CardContent>

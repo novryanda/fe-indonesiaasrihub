@@ -9,6 +9,7 @@ export function buildContentSubmissionRequestBody(payload: ContentSubmissionPayl
     jenis_konten: payload.jenis_konten,
     topik: payload.topik,
     tanggal_posting: payload.tanggal_posting,
+    jam_posting: payload.jam_posting,
     drive_link: payload.drive_link,
     caption: payload.caption,
     hashtags: payload.hashtags,

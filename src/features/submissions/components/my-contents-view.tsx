@@ -21,6 +21,7 @@ import type { ContentItem, ContentStatus } from "@/features/content-shared/types
 import {
   formatContentStatusLabel,
   formatDate,
+  formatPostingSchedule,
   formatPlatformLabel,
   formatTopikLabel,
   getStatusAccentClassName,
@@ -284,7 +285,7 @@ export function MyContentsView() {
                     <TableHead>Status</TableHead>
                     <TableHead>Platform</TableHead>
                     <TableHead>Topik</TableHead>
-                    <TableHead>Tanggal Posting</TableHead>
+                    <TableHead>Jadwal Posting</TableHead>
                     <TableHead>Catatan Review</TableHead>
                     <TableHead>Updated</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
@@ -320,7 +321,9 @@ export function MyContentsView() {
                           <PlatformIconList platforms={item.platform} className="max-w-48" />
                         </TableCell>
                         <TableCell className="align-top">{formatTopikLabel(item.topik)}</TableCell>
-                        <TableCell className="align-top">{formatDate(item.tanggal_posting)}</TableCell>
+                        <TableCell className="align-top">
+                          {formatPostingSchedule(item.tanggal_posting, item.jam_posting)}
+                        </TableCell>
                         <TableCell className="max-w-72 align-top">
                           <p className="line-clamp-2 whitespace-normal text-muted-foreground text-sm">
                             {item.catatan_reviewer || "-"}

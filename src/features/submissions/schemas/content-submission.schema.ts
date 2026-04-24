@@ -26,6 +26,9 @@ const contentSubmissionSchemaBase = z.object({
   tanggal_posting: z
     .string({ message: "Tanggal posting wajib diisi" })
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal posting wajib diisi"),
+  jam_posting: z
+    .string({ message: "Jam posting wajib diisi" })
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Jam posting wajib diisi"),
   drive_link: z
     .string({ message: "Link Google Drive wajib diisi" })
     .url("Link Google Drive tidak valid")
@@ -78,6 +81,7 @@ export const contentSubmissionInfoSchema = contentSubmissionSchemaBase.pick({
   jenis_konten: true,
   topik: true,
   tanggal_posting: true,
+  jam_posting: true,
 });
 
 export const contentSubmissionDriveSchema = contentSubmissionSchemaBase.pick({

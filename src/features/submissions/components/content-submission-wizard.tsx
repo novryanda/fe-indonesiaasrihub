@@ -50,6 +50,7 @@ function createInitialDraft(): ContentSubmissionDraft {
     jenis_konten: "foto_poster",
     topik: "",
     tanggal_posting: "",
+    jam_posting: "",
     drive_link: "",
     caption: "",
     hashtags: [],
@@ -71,6 +72,7 @@ function createDraftFromContent(content: ContentItem): ContentSubmissionDraft {
     jenis_konten: content.jenis_konten,
     topik: content.topik,
     tanggal_posting: content.tanggal_posting,
+    jam_posting: content.jam_posting ?? "",
     drive_link: content.drive_link,
     caption: content.caption ?? "",
     hashtags: content.hashtags ?? [],
@@ -484,6 +486,7 @@ export function ContentSubmissionWizard({
           platform={draft.platform}
           jenisKonten={draft.jenis_konten}
           tanggalPosting={draft.tanggal_posting}
+          jamPosting={draft.jam_posting}
           urgensi={draft.urgensi}
         />
       </div>

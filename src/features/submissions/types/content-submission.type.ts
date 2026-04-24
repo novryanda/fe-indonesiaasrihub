@@ -13,6 +13,7 @@ export interface ContentSubmissionPayload {
   jenis_konten: ContentJenis;
   topik: string;
   tanggal_posting: string;
+  jam_posting: string;
   drive_link: string;
   caption: string;
   hashtags: string[];

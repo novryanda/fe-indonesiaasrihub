@@ -56,6 +56,7 @@ export interface ContentItem {
   jenis_konten: ContentJenis;
   topik: string;
   tanggal_posting: string;
+  jam_posting: string | null;
   drive_link: string;
   status: ContentStatus;
   urgensi: ContentUrgensi;

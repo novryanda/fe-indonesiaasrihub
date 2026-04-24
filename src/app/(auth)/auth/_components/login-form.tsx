@@ -6,6 +6,7 @@ import { AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 interface LoginFormProps {
   identifier: string;
@@ -62,9 +63,8 @@ export function LoginForm({
             Lupa password?
           </button>
         </div>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           placeholder="••••••••"
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}

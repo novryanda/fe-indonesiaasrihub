@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/spinner";
 import { UserAvatarPlaceholder } from "@/components/ui/user-avatar-placeholder";
 import { formatDateTime, formatNumber, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
@@ -463,9 +464,8 @@ export function AccountProfileView() {
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="current-password">Password Saat Ini</Label>
-              <Input
+              <PasswordInput
                 id="current-password"
-                type="password"
                 value={passwordForm.currentPassword}
                 onChange={(event) =>
                   setPasswordForm((previous) => ({ ...previous, currentPassword: event.target.value }))
@@ -474,18 +474,16 @@ export function AccountProfileView() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="new-password">Password Baru</Label>
-              <Input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 value={passwordForm.newPassword}
                 onChange={(event) => setPasswordForm((previous) => ({ ...previous, newPassword: event.target.value }))}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="confirm-password">Konfirmasi Password Baru</Label>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(event) =>
                   setPasswordForm((previous) => ({ ...previous, confirmPassword: event.target.value }))
