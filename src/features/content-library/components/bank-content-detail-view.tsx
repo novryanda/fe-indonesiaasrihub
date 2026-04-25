@@ -269,6 +269,42 @@ export function BankContentDetailView() {
   }, [currentPostingTask]);
 
   useEffect(() => {
+    if (!currentPostingTask || picAccounts.length === 0) {
+      return;
+    }
+
+    setPicDrafts((previous) => {
+      let hasChanges = false;
+      const nextDrafts = { ...previous };
+
+      for (const platform of currentPostingTask.platform_targets) {
+        const draft = nextDrafts[platform] ?? {
+          social_account_id: "",
+          post_url: "",
+          catatan_officer: "",
+        };
+
+        if (draft.social_account_id) {
+          continue;
+        }
+
+        const defaultAccount = accountOptionsByPlatform[platform]?.[0];
+        if (!defaultAccount) {
+          continue;
+        }
+
+        nextDrafts[platform] = {
+          ...draft,
+          social_account_id: defaultAccount.id,
+        };
+        hasChanges = true;
+      }
+
+      return hasChanges ? nextDrafts : previous;
+    });
+  }, [accountOptionsByPlatform, currentPostingTask, picAccounts.length]);
+
+  useEffect(() => {
     setEditedCaption(detail?.deskripsi ?? "");
     setEditedHashtags(detail?.hashtags ?? []);
   }, [detail]);
