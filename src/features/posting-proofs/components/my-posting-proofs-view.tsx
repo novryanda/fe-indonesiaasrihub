@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { ChartColumnBig, Search } from "lucide-react";
+import { ChartColumnBig, LibraryBig, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +52,7 @@ export function MyPostingProofsView() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [status, setStatus] = useState<PostingProofFilters["status"]>("all");
+  const [status, setStatus] = useState<PostingProofFilters["status"]>("unsubmitted");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -144,16 +144,12 @@ export function MyPostingProofsView() {
             }}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Semua status" />
+              <SelectValue placeholder="Filter status submit" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua task</SelectItem>
-              <SelectItem value="unsubmitted">Belum Submit</SelectItem>
-              <SelectItem value="submitted">Sudah Submit</SelectItem>
-              <SelectItem value="menunggu_bukti_posting">Menunggu Bukti</SelectItem>
-              <SelectItem value="bukti_dikirim">Bukti Dikirim</SelectItem>
-              <SelectItem value="bukti_valid">Bukti Valid</SelectItem>
-              <SelectItem value="bukti_ditolak">Bukti Ditolak</SelectItem>
+              <SelectItem value="unsubmitted">Belum di Submit</SelectItem>
+              <SelectItem value="submitted">Sudah di Submit</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -187,55 +183,66 @@ export function MyPostingProofsView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="max-w-80 align-top">
-                        <div className="space-y-1">
-                          <p className="line-clamp-2 whitespace-normal font-medium">{item.bank_content_judul}</p>
-                          <p className="text-muted-foreground text-xs">{item.pic.regional ?? "-"}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex max-w-48 flex-wrap gap-2">
-                          {item.platform_targets.map((platform) => (
-                            <Badge key={platform} variant="outline" className="rounded-full px-3 py-1">
-                              {formatPlatformLabel(platform)}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge
-                          variant="outline"
-                          className={cn("rounded-full px-3 py-1", getStatusBadgeClass(item.status))}
-                        >
-                          {item.status.replaceAll("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="space-y-1 text-sm">
-                          <p>Link: {item.links.length}</p>
-                          <p>Valid: {item.links.filter((link) => link.validation_status === "valid").length}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {getAutoStatsFreshness(item)
-                          ? formatDateTime(getAutoStatsFreshness(item))
-                          : "Menunggu scraping"}
-                      </TableCell>
-                      <TableCell className="align-top">{formatDateTime(item.updated_at)}</TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex justify-end gap-2">
-                          <Button asChild size="sm">
-                            <Link href={`/dashboard/postingan-saya/${item.id}`}>
-                              <ChartColumnBig className="mr-2 size-4" />
-                              Detail
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  items.map((item) => {
+                    const isSubmitted = Boolean(item.submitted_at) || item.links.length > 0;
+                    const detailHref = isSubmitted
+                      ? `/dashboard/postingan-saya/${item.id}`
+                      : `/konten/bank-konten/${item.bank_content_id}`;
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="max-w-80 align-top">
+                          <div className="space-y-1">
+                            <p className="line-clamp-2 whitespace-normal font-medium">{item.bank_content_judul}</p>
+                            <p className="text-muted-foreground text-xs">{item.pic.regional ?? "-"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex max-w-48 flex-wrap gap-2">
+                            {item.platform_targets.map((platform) => (
+                              <Badge key={platform} variant="outline" className="rounded-full px-3 py-1">
+                                {formatPlatformLabel(platform)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge
+                            variant="outline"
+                            className={cn("rounded-full px-3 py-1", getStatusBadgeClass(item.status))}
+                          >
+                            {item.status.replaceAll("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="space-y-1 text-sm">
+                            <p>Link: {item.links.length}</p>
+                            <p>Valid: {item.links.filter((link) => link.validation_status === "valid").length}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          {getAutoStatsFreshness(item)
+                            ? formatDateTime(getAutoStatsFreshness(item))
+                            : "Menunggu scraping"}
+                        </TableCell>
+                        <TableCell className="align-top">{formatDateTime(item.updated_at)}</TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex justify-end gap-2">
+                            <Button asChild size="sm">
+                              <Link href={detailHref}>
+                                {isSubmitted ? (
+                                  <ChartColumnBig className="mr-2 size-4" />
+                                ) : (
+                                  <LibraryBig className="mr-2 size-4" />
+                                )}
+                                {isSubmitted ? "Detail" : "Submit Konten"}
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

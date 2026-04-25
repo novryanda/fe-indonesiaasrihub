@@ -5,55 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDateTime, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
+import { formatDateTime, formatNumber, formatPlatformLabel } from "@/features/content-shared/utils/content-formatters";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
-import { getPostingProofDetail, updatePostingStats } from "../api/posting-proofs-api";
+import { getPostingProofDetail } from "../api/posting-proofs-api";
 import type { PostingProofDetail } from "../types/posting-proof.type";
-
-type StatsDraft = {
-  views: string;
-  likes: string;
-  comments: string;
-  reposts: string;
-  share_posts: string;
-};
-
-function toDraft(detail: PostingProofDetail | null): Record<string, StatsDraft> {
-  if (!detail) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    detail.links.map((link) => [
-      link.id,
-      {
-        views: link.stats?.views?.toString() ?? "",
-        likes: link.stats?.likes?.toString() ?? "",
-        comments: link.stats?.comments?.toString() ?? "",
-        reposts: link.stats?.reposts?.toString() ?? "",
-        share_posts: link.stats?.share_posts?.toString() ?? "",
-      },
-    ]),
-  );
-}
-
-function parseNullableInt(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  return Number.parseInt(trimmed, 10);
-}
 
 function getStatsInfo(link: PostingProofDetail["links"][number]) {
   if (link.validation_status === "ditolak") {
@@ -77,7 +40,7 @@ function getStatsInfo(link: PostingProofDetail["links"][number]) {
 
   if (hasAnyValue) {
     return {
-      label: "Diisi manual",
+      label: "Data statistik tercatat",
       className: "border-amber-200 bg-amber-50 text-amber-700",
     };
   }
@@ -88,14 +51,37 @@ function getStatsInfo(link: PostingProofDetail["links"][number]) {
   };
 }
 
+function formatStatValue(value: number | null | undefined) {
+  return value === null || value === undefined ? "-" : formatNumber(value);
+}
+
+function PostingStatsSummary({ link }: { link: PostingProofDetail["links"][number] }) {
+  const stats: Array<{ label: string; value: number | null | undefined }> = [
+    { label: "Views", value: link.stats?.views },
+    { label: "Likes", value: link.stats?.likes },
+    { label: "Comments", value: link.stats?.comments },
+    { label: "Reposts", value: link.stats?.reposts },
+    { label: "Share Posts", value: link.stats?.share_posts },
+  ];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      {stats.map((stat) => (
+        <div key={stat.label} className="rounded-2xl border bg-muted/20 p-4">
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">{stat.label}</p>
+          <p className="mt-2 font-semibold text-lg">{formatStatValue(stat.value)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PostingProofStatsDetailView() {
   const params = useParams<{ id: string }>();
   const proofId = typeof params?.id === "string" ? params.id : "";
   const { isAuthorized, isPending } = useRoleGuard(["pic_sosmed"]);
   const [item, setItem] = useState<PostingProofDetail | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, StatsDraft>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!proofId || !isAuthorized || isPending) {
@@ -106,7 +92,6 @@ export function PostingProofStatsDetailView() {
     void getPostingProofDetail(proofId)
       .then((response) => {
         setItem(response.data);
-        setDrafts(toDraft(response.data));
       })
       .catch((errorValue) => {
         toast.error(errorValue instanceof Error ? errorValue.message : "Gagal memuat detail posting");
@@ -133,46 +118,6 @@ export function PostingProofStatsDetailView() {
     return null;
   }
 
-  const handleFieldChange = (linkId: string, field: keyof StatsDraft, value: string) => {
-    setDrafts((previous) => ({
-      ...previous,
-      [linkId]: {
-        ...previous[linkId],
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleSave = async () => {
-    if (!item) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await updatePostingStats(
-        item.id,
-        item.links.map((link) => ({
-          link_id: link.id,
-          views: parseNullableInt(drafts[link.id]?.views ?? ""),
-          likes: parseNullableInt(drafts[link.id]?.likes ?? ""),
-          comments: parseNullableInt(drafts[link.id]?.comments ?? ""),
-          reposts: parseNullableInt(drafts[link.id]?.reposts ?? ""),
-          share_posts: parseNullableInt(drafts[link.id]?.share_posts ?? ""),
-        })),
-      );
-
-      const refreshed = await getPostingProofDetail(item.id);
-      setItem(refreshed.data);
-      setDrafts(toDraft(refreshed.data));
-      toast.success("Statistik posting berhasil disimpan");
-    } catch (errorValue) {
-      toast.error(errorValue instanceof Error ? errorValue.message : "Gagal menyimpan statistik posting");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Card className="app-bg-hero app-border-soft">
@@ -187,8 +132,8 @@ export function PostingProofStatsDetailView() {
               </Badge>
               <h1 className="font-semibold text-3xl tracking-tight">{item?.bank_content_judul ?? "Detail Posting"}</h1>
               <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                Link akan diverifikasi otomatis via actor posting metrics. Statistik performa di bawah ini diisi dari
-                hasil scrape dan tetap bisa di-override manual bila dibutuhkan.
+                Link diverifikasi otomatis via actor posting metrics. Statistik performa di bawah ini ditampilkan dari
+                hasil scrape tanpa input manual.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -197,10 +142,6 @@ export function PostingProofStatsDetailView() {
                   <ArrowLeft className="mr-2 size-4" />
                   Kembali
                 </Link>
-              </Button>
-              <Button onClick={() => void handleSave()} disabled={isSaving || !item}>
-                {isSaving ? <Spinner className="mr-2" /> : <Save className="mr-2 size-4" />}
-                Simpan Statistik
               </Button>
             </div>
           </div>
@@ -288,73 +229,7 @@ export function PostingProofStatsDetailView() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="grid gap-2">
-                    <label htmlFor={`stats-${link.id}-views`} className="font-medium text-sm">
-                      Views
-                    </label>
-                    <Input
-                      id={`stats-${link.id}-views`}
-                      type="number"
-                      min={0}
-                      value={drafts[link.id]?.views ?? ""}
-                      onChange={(event) => handleFieldChange(link.id, "views", event.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor={`stats-${link.id}-likes`} className="font-medium text-sm">
-                      Likes
-                    </label>
-                    <Input
-                      id={`stats-${link.id}-likes`}
-                      type="number"
-                      min={0}
-                      value={drafts[link.id]?.likes ?? ""}
-                      onChange={(event) => handleFieldChange(link.id, "likes", event.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor={`stats-${link.id}-comments`} className="font-medium text-sm">
-                      Comments
-                    </label>
-                    <Input
-                      id={`stats-${link.id}-comments`}
-                      type="number"
-                      min={0}
-                      value={drafts[link.id]?.comments ?? ""}
-                      onChange={(event) => handleFieldChange(link.id, "comments", event.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor={`stats-${link.id}-reposts`} className="font-medium text-sm">
-                      Reposts
-                    </label>
-                    <Input
-                      id={`stats-${link.id}-reposts`}
-                      type="number"
-                      min={0}
-                      value={drafts[link.id]?.reposts ?? ""}
-                      onChange={(event) => handleFieldChange(link.id, "reposts", event.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor={`stats-${link.id}-share-posts`} className="font-medium text-sm">
-                      Share Posts
-                    </label>
-                    <Input
-                      id={`stats-${link.id}-share-posts`}
-                      type="number"
-                      min={0}
-                      value={drafts[link.id]?.share_posts ?? ""}
-                      onChange={(event) => handleFieldChange(link.id, "share_posts", event.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
+                <PostingStatsSummary link={link} />
               </CardContent>
             </Card>
           ))}
