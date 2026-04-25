@@ -4,12 +4,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { Check, ChevronsUpDown, ExternalLink, Eye, Heart, MessageCircle, Radio, Repeat2, Search, Send, Share2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronsUpDown,
+  ExternalLink,
+  Eye,
+  Heart,
+  MessageCircle,
+  Radio,
+  Repeat2,
+  Search,
+  Send,
+  Share2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Dialog,
@@ -35,7 +49,12 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import { useBlastActivity } from "../hooks/use-blast-activity";
-import type { BlastCandidateItem, BlastFeedItem, BlastReferenceStatus } from "../types/blast-activity.type";
+import type {
+  BlastCandidateItem,
+  BlastFeedItem,
+  BlastReferenceStatus,
+  BlastSortDirection,
+} from "../types/blast-activity.type";
 
 function StatsCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
@@ -53,119 +72,14 @@ function StatsCard({ title, value, icon }: { title: string; value: string; icon:
   );
 }
 
-function FeedReferenceCard({
-  item,
-  active,
-  onSelect,
-  actionLabel,
-}: {
-  item: BlastFeedItem;
-  active: boolean;
-  onSelect: (item: BlastFeedItem) => void;
-  actionLabel: string;
-}) {
+function SortDirectionButton({ direction, onToggle }: { direction: BlastSortDirection; onToggle: () => void }) {
+  const Icon = direction === "desc" ? ArrowDown : ArrowUp;
+
   return (
-    <Card className={cn("border-foreground/10", active ? "ring-2 ring-emerald-500" : "")}>
-      <CardContent className="space-y-4 py-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2">
-            <PlatformIcon platform={item.platform} />
-            <div>
-              <p className="font-medium text-sm">{item.title}</p>
-              <p className="text-muted-foreground text-xs">
-                {item.social_account?.username ?? item.target_wilayah.nama} • {item.target_wilayah.nama}
-              </p>
-            </div>
-          </div>
-          <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={() => onSelect(item)}>
-            {active ? "Dipilih" : actionLabel}
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={item.blast_status === "blasted" ? "default" : "secondary"}>
-            {item.blast_status === "blasted" ? "Sudah Pernah Di-blast" : "Belum Di-blast"}
-          </Badge>
-          <Badge variant="outline">{formatPlatformLabel(item.platform)}</Badge>
-          <Badge variant="outline">{item.blast_count} aktivitas blast</Badge>
-        </div>
-
-        <div className="space-y-1 text-sm">
-          <p className="text-muted-foreground text-xs">Topik</p>
-          <p className="line-clamp-2 font-medium leading-6">{item.topic}</p>
-        </div>
-
-        <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-6">
-          {item.caption?.trim() || "Caption belum tersedia."}
-        </p>
-
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-muted-foreground text-xs">
-            {item.last_blasted_at
-              ? `Blast terakhir ${formatDateTime(item.last_blasted_at)}`
-              : item.approval_at
-                ? `Disetujui ${formatDateTime(item.approval_at)}`
-                : "Menunggu blast pertama"}
-          </p>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={item.post_url} target="_blank" rel="noreferrer">
-              <ExternalLink className="mr-2 size-4" />
-              Buka Postingan
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CandidateCard({
-  item,
-  isSubmitting,
-  onDecide,
-}: {
-  item: BlastCandidateItem;
-  isSubmitting: boolean;
-  onDecide: (item: BlastCandidateItem, shouldBlast: boolean) => Promise<void>;
-}) {
-  return (
-    <Card className="border-foreground/10">
-      <CardContent className="space-y-4 py-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2">
-            <PlatformIcon platform={item.platform} />
-            <div>
-              <p className="font-medium text-sm">{item.posting_proof.bank_content.title}</p>
-              <p className="text-muted-foreground text-xs">
-                {item.posting_proof.pic.name} • {item.posting_proof.pic.wilayah?.nama ?? "-"}
-              </p>
-            </div>
-          </div>
-          <Badge variant="outline">{formatPlatformLabel(item.platform)}</Badge>
-        </div>
-
-        <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6">{item.caption?.trim() || item.post_url}</p>
-
-        <div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
-          <span>{item.validated_at ? `Valid ${formatDateTime(item.validated_at)}` : "Sudah valid"}</span>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={item.post_url} target="_blank" rel="noreferrer">
-              <ExternalLink className="mr-2 size-4" />
-              Buka Link
-            </Link>
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => void onDecide(item, false)}>
-            Tidak Perlu Blast
-          </Button>
-          <Button type="button" disabled={isSubmitting} onClick={() => void onDecide(item, true)}>
-            Masukkan Blast
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <Button type="button" variant="ghost" size="sm" className="-ml-3 h-8 px-2" onClick={onToggle}>
+      Submit {direction === "desc" ? "Terbaru" : "Terlama"}
+      <Icon className="ml-2 size-4" />
+    </Button>
   );
 }
 
@@ -183,6 +97,8 @@ export function BlastActivityView({
     candidateItems,
     activities,
     stats,
+    feedMeta,
+    candidateMeta,
     candidateFilters,
     setCandidateFilters,
     activityMeta,
@@ -206,7 +122,7 @@ export function BlastActivityView({
   const [selectedReference, setSelectedReference] = useState<BlastFeedItem | null>(null);
   const blastFormRef = useRef<HTMLDivElement | null>(null);
   const [socialAccounts, setSocialAccounts] = useState<SocialAccountItem[]>([]);
-  const [isSocialAccountsLoading, setSocialAccountsLoading] = useState(mode === "superadmin");
+  const [isSocialAccountsLoading, setSocialAccountsLoading] = useState(true);
   const [socialAccountsError, setSocialAccountsError] = useState<string | null>(null);
   const [formState, setFormState] = useState({
     platform: "instagram",
@@ -300,10 +216,6 @@ export function BlastActivityView({
   };
 
   useEffect(() => {
-    if (mode !== "superadmin") {
-      return;
-    }
-
     const controller = new AbortController();
 
     const fetchSocialAccounts = async () => {
@@ -337,7 +249,7 @@ export function BlastActivityView({
     void fetchSocialAccounts();
 
     return () => controller.abort();
-  }, [mode]);
+  }, []);
 
   const handleSubmit = async () => {
     if (!selectedReference) {
@@ -453,12 +365,17 @@ export function BlastActivityView({
 
   const hasActivityFilters =
     activityFilters.platform !== "all" ||
+    activityFilters.social_account_id !== "all" ||
     Boolean(activityFilters.date_from?.trim()) ||
     Boolean(activityFilters.date_to?.trim()) ||
     Boolean(activityFilters.search.trim());
-  const hasCandidateFilters = candidateFilters.platform !== "all" || Boolean(candidateFilters.search.trim());
+  const hasCandidateFilters =
+    candidateFilters.platform !== "all" ||
+    candidateFilters.social_account_id !== "all" ||
+    Boolean(candidateFilters.search.trim());
   const hasFeedFilters =
     feedFilters.platform !== "all" ||
+    feedFilters.social_account_id !== "all" ||
     feedFilters.status !== referenceStatusPreset ||
     Boolean(feedFilters.search.trim());
   const activityLoadingLabel = activityFilters.search.trim()
@@ -473,6 +390,34 @@ export function BlastActivityView({
 
     return Math.max(1, Math.ceil(displayedActivityMeta.total / displayedActivityMeta.limit));
   }, [displayedActivityMeta]);
+  const feedTotalPages = useMemo(() => {
+    if (!feedMeta) {
+      return 1;
+    }
+
+    return Math.max(1, Math.ceil(feedMeta.total / feedMeta.limit));
+  }, [feedMeta]);
+  const candidateTotalPages = useMemo(() => {
+    if (!candidateMeta) {
+      return 1;
+    }
+
+    return Math.max(1, Math.ceil(candidateMeta.total / candidateMeta.limit));
+  }, [candidateMeta]);
+  const toggleFeedSortDirection = () => {
+    setFeedFilters((previous) => ({
+      ...previous,
+      sort_direction: previous.sort_direction === "desc" ? "asc" : "desc",
+      page: 1,
+    }));
+  };
+  const toggleCandidateSortDirection = () => {
+    setCandidateFilters((previous) => ({
+      ...previous,
+      sort_direction: previous.sort_direction === "desc" ? "asc" : "desc",
+      page: 1,
+    }));
+  };
 
   if (isPending) {
     return (
@@ -516,7 +461,7 @@ export function BlastActivityView({
         <>
           <Card>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto]">
+              <div className="grid gap-3 lg:grid-cols-[180px_220px_240px_minmax(0,1fr)_auto]">
                 <Select
                   value={feedFilters.platform}
                   onValueChange={(value) =>
@@ -560,11 +505,35 @@ export function BlastActivityView({
                   </SelectContent>
                 </Select>
 
+                <Select
+                  value={feedFilters.social_account_id}
+                  onValueChange={(value) =>
+                    setFeedFilters((previous) => ({
+                      ...previous,
+                      social_account_id: value,
+                      page: 1,
+                    }))
+                  }
+                  disabled={isSocialAccountsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Semua Akun Sosmed" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Akun Sosmed</SelectItem>
+                    {sortedSocialAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.username} • {account.wilayah_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <div className="relative">
                   <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Cari judul, topik, atau wilayah target"
+                    placeholder="Cari judul, topik, akun, atau wilayah target"
                     value={feedFilters.search}
                     onChange={(event) =>
                       setFeedFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
@@ -585,26 +554,121 @@ export function BlastActivityView({
                   <span>Memuat referensi posting...</span>
                 </div>
               ) : (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {feedItems.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
-                      {feedFilters.status === "unblasted"
-                        ? "Belum ada antrian blast yang menunggu."
-                        : feedFilters.status === "blasted"
-                          ? "Belum ada riwayat antrian blast yang selesai."
-                          : "Belum ada antrian blast yang cocok."}
-                    </div>
-                  ) : (
-                    feedItems.map((item) => (
-                      <FeedReferenceCard
-                        key={item.id}
-                        item={item}
-                        active={selectedReference?.id === item.id}
-                        onSelect={handleSelectReference}
-                        actionLabel={item.blast_status === "blasted" ? "Blast Ulang" : "Pakai Referensi"}
-                      />
-                    ))
-                  )}
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[16rem]">Referensi</TableHead>
+                          <TableHead className="min-w-[12rem]">Akun Sosmed</TableHead>
+                          <TableHead className="min-w-[8rem]">Platform</TableHead>
+                          <TableHead className="min-w-[9rem]">Status</TableHead>
+                          <TableHead className="min-w-[18rem]">Topik / Caption</TableHead>
+                          <TableHead className="min-w-[10rem]">
+                            <SortDirectionButton
+                              direction={feedFilters.sort_direction}
+                              onToggle={toggleFeedSortDirection}
+                            />
+                          </TableHead>
+                          <TableHead className="min-w-[10rem]">Terakhir</TableHead>
+                          <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {feedItems.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                              {feedFilters.status === "unblasted"
+                                ? "Belum ada antrian blast yang menunggu."
+                                : feedFilters.status === "blasted"
+                                  ? "Belum ada riwayat antrian blast yang selesai."
+                                  : "Belum ada antrian blast yang cocok."}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          feedItems.map((item) => {
+                            const isActive = selectedReference?.id === item.id;
+
+                            return (
+                              <TableRow key={item.id} data-state={isActive ? "selected" : undefined}>
+                                <TableCell className="align-top">
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-sm">{item.title}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {item.target_wilayah.nama}
+                                      {item.submission_code ? ` • ${item.submission_code}` : ""}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {item.social_account?.profile_name ?? item.target_wilayah.nama}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <PlatformIcon platform={item.platform} />
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <div className="flex flex-col gap-2">
+                                    <Badge variant={item.blast_status === "blasted" ? "default" : "secondary"}>
+                                      {item.blast_status === "blasted" ? "Sudah Di-blast" : "Belum Di-blast"}
+                                    </Badge>
+                                    <Badge variant="outline">{item.blast_count} aktivitas</Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="max-w-96 align-top">
+                                  <div className="space-y-1">
+                                    <p className="line-clamp-2 font-medium text-sm">{item.topic}</p>
+                                    <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
+                                      {item.caption?.trim() || "Caption belum tersedia."}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-top text-sm">
+                                  {item.submitted_at ? formatDateTime(item.submitted_at) : "-"}
+                                </TableCell>
+                                <TableCell className="align-top text-sm">
+                                  {item.last_blasted_at
+                                    ? formatDateTime(item.last_blasted_at)
+                                    : item.approval_at
+                                      ? formatDateTime(item.approval_at)
+                                      : "-"}
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <div className="flex justify-end gap-2">
+                                    <Button asChild variant="ghost" size="icon-sm" aria-label="Buka postingan">
+                                      <Link href={item.post_url} target="_blank" rel="noreferrer">
+                                        <ExternalLink className="size-4" />
+                                      </Link>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={isActive ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => handleSelectReference(item)}
+                                    >
+                                      {isActive ? "Dipilih" : item.blast_status === "blasted" ? "Blast Ulang" : "Pakai"}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <TablePagination
+                    summary={`Halaman ${feedFilters.page} dari ${feedTotalPages}${feedMeta ? ` (${feedMeta.total} total antrian)` : ""}`}
+                    page={feedFilters.page}
+                    totalPages={feedTotalPages}
+                    disabled={isFeedLoading}
+                    onPageChange={(nextPage) => setFeedFilters((previous) => ({ ...previous, page: nextPage }))}
+                  />
                 </div>
               )}
             </CardContent>
@@ -806,196 +870,205 @@ export function BlastActivityView({
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="manual-social-account" className="font-medium text-sm">
-                    Akun Sosmed Target
-                  </label>
-                  <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="manual-social-account"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isComboboxOpen}
-                        className="w-full justify-between font-normal disabled:opacity-50"
-                        disabled={isSocialAccountsLoading}
-                      >
-                        <span className={cn("truncate", !manualQueueFormState.social_account_id && "text-muted-foreground")}>
-                          {isSocialAccountsLoading
-                            ? "Memuat akun sosmed..."
-                            : manualQueueFormState.social_account_id
-                              ? `${selectedManualSocialAccount ? `${selectedManualSocialAccount.username} • ${selectedManualSocialAccount.wilayah_name}` : "Akun tidak ditemukan"}`
-                              : "Pilih akun sosmed target blast"}
-                        </span>
-                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Cari akun sosmed..." />
-                        <CommandList>
-                          <CommandEmpty>Akun sosmed tidak ditemukan.</CommandEmpty>
-                          <CommandGroup>
-                            {sortedSocialAccounts.map((account) => (
-                              <CommandItem
-                                key={account.id}
-                                value={`${account.username} ${account.wilayah_name}`}
-                                onSelect={() => {
-                                  setManualQueueFormState((previous) => ({
-                                    ...previous,
-                                    social_account_id: account.id,
-                                  }));
-                                  setIsComboboxOpen(false);
-                                }}
-                              >
-                                <span className="truncate max-w-full">{account.username} • {account.wilayah_name}</span>
-                                <Check
-                                  className={cn(
-                                    "ml-auto size-4 shrink-0",
-                                    manualQueueFormState.social_account_id === account.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {socialAccountsError ? <p className="text-destructive text-xs">{socialAccountsError}</p> : null}
+                  <div className="space-y-2">
+                    <label htmlFor="manual-social-account" className="font-medium text-sm">
+                      Akun Sosmed Target
+                    </label>
+                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="manual-social-account"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isComboboxOpen}
+                          className="w-full justify-between font-normal disabled:opacity-50"
+                          disabled={isSocialAccountsLoading}
+                        >
+                          <span
+                            className={cn(
+                              "truncate",
+                              !manualQueueFormState.social_account_id && "text-muted-foreground",
+                            )}
+                          >
+                            {isSocialAccountsLoading
+                              ? "Memuat akun sosmed..."
+                              : manualQueueFormState.social_account_id
+                                ? `${selectedManualSocialAccount ? `${selectedManualSocialAccount.username} • ${selectedManualSocialAccount.wilayah_name}` : "Akun tidak ditemukan"}`
+                                : "Pilih akun sosmed target blast"}
+                          </span>
+                          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Cari akun sosmed..." />
+                          <CommandList>
+                            <CommandEmpty>Akun sosmed tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                              {sortedSocialAccounts.map((account) => (
+                                <CommandItem
+                                  key={account.id}
+                                  value={`${account.username} ${account.wilayah_name}`}
+                                  onSelect={() => {
+                                    setManualQueueFormState((previous) => ({
+                                      ...previous,
+                                      social_account_id: account.id,
+                                    }));
+                                    setIsComboboxOpen(false);
+                                  }}
+                                >
+                                  <span className="max-w-full truncate">
+                                    {account.username} • {account.wilayah_name}
+                                  </span>
+                                  <Check
+                                    className={cn(
+                                      "ml-auto size-4 shrink-0",
+                                      manualQueueFormState.social_account_id === account.id
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {socialAccountsError ? <p className="text-destructive text-xs">{socialAccountsError}</p> : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="manual-posted-at" className="font-medium text-sm">
+                      Tanggal Posting
+                    </label>
+                    <Input
+                      id="manual-posted-at"
+                      type="datetime-local"
+                      value={manualQueueFormState.posted_at}
+                      onChange={(event) =>
+                        setManualQueueFormState((previous) => ({
+                          ...previous,
+                          posted_at: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
 
+                {selectedManualSocialAccount ? (
+                  <div className="grid gap-3 rounded-2xl border bg-muted/20 p-4 text-sm md:grid-cols-3">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Platform</p>
+                      <p className="font-medium">{formatPlatformLabel(selectedManualSocialAccount.platform)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Wilayah Target</p>
+                      <p className="font-medium">{selectedManualSocialAccount.wilayah_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Akun</p>
+                      <p className="font-medium">{selectedManualSocialAccount.username}</p>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="space-y-2">
-                  <label htmlFor="manual-posted-at" className="font-medium text-sm">
-                    Tanggal Posting
+                  <label htmlFor="manual-reference-title" className="font-medium text-sm">
+                    Judul Referensi
                   </label>
                   <Input
-                    id="manual-posted-at"
-                    type="datetime-local"
-                    value={manualQueueFormState.posted_at}
+                    id="manual-reference-title"
+                    value={manualQueueFormState.reference_title}
                     onChange={(event) =>
                       setManualQueueFormState((previous) => ({
                         ...previous,
-                        posted_at: event.target.value,
+                        reference_title: event.target.value,
                       }))
                     }
+                    placeholder="Opsional, misalnya: Blast Kreatif KLH 21 April"
                   />
                 </div>
-              </div>
 
-              {selectedManualSocialAccount ? (
-                <div className="grid gap-3 rounded-2xl border bg-muted/20 p-4 text-sm md:grid-cols-3">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Platform</p>
-                    <p className="font-medium">{formatPlatformLabel(selectedManualSocialAccount.platform)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Wilayah Target</p>
-                    <p className="font-medium">{selectedManualSocialAccount.wilayah_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Akun</p>
-                    <p className="font-medium">{selectedManualSocialAccount.username}</p>
-                  </div>
+                <div className="space-y-2">
+                  <label htmlFor="manual-post-url" className="font-medium text-sm">
+                    Link URL
+                  </label>
+                  <Input
+                    id="manual-post-url"
+                    value={manualQueueFormState.post_url}
+                    onChange={(event) =>
+                      setManualQueueFormState((previous) => ({
+                        ...previous,
+                        post_url: event.target.value,
+                      }))
+                    }
+                    placeholder="https://www.instagram.com/p/..."
+                  />
                 </div>
-              ) : null}
 
-              <div className="space-y-2">
-                <label htmlFor="manual-reference-title" className="font-medium text-sm">
-                  Judul Referensi
-                </label>
-                <Input
-                  id="manual-reference-title"
-                  value={manualQueueFormState.reference_title}
-                  onChange={(event) =>
-                    setManualQueueFormState((previous) => ({
-                      ...previous,
-                      reference_title: event.target.value,
-                    }))
-                  }
-                  placeholder="Opsional, misalnya: Blast Kreatif KLH 21 April"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label htmlFor="manual-caption" className="font-medium text-sm">
+                    Caption
+                  </label>
+                  <Textarea
+                    id="manual-caption"
+                    value={manualQueueFormState.caption}
+                    onChange={(event) =>
+                      setManualQueueFormState((previous) => ({
+                        ...previous,
+                        caption: event.target.value,
+                      }))
+                    }
+                    rows={4}
+                    placeholder="Opsional, isi caption atau ringkasan referensi posting"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label htmlFor="manual-post-url" className="font-medium text-sm">
-                  Link URL
-                </label>
-                <Input
-                  id="manual-post-url"
-                  value={manualQueueFormState.post_url}
-                  onChange={(event) =>
-                    setManualQueueFormState((previous) => ({
-                      ...previous,
-                      post_url: event.target.value,
-                    }))
-                  }
-                  placeholder="https://www.instagram.com/p/..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="manual-caption" className="font-medium text-sm">
-                  Caption
-                </label>
-                <Textarea
-                  id="manual-caption"
-                  value={manualQueueFormState.caption}
-                  onChange={(event) =>
-                    setManualQueueFormState((previous) => ({
-                      ...previous,
-                      caption: event.target.value,
-                    }))
-                  }
-                  rows={4}
-                  placeholder="Opsional, isi caption atau ringkasan referensi posting"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="manual-note" className="font-medium text-sm">
-                  Catatan Internal
-                </label>
-                <Textarea
-                  id="manual-note"
-                  value={manualQueueFormState.note}
-                  onChange={(event) =>
-                    setManualQueueFormState((previous) => ({
-                      ...previous,
-                      note: event.target.value,
-                    }))
-                  }
-                  rows={3}
-                  placeholder="Opsional, catatan internal untuk tim blast"
-                />
-              </div>
-              <div className="flex flex-wrap justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsManualModalOpen(false);
-                    setManualQueueFormState({
-                      social_account_id: "",
-                      reference_title: "",
-                      post_url: "",
-                      caption: "",
-                      posted_at: "",
-                      note: "",
-                    });
-                  }}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateManualQueue}
-                  disabled={!canCreateManualQueue || isSubmitting}
-                >
-                  <Send className="mr-2 size-4" />
-                  {isSubmitting ? "Membuat Antrian..." : "Masukkan ke Antrian Blast"}
-                </Button>
-              </div>
+                <div className="space-y-2">
+                  <label htmlFor="manual-note" className="font-medium text-sm">
+                    Catatan Internal
+                  </label>
+                  <Textarea
+                    id="manual-note"
+                    value={manualQueueFormState.note}
+                    onChange={(event) =>
+                      setManualQueueFormState((previous) => ({
+                        ...previous,
+                        note: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    placeholder="Opsional, catatan internal untuk tim blast"
+                  />
+                </div>
+                <div className="flex flex-wrap justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsManualModalOpen(false);
+                      setManualQueueFormState({
+                        social_account_id: "",
+                        reference_title: "",
+                        post_url: "",
+                        caption: "",
+                        posted_at: "",
+                        note: "",
+                      });
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCreateManualQueue}
+                    disabled={!canCreateManualQueue || isSubmitting}
+                  >
+                    <Send className="mr-2 size-4" />
+                    {isSubmitting ? "Membuat Antrian..." : "Masukkan ke Antrian Blast"}
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -1006,93 +1079,220 @@ export function BlastActivityView({
         <Card>
           <CardHeader>
             <CardTitle>Keputusan Blast</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
-                <Select
-                  value={candidateFilters.platform}
-                  onValueChange={(value) =>
-                    setCandidateFilters((previous) => ({
-                      ...previous,
-                      platform: value as typeof previous.platform,
-                      page: 1,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Platform</SelectItem>
-                    {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
-                      <SelectItem key={platform} value={platform}>
-                        {formatPlatformLabel(platform as never)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[180px_240px_minmax(0,1fr)_auto]">
+              <Select
+                value={candidateFilters.platform}
+                onValueChange={(value) =>
+                  setCandidateFilters((previous) => ({
+                    ...previous,
+                    platform: value as typeof previous.platform,
+                    page: 1,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Platform</SelectItem>
+                  {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
+                    <SelectItem key={platform} value={platform}>
+                      {formatPlatformLabel(platform as never)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <div className="relative">
-                  <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    placeholder="Cari link posting, judul konten, PIC, atau wilayah"
-                    value={candidateFilters.search}
-                    onChange={(event) =>
-                      setCandidateFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
-                    }
-                  />
-                </div>
+              <Select
+                value={candidateFilters.social_account_id}
+                onValueChange={(value) =>
+                  setCandidateFilters((previous) => ({
+                    ...previous,
+                    social_account_id: value,
+                    page: 1,
+                  }))
+                }
+                disabled={isSocialAccountsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Akun Sosmed" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Akun Sosmed</SelectItem>
+                  {sortedSocialAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.username} • {account.wilayah_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setCandidateFilters({
-                      platform: "all",
-                      search: "",
-                      page: 1,
-                      limit: candidateFilters.limit,
-                    })
+              <div className="relative">
+                <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Cari link posting, judul konten, akun, PIC, atau wilayah"
+                  value={candidateFilters.search}
+                  onChange={(event) =>
+                    setCandidateFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
                   }
-                  disabled={!hasCandidateFilters}
-                >
-                  Reset Filter
-                </Button>
+                />
               </div>
 
-              {candidateError ? (
-                <div className="text-destructive text-sm">{candidateError}</div>
-              ) : isCandidatesLoading ? (
-                <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-                  <Spinner />
-                  <span>Memuat postingan valid...</span>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCandidateFilters({
+                    platform: "all",
+                    social_account_id: "all",
+                    sort_direction: "desc",
+                    search: "",
+                    page: 1,
+                    limit: candidateFilters.limit,
+                  })
+                }
+                disabled={!hasCandidateFilters}
+              >
+                Reset Filter
+              </Button>
+            </div>
+
+            {candidateError ? (
+              <div className="text-destructive text-sm">{candidateError}</div>
+            ) : isCandidatesLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Spinner />
+                <span>Memuat postingan valid...</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[16rem]">Konten</TableHead>
+                        <TableHead className="min-w-[12rem]">Akun Sosmed</TableHead>
+                        <TableHead className="min-w-[12rem]">PIC / Wilayah</TableHead>
+                        <TableHead className="min-w-[8rem]">Platform</TableHead>
+                        <TableHead className="min-w-[18rem]">Link / Caption</TableHead>
+                        <TableHead className="min-w-[10rem]">
+                          <SortDirectionButton
+                            direction={candidateFilters.sort_direction}
+                            onToggle={toggleCandidateSortDirection}
+                          />
+                        </TableHead>
+                        <TableHead className="min-w-[10rem]">Validasi</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {candidateItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                            Belum ada postingan valid yang menunggu keputusan blast.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        candidateItems.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{item.posting_proof.bank_content.title}</p>
+                                <Button asChild variant="link" className="h-auto p-0 text-xs">
+                                  <Link
+                                    href={item.posting_proof.bank_content.drive_link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Buka bank konten
+                                  </Link>
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {item.social_account?.profile_name ?? "-"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{item.posting_proof.pic.name}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {item.posting_proof.pic.wilayah?.nama ?? "-"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <PlatformIcon platform={item.platform} />
+                            </TableCell>
+                            <TableCell className="max-w-96 align-top">
+                              <div className="space-y-1">
+                                <Button asChild variant="link" className="h-auto p-0 text-left text-xs">
+                                  <Link href={item.post_url} target="_blank" rel="noreferrer">
+                                    {item.post_url}
+                                  </Link>
+                                </Button>
+                                <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
+                                  {item.caption?.trim() || "Caption belum tersedia."}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top text-sm">
+                              {item.posting_proof.submitted_at ? formatDateTime(item.posting_proof.submitted_at) : "-"}
+                            </TableCell>
+                            <TableCell className="align-top text-sm">
+                              {item.validated_at ? formatDateTime(item.validated_at) : "Sudah valid"}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isSubmitting}
+                                  onClick={() => void handleDecideCandidate(item, false)}
+                                >
+                                  Tidak Perlu
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={isSubmitting}
+                                  onClick={() => void handleDecideCandidate(item, true)}
+                                >
+                                  Masukkan
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
-              ) : (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {candidateItems.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground text-sm xl:col-span-2">
-                      Belum ada postingan valid yang menunggu keputusan blast.
-                    </div>
-                  ) : (
-                    candidateItems.map((item) => (
-                      <CandidateCard
-                        key={item.id}
-                        item={item}
-                        isSubmitting={isSubmitting}
-                        onDecide={handleDecideCandidate}
-                      />
-                    ))
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <TablePagination
+                  summary={`Halaman ${candidateFilters.page} dari ${candidateTotalPages}${candidateMeta ? ` (${candidateMeta.total} total kandidat)` : ""}`}
+                  page={candidateFilters.page}
+                  totalPages={candidateTotalPages}
+                  disabled={isCandidatesLoading}
+                  onPageChange={(nextPage) => setCandidateFilters((previous) => ({ ...previous, page: nextPage }))}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[220px_180px_180px_minmax(0,1fr)]">
+            <div className="grid gap-3 lg:grid-cols-[180px_240px_180px_180px_minmax(0,1fr)]">
               <Select
                 value={activityFilters.platform}
                 onValueChange={(value) =>
@@ -1111,6 +1311,30 @@ export function BlastActivityView({
                   {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
                     <SelectItem key={platform} value={platform}>
                       {formatPlatformLabel(platform as never)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={activityFilters.social_account_id}
+                onValueChange={(value) =>
+                  setActivityFilters((previous) => ({
+                    ...previous,
+                    social_account_id: value,
+                    page: 1,
+                  }))
+                }
+                disabled={isSocialAccountsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua Akun Sosmed" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Akun Sosmed</SelectItem>
+                  {sortedSocialAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.username} • {account.wilayah_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1138,7 +1362,7 @@ export function BlastActivityView({
                 <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Cari link, caption, user blast, atau wilayah"
+                  placeholder="Cari link, caption, akun, user blast, atau wilayah"
                   value={activityFilters.search}
                   onChange={(event) =>
                     setActivityFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
@@ -1154,6 +1378,7 @@ export function BlastActivityView({
                   setActivityFilters((previous) => ({
                     ...previous,
                     platform: "all",
+                    social_account_id: "all",
                     date_from: "",
                     date_to: "",
                     search: "",
@@ -1185,82 +1410,93 @@ export function BlastActivityView({
                 </div>
               ) : null}
 
-              <Table className={isRefreshing ? "opacity-60" : undefined}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User Blast</TableHead>
-                    <TableHead>Referensi Blast</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Link</TableHead>
-                    <TableHead>Views</TableHead>
-                    <TableHead>Likes</TableHead>
-                    <TableHead>Comments</TableHead>
-                    <TableHead>Shares</TableHead>
-                    <TableHead>Reposts</TableHead>
-                    <TableHead>Posted</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedActivities.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table className={isRefreshing ? "opacity-60" : undefined}>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
-                        Belum ada aktivitas blast.
-                      </TableCell>
+                      <TableHead>User Blast</TableHead>
+                      <TableHead>Referensi Blast</TableHead>
+                      <TableHead>Akun Sosmed</TableHead>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>Link</TableHead>
+                      <TableHead>Views</TableHead>
+                      <TableHead>Likes</TableHead>
+                      <TableHead>Comments</TableHead>
+                      <TableHead>Shares</TableHead>
+                      <TableHead>Reposts</TableHead>
+                      <TableHead>Posted</TableHead>
+                      <TableHead>Dibuat</TableHead>
                     </TableRow>
-                  ) : (
-                    displayedActivities.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            <p className="font-medium">{item.blast_user.name}</p>
-                            <p className="text-muted-foreground text-xs">{item.blast_user.wilayah?.nama ?? "-"}</p>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedActivities.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+                          Belum ada aktivitas blast.
                         </TableCell>
-                        <TableCell className="align-top">
-                          {item.blast_assignment ? (
+                      </TableRow>
+                    ) : (
+                      displayedActivities.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="align-top">
                             <div className="space-y-1">
-                              <p className="font-medium">{item.blast_assignment.content.title}</p>
+                              <p className="font-medium">{item.blast_user.name}</p>
+                              <p className="text-muted-foreground text-xs">{item.blast_user.wilayah?.nama ?? "-"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            {item.blast_assignment ? (
+                              <div className="space-y-1">
+                                <p className="font-medium">{item.blast_assignment.content.title}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {item.blast_assignment.target_wilayah.nama}
+                                  {item.blast_assignment.content.submission_code
+                                    ? ` • ${item.blast_assignment.content.submission_code}`
+                                    : ""}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Log lama / tanpa assignment</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
                               <p className="text-muted-foreground text-xs">
-                                {item.blast_assignment.target_wilayah.nama}
-                                {item.blast_assignment.content.submission_code
-                                  ? ` • ${item.blast_assignment.content.submission_code}`
-                                  : ""}
+                                {item.social_account?.profile_name ?? "-"}
                               </p>
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Log lama / tanpa assignment</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <PlatformIcon platform={item.platform} />
-                        </TableCell>
-                        <TableCell className="max-w-80 align-top">
-                          <div className="space-y-1">
-                            <Button asChild variant="link" className="h-auto p-0">
-                              <Link href={item.post_url} target="_blank" rel="noreferrer">
-                                {item.post_url}
-                              </Link>
-                            </Button>
-                            {item.caption ? (
-                              <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
-                                {item.caption}
-                              </p>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell>{formatNumber(item.views)}</TableCell>
-                        <TableCell>{formatNumber(item.likes)}</TableCell>
-                        <TableCell>{formatNumber(item.comments)}</TableCell>
-                        <TableCell>{formatNumber(item.shares)}</TableCell>
-                        <TableCell>{formatNumber(item.reposts)}</TableCell>
-                        <TableCell>{item.posted_at ? formatDateTime(item.posted_at) : "-"}</TableCell>
-                        <TableCell>{formatDateTime(item.created_at)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <PlatformIcon platform={item.platform} />
+                          </TableCell>
+                          <TableCell className="max-w-80 align-top">
+                            <div className="space-y-1">
+                              <Button asChild variant="link" className="h-auto p-0">
+                                <Link href={item.post_url} target="_blank" rel="noreferrer">
+                                  {item.post_url}
+                                </Link>
+                              </Button>
+                              {item.caption ? (
+                                <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
+                                  {item.caption}
+                                </p>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatNumber(item.views)}</TableCell>
+                          <TableCell>{formatNumber(item.likes)}</TableCell>
+                          <TableCell>{formatNumber(item.comments)}</TableCell>
+                          <TableCell>{formatNumber(item.shares)}</TableCell>
+                          <TableCell>{formatNumber(item.reposts)}</TableCell>
+                          <TableCell>{item.posted_at ? formatDateTime(item.posted_at) : "-"}</TableCell>
+                          <TableCell>{formatDateTime(item.created_at)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>

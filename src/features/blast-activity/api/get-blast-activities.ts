@@ -7,6 +7,7 @@ export async function getBlastActivities(filters: BlastActivityFilters) {
     method: "GET",
     params: {
       platform: filters.platform === "all" ? undefined : filters.platform,
+      social_account_id: filters.social_account_id === "all" ? undefined : filters.social_account_id,
       date_from: filters.date_from?.trim() || undefined,
       date_to: filters.date_to?.trim() || undefined,
       search: filters.search.trim() || undefined,

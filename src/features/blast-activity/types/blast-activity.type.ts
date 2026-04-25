@@ -2,6 +2,7 @@ import type { ContentPlatform, PaginatedMeta } from "@/features/content-shared/t
 
 export type BlastReferenceStatus = "all" | "unblasted" | "blasted";
 export type BlastAssignmentStatus = "pending" | "completed" | "cancelled";
+export type BlastSortDirection = "asc" | "desc";
 
 export interface BlastFeedItem {
   id: string;
@@ -12,6 +13,7 @@ export interface BlastFeedItem {
   drive_link: string;
   post_url: string;
   caption: string | null;
+  submitted_at: string | null;
   approval_at: string | null;
   posted_at: string | null;
   blast_count: number;
@@ -140,7 +142,9 @@ export interface ListBlastActivitiesData {
 
 export interface BlastFeedFilters {
   platform: "all" | ContentPlatform;
+  social_account_id: "all" | string;
   status: BlastReferenceStatus;
+  sort_direction: BlastSortDirection;
   search: string;
   page: number;
   limit: number;
@@ -148,6 +152,8 @@ export interface BlastFeedFilters {
 
 export interface BlastCandidateFilters {
   platform: "all" | ContentPlatform;
+  social_account_id: "all" | string;
+  sort_direction: BlastSortDirection;
   search: string;
   page: number;
   limit: number;
@@ -155,6 +161,7 @@ export interface BlastCandidateFilters {
 
 export interface BlastActivityFilters {
   platform: "all" | ContentPlatform;
+  social_account_id: "all" | string;
   date_from?: string;
   date_to?: string;
   search: string;

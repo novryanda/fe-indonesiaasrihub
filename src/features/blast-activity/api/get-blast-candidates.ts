@@ -7,6 +7,8 @@ export async function getBlastCandidates(filters: BlastCandidateFilters) {
     method: "GET",
     params: {
       platform: filters.platform === "all" ? undefined : filters.platform,
+      social_account_id: filters.social_account_id === "all" ? undefined : filters.social_account_id,
+      sort_direction: filters.sort_direction,
       search: filters.search.trim() || undefined,
       page: filters.page,
       limit: filters.limit,

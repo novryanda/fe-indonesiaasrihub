@@ -30,7 +30,9 @@ import type {
 function createInitialFeedFilters(status: BlastReferenceStatus): BlastFeedFilters {
   return {
     platform: "all",
+    social_account_id: "all",
     status,
+    sort_direction: "desc",
     search: "",
     page: 1,
     limit: 6,
@@ -39,6 +41,7 @@ function createInitialFeedFilters(status: BlastReferenceStatus): BlastFeedFilter
 
 const INITIAL_ACTIVITY_FILTERS: BlastActivityFilters = {
   platform: "all",
+  social_account_id: "all",
   date_from: "",
   date_to: "",
   search: "",
@@ -48,6 +51,8 @@ const INITIAL_ACTIVITY_FILTERS: BlastActivityFilters = {
 
 const INITIAL_CANDIDATE_FILTERS: BlastCandidateFilters = {
   platform: "all",
+  social_account_id: "all",
+  sort_direction: "desc",
   search: "",
   page: 1,
   limit: 10,
