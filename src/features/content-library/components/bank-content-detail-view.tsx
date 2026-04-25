@@ -212,7 +212,6 @@ export function BankContentDetailView() {
       try {
         const response = await listSocialAccounts(
           {
-            verification_status: "verified",
             delegation_status: "sudah_didelegasikan",
             page: 1,
             limit: 100,
@@ -796,7 +795,7 @@ export function BankContentDetailView() {
                             <span className="text-muted-foreground text-xs">Memuat akun delegasi...</span>
                           ) : platformAccounts.length === 0 ? (
                             <span className="text-amber-700 text-xs">
-                              Belum ada akun delegasi verified untuk platform ini.
+                              Belum ada akun delegasi untuk platform ini.
                             </span>
                           ) : null}
                         </div>
@@ -815,7 +814,7 @@ export function BankContentDetailView() {
                               }))
                             }
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih akun" />
                             </SelectTrigger>
                             <SelectContent>
