@@ -13,11 +13,14 @@ import {
   Eye,
   Heart,
   MessageCircle,
+  Pencil,
   Radio,
   Repeat2,
   Search,
   Send,
   Share2,
+  Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,6 +53,7 @@ import { useSmoothTableData } from "@/shared/hooks/use-smooth-loading-state";
 
 import { useBlastActivity } from "../hooks/use-blast-activity";
 import type {
+  BlastActivityItem,
   BlastCandidateItem,
   BlastFeedItem,
   BlastReferenceStatus,
@@ -72,6 +76,14 @@ function StatsCard({ title, value, icon }: { title: string; value: string; icon:
   );
 }
 
+type EditableActivityMetrics = {
+  views: string;
+  likes: string;
+  comments: string;
+  shares: string;
+  reposts: string;
+};
+
 function SortDirectionButton({ direction, onToggle }: { direction: BlastSortDirection; onToggle: () => void }) {
   const Icon = direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -83,6 +95,102 @@ function SortDirectionButton({ direction, onToggle }: { direction: BlastSortDire
   );
 }
 
+function HeaderSortButton({ direction, onToggle }: { direction: BlastSortDirection; onToggle: () => void }) {
+  const Icon = direction === "desc" ? ArrowDown : ArrowUp;
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      className="h-6 px-1.5"
+      aria-label={`Urutkan status submit ${direction === "asc" ? "menaik" : "menurun"}`}
+      onClick={onToggle}
+    >
+      <Icon className="size-3" />
+    </Button>
+  );
+}
+
+function SocialAccountSummary({
+  username,
+  profileName,
+  fallback,
+}: {
+  username?: string | null;
+  profileName?: string | null;
+  fallback?: string | null;
+}) {
+  const displayUsername = username ?? "-";
+  const displayProfileName = profileName ?? fallback ?? "-";
+
+  return (
+    <div className="max-w-56 space-y-1">
+      <p className="truncate font-medium text-sm" title={displayUsername}>
+        {displayUsername}
+      </p>
+      <p className="line-clamp-1 whitespace-normal text-muted-foreground text-xs" title={displayProfileName}>
+        {displayProfileName}
+      </p>
+    </div>
+  );
+}
+
+function SubmissionStatusBadge({ days }: { days: number | null }) {
+  if (days === null) {
+    return <span className="text-muted-foreground text-sm">-</span>;
+  }
+
+  if (days <= 0) {
+    return (
+      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+        Submit hari ini
+      </Badge>
+    );
+  }
+
+  return <Badge variant="destructive">Lewat {days} hari</Badge>;
+}
+
+function getMonthDateRange(monthValue: string) {
+  const [yearValue, monthValuePart] = monthValue.split("-");
+  const year = Number(yearValue);
+  const month = Number(monthValuePart);
+
+  if (!year || !month) {
+    return null;
+  }
+
+  const monthLabel = String(month).padStart(2, "0");
+  const lastDay = new Date(year, month, 0).getDate();
+
+  return {
+    date_from: `${year}-${monthLabel}-01`,
+    date_to: `${year}-${monthLabel}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function createKpiYearOptions(totalYears = 5) {
+  const currentYear = new Date().getFullYear();
+
+  return Array.from({ length: totalYears }, (_, index) => String(currentYear - index));
+}
+
+const KPI_MONTH_OPTIONS = [
+  { value: "01", label: "Januari" },
+  { value: "02", label: "Februari" },
+  { value: "03", label: "Maret" },
+  { value: "04", label: "April" },
+  { value: "05", label: "Mei" },
+  { value: "06", label: "Juni" },
+  { value: "07", label: "Juli" },
+  { value: "08", label: "Agustus" },
+  { value: "09", label: "September" },
+  { value: "10", label: "Oktober" },
+  { value: "11", label: "November" },
+  { value: "12", label: "Desember" },
+];
+
 export function BlastActivityView({
   mode,
   referenceStatusPreset = "unblasted",
@@ -91,30 +199,40 @@ export function BlastActivityView({
   referenceStatusPreset?: Exclude<BlastReferenceStatus, "all">;
 }) {
   const allowedRoles = mode === "blast" ? (["blast"] as const) : (["superadmin"] as const);
-  const { isAuthorized, isPending } = useRoleGuard([...allowedRoles]);
+  const { session, isAuthorized, isPending } = useRoleGuard([...allowedRoles]);
   const {
     feedItems,
+    keptFeedItems,
     candidateItems,
     activities,
     stats,
     feedMeta,
+    keptFeedMeta,
     candidateMeta,
     candidateFilters,
     setCandidateFilters,
     activityMeta,
     feedFilters,
     setFeedFilters,
+    keptFeedFilters,
+    setKeptFeedFilters,
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isKeptFeedLoading,
     isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
     candidateError,
     feedError,
+    keptFeedError,
     activitiesError,
     resetFeedFilters,
+    resetKeptFeedFilters,
     create,
+    keep,
+    remove,
+    updateMetrics,
     decide,
     createManualQueue,
   } = useBlastActivity(mode, mode === "blast" ? referenceStatusPreset : "all");
@@ -127,8 +245,8 @@ export function BlastActivityView({
   const [formState, setFormState] = useState({
     platform: "instagram",
     post_url: "",
+    proof_drive_link: "",
     caption: "",
-    posted_at: "",
     views: "0",
     likes: "0",
     comments: "0",
@@ -138,6 +256,8 @@ export function BlastActivityView({
   });
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editingMetrics, setEditingMetrics] = useState<EditableActivityMetrics | null>(null);
   const [manualQueueFormState, setManualQueueFormState] = useState({
     social_account_id: "",
     reference_title: "",
@@ -146,6 +266,9 @@ export function BlastActivityView({
     posted_at: "",
     note: "",
   });
+  const [kpiMonth, setKpiMonth] = useState("");
+  const [kpiMonthPart, setKpiMonthPart] = useState("all");
+  const [kpiYearPart, setKpiYearPart] = useState("all");
   const tableState = useMemo(() => ({ activities, stats, activityMeta }), [activities, activityMeta, stats]);
   const { displayData, isInitialLoading, isRefreshing } = useSmoothTableData(tableState, isActivitiesLoading);
   const displayedActivities = displayData.activities;
@@ -159,6 +282,8 @@ export function BlastActivityView({
     () => [...socialAccounts].sort((left, right) => left.username.localeCompare(right.username, "id")),
     [socialAccounts],
   );
+  const currentUserId = (session?.user as { id?: string } | undefined)?.id;
+  const kpiYearOptions = useMemo(() => createKpiYearOptions(), []);
 
   const isRepeatMode = mode === "blast" && referenceStatusPreset === "blasted";
   const title = mode === "blast" ? (isRepeatMode ? "Blast Ulang" : "Aktivitas Blast") : "Monitoring Blast";
@@ -175,7 +300,10 @@ export function BlastActivityView({
         : "Halaman ini hanya menampilkan konten yang ditandai superadmin untuk masuk antrian blast dan belum selesai diblast."
       : "Tentukan apakah postingan yang sudah valid oleh QCC perlu masuk antrian blast, lalu pantau eksekusinya dari satu halaman.";
 
-  const canSubmit = mode === "blast" && Boolean(selectedReference);
+  const canSubmit =
+    mode === "blast" &&
+    Boolean(selectedReference) &&
+    (isRepeatMode || selectedReference?.kept_by?.id === currentUserId);
   const canCreateManualQueue =
     mode === "superadmin" &&
     Boolean(manualQueueFormState.social_account_id) &&
@@ -183,13 +311,84 @@ export function BlastActivityView({
 
   const selectedPlatform = selectedReference?.platform ?? formState.platform;
 
+  const handleKpiMonthChange = (value: string) => {
+    setKpiMonth(value);
+
+    const monthRange = value ? getMonthDateRange(value) : null;
+    setActivityFilters((previous) => ({
+      ...previous,
+      date_from: monthRange?.date_from ?? "",
+      date_to: monthRange?.date_to ?? "",
+      page: 1,
+    }));
+  };
+
+  const handleKpiMonthPartChange = (value: string) => {
+    setKpiMonthPart(value);
+
+    if (value === "all") {
+      setKpiYearPart("all");
+      handleKpiMonthChange("");
+      return;
+    }
+
+    if (kpiYearPart === "all") {
+      return;
+    }
+
+    handleKpiMonthChange(`${kpiYearPart}-${value}`);
+  };
+
+  const handleKpiYearPartChange = (value: string) => {
+    setKpiYearPart(value);
+
+    if (value === "all") {
+      setKpiMonthPart("all");
+      handleKpiMonthChange("");
+      return;
+    }
+
+    if (kpiMonthPart === "all") {
+      return;
+    }
+
+    handleKpiMonthChange(`${value}-${kpiMonthPart}`);
+  };
+
+  const handleResetKpiMonthFilter = () => {
+    setKpiMonthPart("all");
+    setKpiYearPart("all");
+    handleKpiMonthChange("");
+  };
+
+  const handleToggleFeedSubmitSort = () => {
+    setFeedFilters((previous) => ({
+      ...previous,
+      sort_direction: previous.sort_direction === "asc" ? "desc" : "asc",
+      page: 1,
+    }));
+  };
+
+  const handleToggleKeptSubmitSort = () => {
+    setKeptFeedFilters((previous) => ({
+      ...previous,
+      sort_direction: previous.sort_direction === "asc" ? "desc" : "asc",
+      page: 1,
+    }));
+  };
+
   const handleSelectReference = (item: BlastFeedItem) => {
+    if (!isRepeatMode && item.kept_by?.id !== currentUserId) {
+      toast.error("Antrian ini harus di-keep oleh Anda sebelum bisa disubmit.");
+      return;
+    }
+
     setSelectedReference(item);
     setFormState({
       platform: item.platform,
       post_url: item.post_url,
+      proof_drive_link: "",
       caption: item.caption ?? "",
-      posted_at: "",
       views: "0",
       likes: "0",
       comments: "0",
@@ -200,6 +399,33 @@ export function BlastActivityView({
     requestAnimationFrame(() => {
       blastFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  };
+
+  const handleKeepReference = async (item: BlastFeedItem) => {
+    try {
+      const result = await keep(item.id);
+      toast.success(result.message);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal keep antrian blast");
+    }
+  };
+
+  const handleCopyLink = async (link: string | null | undefined, successMessage = "Link referensi disalin") => {
+    if (!link) {
+      toast.error("Link referensi tidak tersedia");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success(successMessage);
+    } catch {
+      toast.error("Gagal menyalin link referensi");
+    }
+  };
+
+  const handleCopyReferenceLink = async (item: BlastFeedItem) => {
+    await handleCopyLink(item.post_url || item.drive_link);
   };
 
   const handleDecideCandidate = async (item: BlastCandidateItem, shouldBlast: boolean) => {
@@ -262,8 +488,8 @@ export function BlastActivityView({
         blast_assignment_id: selectedReference.id,
         platform: selectedReference.platform,
         post_url: formState.post_url.trim() || undefined,
+        proof_drive_link: formState.proof_drive_link.trim() || undefined,
         caption: formState.caption.trim() || undefined,
-        posted_at: formState.posted_at ? new Date(formState.posted_at).toISOString() : undefined,
         views: Number(formState.views || 0),
         likes: Number(formState.likes || 0),
         comments: Number(formState.comments || 0),
@@ -277,8 +503,8 @@ export function BlastActivityView({
       setFormState({
         platform: "instagram",
         post_url: "",
+        proof_drive_link: "",
         caption: "",
-        posted_at: "",
         views: "0",
         likes: "0",
         comments: "0",
@@ -288,6 +514,68 @@ export function BlastActivityView({
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menyimpan aktivitas blast");
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: string) => {
+    const shouldDelete = window.confirm("Hapus aktivitas blast ini?");
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      const result = await remove(activityId);
+      toast.success(result.message);
+      if (selectedReference?.id === result.blast_assignment_id) {
+        setSelectedReference(null);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal menghapus aktivitas blast");
+    }
+  };
+
+  const handleStartEditActivity = (item: BlastActivityItem) => {
+    setEditingActivityId(item.id);
+    setEditingMetrics({
+      views: String(item.views),
+      likes: String(item.likes),
+      comments: String(item.comments),
+      shares: String(item.shares),
+      reposts: String(item.reposts),
+    });
+  };
+
+  const handleCancelEditActivity = () => {
+    setEditingActivityId(null);
+    setEditingMetrics(null);
+  };
+
+  const handleEditMetricChange = (field: keyof EditableActivityMetrics, value: string) => {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    setEditingMetrics((previous) => (previous ? { ...previous, [field]: value } : previous));
+  };
+
+  const handleSaveActivityMetrics = async (activityId: string) => {
+    if (!editingMetrics) {
+      return;
+    }
+
+    try {
+      const result = await updateMetrics(activityId, {
+        views: Number(editingMetrics.views || 0),
+        likes: Number(editingMetrics.likes || 0),
+        comments: Number(editingMetrics.comments || 0),
+        shares: Number(editingMetrics.shares || 0),
+        reposts: Number(editingMetrics.reposts || 0),
+      });
+
+      toast.success(result.message);
+      handleCancelEditActivity();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal memperbarui metrik aktivitas blast");
     }
   };
 
@@ -330,7 +618,7 @@ export function BlastActivityView({
   const activitySummary = useMemo(
     () => [
       {
-        title: "Total Aktivitas",
+        title: "Pengerjaan Blast",
         value: formatNumber(displayedStats?.total_aktivitas),
         icon: <Radio className="size-5" />,
       },
@@ -377,12 +665,15 @@ export function BlastActivityView({
     feedFilters.platform !== "all" ||
     feedFilters.social_account_id !== "all" ||
     feedFilters.status !== referenceStatusPreset ||
+    Boolean(feedFilters.date_from?.trim()) ||
+    Boolean(feedFilters.date_to?.trim()) ||
     Boolean(feedFilters.search.trim());
   const activityLoadingLabel = activityFilters.search.trim()
     ? "Mencari aktivitas blast..."
     : hasActivityFilters
       ? "Memuat hasil filter..."
       : "Memuat aktivitas blast...";
+  const showActivityActorColumns = mode === "superadmin";
   const displayedActivityTotalPages = useMemo(() => {
     if (!displayedActivityMeta) {
       return 1;
@@ -397,6 +688,13 @@ export function BlastActivityView({
 
     return Math.max(1, Math.ceil(feedMeta.total / feedMeta.limit));
   }, [feedMeta]);
+  const keptFeedTotalPages = useMemo(() => {
+    if (!keptFeedMeta) {
+      return 1;
+    }
+
+    return Math.max(1, Math.ceil(keptFeedMeta.total / keptFeedMeta.limit));
+  }, [keptFeedMeta]);
   const candidateTotalPages = useMemo(() => {
     if (!candidateMeta) {
       return 1;
@@ -404,13 +702,6 @@ export function BlastActivityView({
 
     return Math.max(1, Math.ceil(candidateMeta.total / candidateMeta.limit));
   }, [candidateMeta]);
-  const toggleFeedSortDirection = () => {
-    setFeedFilters((previous) => ({
-      ...previous,
-      sort_direction: previous.sort_direction === "desc" ? "asc" : "desc",
-      page: 1,
-    }));
-  };
   const toggleCandidateSortDirection = () => {
     setCandidateFilters((previous) => ({
       ...previous,
@@ -451,7 +742,41 @@ export function BlastActivityView({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div className="flex justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <Select value={kpiMonthPart} onValueChange={handleKpiMonthPartChange}>
+            <SelectTrigger id="blast-kpi-month" className="w-full sm:w-44">
+              <SelectValue placeholder="Bulan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Bulan</SelectItem>
+              {KPI_MONTH_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={kpiYearPart} onValueChange={handleKpiYearPartChange}>
+            <SelectTrigger id="blast-kpi-year" className="w-full sm:w-32">
+              <SelectValue placeholder="Tahun" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tahun</SelectItem>
+              {kpiYearOptions.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="button" variant="outline" onClick={handleResetKpiMonthFilter} disabled={!kpiMonth}>
+            Semua Bulan
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
         {activitySummary.map((item) => (
           <StatsCard key={item.title} title={item.title} value={item.value} icon={item.icon} />
         ))}
@@ -461,7 +786,7 @@ export function BlastActivityView({
         <>
           <Card>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[180px_220px_240px_minmax(0,1fr)_auto]">
+              <div className="grid gap-3 lg:grid-cols-[160px_190px_220px_150px_150px_minmax(0,1fr)_auto]">
                 <Select
                   value={feedFilters.platform}
                   onValueChange={(value) =>
@@ -529,6 +854,26 @@ export function BlastActivityView({
                   </SelectContent>
                 </Select>
 
+                <Input
+                  aria-label="Tanggal submit dari"
+                  title="Tanggal submit dari"
+                  type="date"
+                  value={feedFilters.date_from ?? ""}
+                  onChange={(event) =>
+                    setFeedFilters((previous) => ({ ...previous, date_from: event.target.value, page: 1 }))
+                  }
+                />
+
+                <Input
+                  aria-label="Tanggal submit sampai"
+                  title="Tanggal submit sampai"
+                  type="date"
+                  value={feedFilters.date_to ?? ""}
+                  onChange={(event) =>
+                    setFeedFilters((previous) => ({ ...previous, date_to: event.target.value, page: 1 }))
+                  }
+                />
+
                 <div className="relative">
                   <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                   <Input
@@ -560,24 +905,29 @@ export function BlastActivityView({
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[16rem]">Referensi</TableHead>
-                          <TableHead className="min-w-[12rem]">Akun Sosmed</TableHead>
+                          <TableHead className="w-56 min-w-[12rem] max-w-56">Akun Sosmed</TableHead>
+                          {isRepeatMode ? <TableHead className="min-w-[12rem]">Blast Terakhir Oleh</TableHead> : null}
                           <TableHead className="min-w-[8rem]">Platform</TableHead>
                           <TableHead className="min-w-[9rem]">Status</TableHead>
-                          <TableHead className="min-w-[18rem]">Topik / Caption</TableHead>
-                          <TableHead className="min-w-[10rem]">
-                            <SortDirectionButton
-                              direction={feedFilters.sort_direction}
-                              onToggle={toggleFeedSortDirection}
-                            />
-                          </TableHead>
-                          <TableHead className="min-w-[10rem]">Terakhir</TableHead>
+                          {!isRepeatMode ? (
+                            <TableHead className="min-w-[9rem]">
+                              <div className="flex items-center gap-1">
+                                <span>Status Submit</span>
+                                <HeaderSortButton
+                                  direction={feedFilters.sort_direction}
+                                  onToggle={handleToggleFeedSubmitSort}
+                                />
+                              </div>
+                            </TableHead>
+                          ) : null}
+                          <TableHead className="min-w-[10rem]">Tanggal Submit</TableHead>
                           <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {feedItems.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                               {feedFilters.status === "unblasted"
                                 ? "Belum ada antrian blast yang menunggu."
                                 : feedFilters.status === "blasted"
@@ -588,26 +938,49 @@ export function BlastActivityView({
                         ) : (
                           feedItems.map((item) => {
                             const isActive = selectedReference?.id === item.id;
+                            const canUseDirectly = isRepeatMode || item.blast_status === "blasted";
+                            const keptById = item.kept_by?.id;
+                            const isKeptByOther = Boolean(keptById && keptById !== currentUserId);
 
                             return (
                               <TableRow key={item.id} data-state={isActive ? "selected" : undefined}>
                                 <TableCell className="align-top">
                                   <div className="space-y-1">
-                                    <p className="font-medium text-sm">{item.title}</p>
+                                    <button
+                                      type="button"
+                                      className="max-w-full cursor-copy text-left font-medium text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                      title="Klik untuk copy link referensi"
+                                      onClick={() => void handleCopyReferenceLink(item)}
+                                    >
+                                      <span className="line-clamp-1">{item.title}</span>
+                                    </button>
                                     <p className="text-muted-foreground text-xs">
                                       {item.target_wilayah.nama}
                                       {item.submission_code ? ` • ${item.submission_code}` : ""}
                                     </p>
                                   </div>
                                 </TableCell>
-                                <TableCell className="align-top">
-                                  <div className="space-y-1">
-                                    <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
-                                    <p className="text-muted-foreground text-xs">
-                                      {item.social_account?.profile_name ?? item.target_wilayah.nama}
-                                    </p>
-                                  </div>
+                                <TableCell className="max-w-56 align-top">
+                                  <SocialAccountSummary
+                                    username={item.social_account?.username}
+                                    profileName={item.social_account?.profile_name}
+                                    fallback={item.target_wilayah.nama}
+                                  />
                                 </TableCell>
+                                {isRepeatMode ? (
+                                  <TableCell className="align-top">
+                                    {item.completed_by ? (
+                                      <div className="space-y-1">
+                                        <p className="font-medium text-sm">{item.completed_by.name}</p>
+                                        <p className="text-muted-foreground text-xs">
+                                          {item.completed_by.wilayah?.nama ?? item.target_wilayah.nama}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground text-xs">-</span>
+                                    )}
+                                  </TableCell>
+                                ) : null}
                                 <TableCell className="align-top">
                                   <PlatformIcon platform={item.platform} />
                                 </TableCell>
@@ -619,23 +992,13 @@ export function BlastActivityView({
                                     <Badge variant="outline">{item.blast_count} aktivitas</Badge>
                                   </div>
                                 </TableCell>
-                                <TableCell className="max-w-96 align-top">
-                                  <div className="space-y-1">
-                                    <p className="line-clamp-2 font-medium text-sm">{item.topic}</p>
-                                    <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
-                                      {item.caption?.trim() || "Caption belum tersedia."}
-                                    </p>
-                                  </div>
-                                </TableCell>
+                                {!isRepeatMode ? (
+                                  <TableCell className="align-top">
+                                    <SubmissionStatusBadge days={item.submission_delay_days} />
+                                  </TableCell>
+                                ) : null}
                                 <TableCell className="align-top text-sm">
                                   {item.submitted_at ? formatDateTime(item.submitted_at) : "-"}
-                                </TableCell>
-                                <TableCell className="align-top text-sm">
-                                  {item.last_blasted_at
-                                    ? formatDateTime(item.last_blasted_at)
-                                    : item.approval_at
-                                      ? formatDateTime(item.approval_at)
-                                      : "-"}
                                 </TableCell>
                                 <TableCell className="align-top">
                                   <div className="flex justify-end gap-2">
@@ -648,9 +1011,18 @@ export function BlastActivityView({
                                       type="button"
                                       variant={isActive ? "default" : "outline"}
                                       size="sm"
-                                      onClick={() => handleSelectReference(item)}
+                                      disabled={isSubmitting || (!canUseDirectly && isKeptByOther)}
+                                      onClick={() =>
+                                        canUseDirectly ? handleSelectReference(item) : void handleKeepReference(item)
+                                      }
                                     >
-                                      {isActive ? "Dipilih" : item.blast_status === "blasted" ? "Blast Ulang" : "Pakai"}
+                                      {isActive
+                                        ? "Dipilih"
+                                        : canUseDirectly
+                                          ? "Blast Ulang"
+                                          : isKeptByOther
+                                            ? "Sudah Dikeep"
+                                            : "Keep"}
                                     </Button>
                                   </div>
                                 </TableCell>
@@ -673,6 +1045,156 @@ export function BlastActivityView({
               )}
             </CardContent>
           </Card>
+
+          {!isRepeatMode ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Daftar Keep</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <div className="relative flex-1">
+                    <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      placeholder="Cari judul, akun, user keep, atau wilayah"
+                      value={keptFeedFilters.search}
+                      onChange={(event) =>
+                        setKeptFeedFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
+                      }
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => resetKeptFeedFilters()}
+                    disabled={!keptFeedFilters.search.trim()}
+                  >
+                    Reset Filter
+                  </Button>
+                </div>
+
+                {keptFeedError ? (
+                  <div className="text-destructive text-sm">{keptFeedError}</div>
+                ) : isKeptFeedLoading ? (
+                  <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                    <Spinner />
+                    <span>Memuat daftar keep...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[16rem]">Referensi</TableHead>
+                            <TableHead className="w-56 min-w-[12rem] max-w-56">Akun Sosmed</TableHead>
+                            <TableHead className="min-w-[12rem]">Dikeep Oleh</TableHead>
+                            <TableHead className="min-w-[8rem]">Platform</TableHead>
+                            <TableHead className="min-w-[9rem]">
+                              <div className="flex items-center gap-1">
+                                <span>Status Submit</span>
+                                <HeaderSortButton
+                                  direction={keptFeedFilters.sort_direction}
+                                  onToggle={handleToggleKeptSubmitSort}
+                                />
+                              </div>
+                            </TableHead>
+                            <TableHead className="min-w-[10rem]">Waktu Keep</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {keptFeedItems.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                Belum ada antrian yang sedang di-keep.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            keptFeedItems.map((item) => {
+                              const isActive = selectedReference?.id === item.id;
+                              const isMine = item.kept_by?.id === currentUserId;
+
+                              return (
+                                <TableRow key={item.id} data-state={isActive ? "selected" : undefined}>
+                                  <TableCell className="align-top">
+                                    <div className="space-y-1">
+                                      <button
+                                        type="button"
+                                        className="max-w-full cursor-copy text-left font-medium text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        title="Klik untuk copy link referensi"
+                                        onClick={() => void handleCopyReferenceLink(item)}
+                                      >
+                                        <span className="line-clamp-1">{item.title}</span>
+                                      </button>
+                                      <p className="text-muted-foreground text-xs">
+                                        {item.target_wilayah.nama}
+                                        {item.submission_code ? ` • ${item.submission_code}` : ""}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="max-w-56 align-top">
+                                    <SocialAccountSummary
+                                      username={item.social_account?.username}
+                                      profileName={item.social_account?.profile_name}
+                                      fallback={item.target_wilayah.nama}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <div className="space-y-1">
+                                      <p className="font-medium text-sm">{item.kept_by?.name ?? "-"}</p>
+                                      <p className="text-muted-foreground text-xs">
+                                        {item.kept_by?.wilayah?.nama ?? item.target_wilayah.nama}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <PlatformIcon platform={item.platform} />
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <SubmissionStatusBadge days={item.submission_delay_days} />
+                                  </TableCell>
+                                  <TableCell className="align-top text-sm">
+                                    {item.kept_at ? formatDateTime(item.kept_at) : "-"}
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <div className="flex justify-end gap-2">
+                                      <Button asChild variant="ghost" size="icon-sm" aria-label="Buka postingan">
+                                        <Link href={item.post_url} target="_blank" rel="noreferrer">
+                                          <ExternalLink className="size-4" />
+                                        </Link>
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={isActive ? "default" : "outline"}
+                                        size="sm"
+                                        disabled={!isMine || isSubmitting}
+                                        onClick={() => handleSelectReference(item)}
+                                      >
+                                        {isActive ? "Dipilih" : isMine ? "Kerjakan" : "Dikeep User Lain"}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <TablePagination
+                      summary={`Halaman ${keptFeedFilters.page} dari ${keptFeedTotalPages}${keptFeedMeta ? ` (${keptFeedMeta.total} total keep)` : ""}`}
+                      page={keptFeedFilters.page}
+                      totalPages={keptFeedTotalPages}
+                      disabled={isKeptFeedLoading}
+                      onPageChange={(nextPage) => setKeptFeedFilters((previous) => ({ ...previous, page: nextPage }))}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card ref={blastFormRef}>
             <CardContent className="space-y-4">
@@ -707,18 +1229,6 @@ export function BlastActivityView({
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="blast-posted-at" className="font-medium text-sm">
-                    Tanggal Posting
-                  </label>
-                  <Input
-                    id="blast-posted-at"
-                    type="datetime-local"
-                    value={formState.posted_at}
-                    onChange={(event) => setFormState((previous) => ({ ...previous, posted_at: event.target.value }))}
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -730,6 +1240,21 @@ export function BlastActivityView({
                   value={formState.post_url}
                   onChange={(event) => setFormState((previous) => ({ ...previous, post_url: event.target.value }))}
                   placeholder="Link drive atau link blast yang digunakan"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="blast-proof-drive-link" className="font-medium text-sm">
+                  Link Bukti Drive
+                </label>
+                <Input
+                  id="blast-proof-drive-link"
+                  type="url"
+                  value={formState.proof_drive_link}
+                  onChange={(event) =>
+                    setFormState((previous) => ({ ...previous, proof_drive_link: event.target.value }))
+                  }
+                  placeholder="Link Google Drive bukti aktivitas blast"
                 />
               </div>
 
@@ -831,8 +1356,8 @@ export function BlastActivityView({
                     setFormState({
                       platform: "instagram",
                       post_url: "",
+                      proof_drive_link: "",
                       caption: "",
-                      posted_at: "",
                       views: "0",
                       likes: "0",
                       comments: "0",
@@ -1173,7 +1698,7 @@ export function BlastActivityView({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[16rem]">Konten</TableHead>
-                        <TableHead className="min-w-[12rem]">Akun Sosmed</TableHead>
+                        <TableHead className="w-56 min-w-[12rem] max-w-56">Akun Sosmed</TableHead>
                         <TableHead className="min-w-[12rem]">PIC / Wilayah</TableHead>
                         <TableHead className="min-w-[8rem]">Platform</TableHead>
                         <TableHead className="min-w-[18rem]">Link / Caption</TableHead>
@@ -1211,13 +1736,11 @@ export function BlastActivityView({
                                 </Button>
                               </div>
                             </TableCell>
-                            <TableCell className="align-top">
-                              <div className="space-y-1">
-                                <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
-                                <p className="text-muted-foreground text-xs">
-                                  {item.social_account?.profile_name ?? "-"}
-                                </p>
-                              </div>
+                            <TableCell className="max-w-56 align-top">
+                              <SocialAccountSummary
+                                username={item.social_account?.username}
+                                profileName={item.social_account?.profile_name}
+                              />
                             </TableCell>
                             <TableCell className="align-top">
                               <div className="space-y-1">
@@ -1344,25 +1867,27 @@ export function BlastActivityView({
                 aria-label="Tanggal dibuat dari"
                 type="date"
                 value={activityFilters.date_from ?? ""}
-                onChange={(event) =>
-                  setActivityFilters((previous) => ({ ...previous, date_from: event.target.value, page: 1 }))
-                }
+                onChange={(event) => {
+                  setKpiMonth("");
+                  setActivityFilters((previous) => ({ ...previous, date_from: event.target.value, page: 1 }));
+                }}
               />
 
               <Input
                 aria-label="Tanggal dibuat sampai"
                 type="date"
                 value={activityFilters.date_to ?? ""}
-                onChange={(event) =>
-                  setActivityFilters((previous) => ({ ...previous, date_to: event.target.value, page: 1 }))
-                }
+                onChange={(event) => {
+                  setKpiMonth("");
+                  setActivityFilters((previous) => ({ ...previous, date_to: event.target.value, page: 1 }));
+                }}
               />
 
               <div className="relative">
                 <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Cari link, caption, akun, user blast, atau wilayah"
+                  placeholder="Cari link, caption, akun"
                   value={activityFilters.search}
                   onChange={(event) =>
                     setActivityFilters((previous) => ({ ...previous, search: event.target.value, page: 1 }))
@@ -1374,7 +1899,8 @@ export function BlastActivityView({
             <div className="flex justify-end">
               <Button
                 variant="outline"
-                onClick={() =>
+                onClick={() => {
+                  setKpiMonth("");
                   setActivityFilters((previous) => ({
                     ...previous,
                     platform: "all",
@@ -1383,8 +1909,8 @@ export function BlastActivityView({
                     date_to: "",
                     search: "",
                     page: 1,
-                  }))
-                }
+                  }));
+                }}
                 disabled={!hasActivityFilters}
               >
                 Reset Filter
@@ -1414,85 +1940,219 @@ export function BlastActivityView({
                 <Table className={isRefreshing ? "opacity-60" : undefined}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User Blast</TableHead>
+                      {showActivityActorColumns ? <TableHead>User Blast</TableHead> : null}
+                      {showActivityActorColumns ? <TableHead>Dikeep Oleh</TableHead> : null}
                       <TableHead>Referensi Blast</TableHead>
-                      <TableHead>Akun Sosmed</TableHead>
+                      <TableHead className="w-56 min-w-[12rem] max-w-56">Akun Sosmed</TableHead>
                       <TableHead>Platform</TableHead>
-                      <TableHead>Link</TableHead>
                       <TableHead>Views</TableHead>
                       <TableHead>Likes</TableHead>
                       <TableHead>Comments</TableHead>
                       <TableHead>Shares</TableHead>
                       <TableHead>Reposts</TableHead>
-                      <TableHead>Posted</TableHead>
-                      <TableHead>Dibuat</TableHead>
+                      <TableHead>Waktu Submit</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayedActivities.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+                        <TableCell
+                          colSpan={showActivityActorColumns ? 12 : 10}
+                          className="h-24 text-center text-muted-foreground"
+                        >
                           Belum ada aktivitas blast.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      displayedActivities.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="align-top">
-                            <div className="space-y-1">
-                              <p className="font-medium">{item.blast_user.name}</p>
-                              <p className="text-muted-foreground text-xs">{item.blast_user.wilayah?.nama ?? "-"}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            {item.blast_assignment ? (
-                              <div className="space-y-1">
-                                <p className="font-medium">{item.blast_assignment.content.title}</p>
-                                <p className="text-muted-foreground text-xs">
-                                  {item.blast_assignment.target_wilayah.nama}
-                                  {item.blast_assignment.content.submission_code
-                                    ? ` • ${item.blast_assignment.content.submission_code}`
-                                    : ""}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">Log lama / tanpa assignment</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <div className="space-y-1">
-                              <p className="font-medium text-sm">{item.social_account?.username ?? "-"}</p>
-                              <p className="text-muted-foreground text-xs">
-                                {item.social_account?.profile_name ?? "-"}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <PlatformIcon platform={item.platform} />
-                          </TableCell>
-                          <TableCell className="max-w-80 align-top">
-                            <div className="space-y-1">
-                              <Button asChild variant="link" className="h-auto p-0">
-                                <Link href={item.post_url} target="_blank" rel="noreferrer">
-                                  {item.post_url}
-                                </Link>
-                              </Button>
-                              {item.caption ? (
-                                <p className="line-clamp-2 whitespace-normal text-muted-foreground text-xs">
-                                  {item.caption}
-                                </p>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell>{formatNumber(item.views)}</TableCell>
-                          <TableCell>{formatNumber(item.likes)}</TableCell>
-                          <TableCell>{formatNumber(item.comments)}</TableCell>
-                          <TableCell>{formatNumber(item.shares)}</TableCell>
-                          <TableCell>{formatNumber(item.reposts)}</TableCell>
-                          <TableCell>{item.posted_at ? formatDateTime(item.posted_at) : "-"}</TableCell>
-                          <TableCell>{formatDateTime(item.created_at)}</TableCell>
-                        </TableRow>
-                      ))
+                      displayedActivities.map((item) => {
+                        const canManageActivity = mode === "superadmin" || mode === "blast";
+                        const rowEditingMetrics = editingActivityId === item.id ? editingMetrics : null;
+                        const isEditingRow = rowEditingMetrics !== null;
+
+                        return (
+                          <TableRow key={item.id}>
+                            {showActivityActorColumns ? (
+                              <TableCell className="align-top">
+                                <div className="space-y-1">
+                                  <p className="font-medium">{item.blast_user.name}</p>
+                                  <p className="text-muted-foreground text-xs">
+                                    {item.blast_user.wilayah?.nama ?? "-"}
+                                  </p>
+                                </div>
+                              </TableCell>
+                            ) : null}
+                            {showActivityActorColumns ? (
+                              <TableCell className="align-top">
+                                {item.blast_assignment?.kept_by ? (
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-sm">{item.blast_assignment.kept_by.name}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {item.blast_assignment.kept_at
+                                        ? formatDateTime(item.blast_assignment.kept_at)
+                                        : (item.blast_assignment.kept_by.wilayah?.nama ?? "-")}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">-</span>
+                                )}
+                              </TableCell>
+                            ) : null}
+                            <TableCell className="align-top">
+                              {item.blast_assignment ? (
+                                <div className="space-y-1">
+                                  <button
+                                    type="button"
+                                    className="max-w-full cursor-copy text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    title="Klik untuk copy link referensi"
+                                    onClick={() =>
+                                      void handleCopyLink(
+                                        item.blast_assignment?.content.drive_link ?? item.post_url,
+                                        "Link referensi blast disalin",
+                                      )
+                                    }
+                                  >
+                                    <span className="line-clamp-1">{item.blast_assignment.content.title}</span>
+                                  </button>
+                                  <p className="text-muted-foreground text-xs">
+                                    {item.blast_assignment.target_wilayah.nama}
+                                    {item.blast_assignment.content.submission_code
+                                      ? ` • ${item.blast_assignment.content.submission_code}`
+                                      : ""}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">Log lama / tanpa assignment</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-56 align-top">
+                              <SocialAccountSummary
+                                username={item.social_account?.username}
+                                profileName={item.social_account?.profile_name}
+                              />
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <PlatformIcon platform={item.platform} />
+                            </TableCell>
+                            <TableCell className="min-w-[6.5rem]">
+                              {isEditingRow ? (
+                                <Input
+                                  inputMode="numeric"
+                                  value={rowEditingMetrics.views}
+                                  onChange={(event) => handleEditMetricChange("views", event.target.value)}
+                                  className="h-8"
+                                />
+                              ) : (
+                                formatNumber(item.views)
+                              )}
+                            </TableCell>
+                            <TableCell className="min-w-[6.5rem]">
+                              {isEditingRow ? (
+                                <Input
+                                  inputMode="numeric"
+                                  value={rowEditingMetrics.likes}
+                                  onChange={(event) => handleEditMetricChange("likes", event.target.value)}
+                                  className="h-8"
+                                />
+                              ) : (
+                                formatNumber(item.likes)
+                              )}
+                            </TableCell>
+                            <TableCell className="min-w-[6.5rem]">
+                              {isEditingRow ? (
+                                <Input
+                                  inputMode="numeric"
+                                  value={rowEditingMetrics.comments}
+                                  onChange={(event) => handleEditMetricChange("comments", event.target.value)}
+                                  className="h-8"
+                                />
+                              ) : (
+                                formatNumber(item.comments)
+                              )}
+                            </TableCell>
+                            <TableCell className="min-w-[6.5rem]">
+                              {isEditingRow ? (
+                                <Input
+                                  inputMode="numeric"
+                                  value={rowEditingMetrics.shares}
+                                  onChange={(event) => handleEditMetricChange("shares", event.target.value)}
+                                  className="h-8"
+                                />
+                              ) : (
+                                formatNumber(item.shares)
+                              )}
+                            </TableCell>
+                            <TableCell className="min-w-[6.5rem]">
+                              {isEditingRow ? (
+                                <Input
+                                  inputMode="numeric"
+                                  value={rowEditingMetrics.reposts}
+                                  onChange={(event) => handleEditMetricChange("reposts", event.target.value)}
+                                  className="h-8"
+                                />
+                              ) : (
+                                formatNumber(item.reposts)
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {item.posted_at ? formatDateTime(item.posted_at) : formatDateTime(item.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {canManageActivity ? (
+                                <div className="flex justify-end gap-1">
+                                  {isEditingRow ? (
+                                    <>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled={isSubmitting}
+                                        aria-label="Simpan perubahan metrik"
+                                        onClick={() => void handleSaveActivityMetrics(item.id)}
+                                      >
+                                        <Check className="size-4" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled={isSubmitting}
+                                        aria-label="Batal edit metrik"
+                                        onClick={handleCancelEditActivity}
+                                      >
+                                        <X className="size-4" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      disabled={isSubmitting}
+                                      aria-label="Edit metrik aktivitas blast"
+                                      onClick={() => handleStartEditActivity(item)}
+                                    >
+                                      <Pencil className="size-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    disabled={isSubmitting}
+                                    aria-label="Hapus aktivitas blast"
+                                    onClick={() => void handleDeleteActivity(item.id)}
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

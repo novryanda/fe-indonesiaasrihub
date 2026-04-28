@@ -7,9 +7,12 @@ import { ApiError } from "@/shared/api/api-client";
 import { createBlastActivity } from "../api/create-blast-activity";
 import { createManualBlastQueue } from "../api/create-manual-blast-queue";
 import { decideBlast } from "../api/decide-blast";
+import { deleteBlastActivity } from "../api/delete-blast-activity";
 import { getBlastActivities } from "../api/get-blast-activities";
 import { getBlastCandidates } from "../api/get-blast-candidates";
 import { getBlastFeed } from "../api/get-blast-feed";
+import { keepBlastAssignment } from "../api/keep-blast-assignment";
+import { updateBlastActivityMetrics } from "../api/update-blast-activity-metrics";
 import type {
   BlastActivityFilters,
   BlastActivityItem,
@@ -18,6 +21,7 @@ import type {
   BlastCandidateItem,
   BlastFeedFilters,
   BlastFeedItem,
+  BlastFeedScope,
   BlastMeta,
   BlastReferenceStatus,
   CreateBlastActivityPayload,
@@ -25,14 +29,21 @@ import type {
   CreateManualBlastQueuePayload,
   CreateManualBlastQueueResult,
   DecideBlastPayload,
+  DeleteBlastActivityResult,
+  KeepBlastAssignmentResult,
+  UpdateBlastActivityMetricsPayload,
+  UpdateBlastActivityMetricsResult,
 } from "../types/blast-activity.type";
 
-function createInitialFeedFilters(status: BlastReferenceStatus): BlastFeedFilters {
+function createInitialFeedFilters(status: BlastReferenceStatus, scope: BlastFeedScope = "available"): BlastFeedFilters {
   return {
     platform: "all",
     social_account_id: "all",
     status,
-    sort_direction: "desc",
+    scope,
+    sort_direction: "asc",
+    date_from: "",
+    date_to: "",
     search: "",
     page: 1,
     limit: 6,
@@ -60,20 +71,27 @@ const INITIAL_CANDIDATE_FILTERS: BlastCandidateFilters = {
 
 export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus: BlastReferenceStatus = "all") {
   const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(() => createInitialFeedFilters(initialFeedStatus));
+  const [keptFeedFilters, setKeptFeedFilters] = useState<BlastFeedFilters>(() =>
+    createInitialFeedFilters("unblasted", "kept"),
+  );
   const [activityFilters, setActivityFilters] = useState<BlastActivityFilters>(INITIAL_ACTIVITY_FILTERS);
   const [candidateFilters, setCandidateFilters] = useState<BlastCandidateFilters>(INITIAL_CANDIDATE_FILTERS);
   const [feedItems, setFeedItems] = useState<BlastFeedItem[]>([]);
+  const [keptFeedItems, setKeptFeedItems] = useState<BlastFeedItem[]>([]);
   const [candidateItems, setCandidateItems] = useState<BlastCandidateItem[]>([]);
   const [activities, setActivities] = useState<BlastActivityItem[]>([]);
   const [stats, setStats] = useState<BlastActivityStats | null>(null);
   const [feedMeta, setFeedMeta] = useState<BlastMeta | null>(null);
+  const [keptFeedMeta, setKeptFeedMeta] = useState<BlastMeta | null>(null);
   const [candidateMeta, setCandidateMeta] = useState<BlastMeta | null>(null);
   const [activityMeta, setActivityMeta] = useState<BlastMeta | null>(null);
   const [isFeedLoading, setFeedLoading] = useState(mode === "blast");
+  const [isKeptFeedLoading, setKeptFeedLoading] = useState(mode === "blast" && initialFeedStatus === "unblasted");
   const [isCandidatesLoading, setCandidatesLoading] = useState(mode === "superadmin");
   const [isActivitiesLoading, setActivitiesLoading] = useState(true);
   const [isSubmitting, setSubmitting] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [keptFeedError, setKeptFeedError] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
 
@@ -99,6 +117,29 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
       setFeedLoading(false);
     }
   }, [feedFilters, mode]);
+
+  const fetchKeptFeed = useCallback(async () => {
+    if (mode !== "blast" || initialFeedStatus !== "unblasted") {
+      return;
+    }
+
+    setKeptFeedLoading(true);
+    setKeptFeedError(null);
+
+    try {
+      const response = await getBlastFeed(keptFeedFilters);
+      setKeptFeedItems(response.data);
+      setKeptFeedMeta(response.meta ?? null);
+    } catch (errorValue) {
+      if (errorValue instanceof ApiError) {
+        setKeptFeedError(errorValue.message);
+      } else {
+        setKeptFeedError("Gagal memuat daftar keep blast");
+      }
+    } finally {
+      setKeptFeedLoading(false);
+    }
+  }, [initialFeedStatus, keptFeedFilters, mode]);
 
   const fetchCandidates = useCallback(async () => {
     if (mode !== "superadmin") {
@@ -148,6 +189,10 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
   }, [fetchFeed]);
 
   useEffect(() => {
+    void fetchKeptFeed();
+  }, [fetchKeptFeed]);
+
+  useEffect(() => {
     void fetchActivities();
   }, [fetchActivities]);
 
@@ -163,6 +208,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         const response = await createBlastActivity(payload);
         await fetchActivities();
         await fetchFeed();
+        await fetchKeptFeed();
         return response.data;
       } catch (errorValue) {
         if (errorValue instanceof ApiError) {
@@ -174,7 +220,76 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         setSubmitting(false);
       }
     },
-    [fetchActivities, fetchFeed],
+    [fetchActivities, fetchFeed, fetchKeptFeed],
+  );
+
+  const keep = useCallback(
+    async (assignmentId: string): Promise<KeepBlastAssignmentResult> => {
+      setSubmitting(true);
+
+      try {
+        const response = await keepBlastAssignment(assignmentId);
+        await fetchFeed();
+        await fetchKeptFeed();
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal keep antrian blast");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [fetchFeed, fetchKeptFeed],
+  );
+
+  const remove = useCallback(
+    async (activityId: string): Promise<DeleteBlastActivityResult> => {
+      setSubmitting(true);
+
+      try {
+        const response = await deleteBlastActivity(activityId);
+        await fetchActivities();
+        await fetchFeed();
+        await fetchKeptFeed();
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal menghapus aktivitas blast");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [fetchActivities, fetchFeed, fetchKeptFeed],
+  );
+
+  const updateMetrics = useCallback(
+    async (
+      activityId: string,
+      payload: UpdateBlastActivityMetricsPayload,
+    ): Promise<UpdateBlastActivityMetricsResult> => {
+      setSubmitting(true);
+
+      try {
+        const response = await updateBlastActivityMetrics(activityId, payload);
+        await fetchActivities();
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal memperbarui metrik aktivitas blast");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [fetchActivities],
   );
 
   const decide = useCallback(
@@ -229,31 +344,42 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
 
   return {
     feedItems,
+    keptFeedItems,
     candidateItems,
     activities,
     stats,
     feedMeta,
+    keptFeedMeta,
     candidateMeta,
     activityMeta,
     activityTotalPages,
     feedFilters,
     setFeedFilters,
+    keptFeedFilters,
+    setKeptFeedFilters,
     candidateFilters,
     setCandidateFilters,
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isKeptFeedLoading,
     isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
     feedError,
+    keptFeedError,
     candidateError,
     activitiesError,
     resetFeedFilters: () => setFeedFilters(createInitialFeedFilters(initialFeedStatus)),
+    resetKeptFeedFilters: () => setKeptFeedFilters(createInitialFeedFilters("unblasted", "kept")),
     refetchFeed: fetchFeed,
+    refetchKeptFeed: fetchKeptFeed,
     refetchCandidates: fetchCandidates,
     refetchActivities: fetchActivities,
     create,
+    keep,
+    remove,
+    updateMetrics,
     decide,
     createManualQueue,
   };

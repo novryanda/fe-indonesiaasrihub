@@ -108,6 +108,12 @@ export const sidebarItems: NavGroup[] = [
         icon: Repeat,
         roles: ["blast"],
       },
+      {
+        title: "Input Blast Manual",
+        url: "/blast/manual",
+        icon: SquarePlus,
+        roles: ["blast"],
+      },
     ],
   },
   {
