@@ -17,6 +17,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/dashboard/nasional",
     "/dashboard/approval",
     "/dashboard/blast",
+    "/blast/ranking",
     "/konten/bank-konten",
     "/konten/bank-materi",
     "/analitik/monitoring-sosmed",
@@ -66,7 +67,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/akun-sosmed",
     "/akun/notifikasi",
   ],
-  blast: ["/blast/aktivitas", "/blast/manual", "/blast/ulang"],
+  blast: ["/blast/aktivitas", "/blast/manual", "/blast/ulang", "/blast/ranking"],
 };
 
 function normalizePathname(pathname: string) {

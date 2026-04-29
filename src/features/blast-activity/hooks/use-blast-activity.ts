@@ -12,6 +12,7 @@ import { getBlastActivities } from "../api/get-blast-activities";
 import { getBlastCandidates } from "../api/get-blast-candidates";
 import { getBlastFeed } from "../api/get-blast-feed";
 import { keepBlastAssignment } from "../api/keep-blast-assignment";
+import { releaseBlastAssignmentKeep } from "../api/release-blast-assignment-keep";
 import { updateBlastActivityMetrics } from "../api/update-blast-activity-metrics";
 import type {
   BlastActivityFilters,
@@ -31,16 +32,22 @@ import type {
   DecideBlastPayload,
   DeleteBlastActivityResult,
   KeepBlastAssignmentResult,
+  ReleaseBlastAssignmentKeepResult,
   UpdateBlastActivityMetricsPayload,
   UpdateBlastActivityMetricsResult,
 } from "../types/blast-activity.type";
 
-function createInitialFeedFilters(status: BlastReferenceStatus, scope: BlastFeedScope = "available"): BlastFeedFilters {
+function createInitialFeedFilters(
+  status: BlastReferenceStatus,
+  scope: BlastFeedScope = "available",
+  timeliness: BlastFeedFilters["timeliness"] = "all",
+): BlastFeedFilters {
   return {
     platform: "all",
     social_account_id: "all",
     status,
     scope,
+    timeliness,
     sort_direction: "asc",
     date_from: "",
     date_to: "",
@@ -70,27 +77,36 @@ const INITIAL_CANDIDATE_FILTERS: BlastCandidateFilters = {
 };
 
 export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus: BlastReferenceStatus = "all") {
-  const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(() => createInitialFeedFilters(initialFeedStatus));
+  const [feedFilters, setFeedFilters] = useState<BlastFeedFilters>(() =>
+    createInitialFeedFilters(initialFeedStatus, "available", initialFeedStatus === "unblasted" ? "on_time" : "all"),
+  );
+  const [overdueFeedFilters, setOverdueFeedFilters] = useState<BlastFeedFilters>(() =>
+    createInitialFeedFilters("unblasted", "available", "overdue"),
+  );
   const [keptFeedFilters, setKeptFeedFilters] = useState<BlastFeedFilters>(() =>
     createInitialFeedFilters("unblasted", "kept"),
   );
   const [activityFilters, setActivityFilters] = useState<BlastActivityFilters>(INITIAL_ACTIVITY_FILTERS);
   const [candidateFilters, setCandidateFilters] = useState<BlastCandidateFilters>(INITIAL_CANDIDATE_FILTERS);
   const [feedItems, setFeedItems] = useState<BlastFeedItem[]>([]);
+  const [overdueFeedItems, setOverdueFeedItems] = useState<BlastFeedItem[]>([]);
   const [keptFeedItems, setKeptFeedItems] = useState<BlastFeedItem[]>([]);
   const [candidateItems, setCandidateItems] = useState<BlastCandidateItem[]>([]);
   const [activities, setActivities] = useState<BlastActivityItem[]>([]);
   const [stats, setStats] = useState<BlastActivityStats | null>(null);
   const [feedMeta, setFeedMeta] = useState<BlastMeta | null>(null);
+  const [overdueFeedMeta, setOverdueFeedMeta] = useState<BlastMeta | null>(null);
   const [keptFeedMeta, setKeptFeedMeta] = useState<BlastMeta | null>(null);
   const [candidateMeta, setCandidateMeta] = useState<BlastMeta | null>(null);
   const [activityMeta, setActivityMeta] = useState<BlastMeta | null>(null);
   const [isFeedLoading, setFeedLoading] = useState(mode === "blast");
+  const [isOverdueFeedLoading, setOverdueFeedLoading] = useState(mode === "blast" && initialFeedStatus === "unblasted");
   const [isKeptFeedLoading, setKeptFeedLoading] = useState(mode === "blast" && initialFeedStatus === "unblasted");
   const [isCandidatesLoading, setCandidatesLoading] = useState(mode === "superadmin");
   const [isActivitiesLoading, setActivitiesLoading] = useState(true);
   const [isSubmitting, setSubmitting] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [overdueFeedError, setOverdueFeedError] = useState<string | null>(null);
   const [keptFeedError, setKeptFeedError] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
@@ -140,6 +156,29 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
       setKeptFeedLoading(false);
     }
   }, [initialFeedStatus, keptFeedFilters, mode]);
+
+  const fetchOverdueFeed = useCallback(async () => {
+    if (mode !== "blast" || initialFeedStatus !== "unblasted") {
+      return;
+    }
+
+    setOverdueFeedLoading(true);
+    setOverdueFeedError(null);
+
+    try {
+      const response = await getBlastFeed(overdueFeedFilters);
+      setOverdueFeedItems(response.data);
+      setOverdueFeedMeta(response.meta ?? null);
+    } catch (errorValue) {
+      if (errorValue instanceof ApiError) {
+        setOverdueFeedError(errorValue.message);
+      } else {
+        setOverdueFeedError("Gagal memuat antrian yang sudah terlewat");
+      }
+    } finally {
+      setOverdueFeedLoading(false);
+    }
+  }, [initialFeedStatus, mode, overdueFeedFilters]);
 
   const fetchCandidates = useCallback(async () => {
     if (mode !== "superadmin") {
@@ -193,6 +232,10 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
   }, [fetchKeptFeed]);
 
   useEffect(() => {
+    void fetchOverdueFeed();
+  }, [fetchOverdueFeed]);
+
+  useEffect(() => {
     void fetchActivities();
   }, [fetchActivities]);
 
@@ -208,6 +251,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         const response = await createBlastActivity(payload);
         await fetchActivities();
         await fetchFeed();
+        await fetchOverdueFeed();
         await fetchKeptFeed();
         return response.data;
       } catch (errorValue) {
@@ -220,7 +264,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         setSubmitting(false);
       }
     },
-    [fetchActivities, fetchFeed, fetchKeptFeed],
+    [fetchActivities, fetchFeed, fetchKeptFeed, fetchOverdueFeed],
   );
 
   const keep = useCallback(
@@ -230,6 +274,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
       try {
         const response = await keepBlastAssignment(assignmentId);
         await fetchFeed();
+        await fetchOverdueFeed();
         await fetchKeptFeed();
         return response.data;
       } catch (errorValue) {
@@ -242,7 +287,30 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         setSubmitting(false);
       }
     },
-    [fetchFeed, fetchKeptFeed],
+    [fetchFeed, fetchKeptFeed, fetchOverdueFeed],
+  );
+
+  const releaseKeep = useCallback(
+    async (assignmentId: string): Promise<ReleaseBlastAssignmentKeepResult> => {
+      setSubmitting(true);
+
+      try {
+        const response = await releaseBlastAssignmentKeep(assignmentId);
+        await fetchFeed();
+        await fetchOverdueFeed();
+        await fetchKeptFeed();
+        return response.data;
+      } catch (errorValue) {
+        if (errorValue instanceof ApiError) {
+          throw new Error(errorValue.message);
+        }
+
+        throw new Error("Gagal menghapus keep antrian blast");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [fetchFeed, fetchKeptFeed, fetchOverdueFeed],
   );
 
   const remove = useCallback(
@@ -253,6 +321,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         const response = await deleteBlastActivity(activityId);
         await fetchActivities();
         await fetchFeed();
+        await fetchOverdueFeed();
         await fetchKeptFeed();
         return response.data;
       } catch (errorValue) {
@@ -265,7 +334,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         setSubmitting(false);
       }
     },
-    [fetchActivities, fetchFeed, fetchKeptFeed],
+    [fetchActivities, fetchFeed, fetchKeptFeed, fetchOverdueFeed],
   );
 
   const updateMetrics = useCallback(
@@ -300,6 +369,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         const response = await decideBlast(payload);
         await fetchCandidates();
         await fetchFeed();
+        await fetchOverdueFeed();
         return response.data;
       } catch (errorValue) {
         if (errorValue instanceof ApiError) {
@@ -311,7 +381,7 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
         setSubmitting(false);
       }
     },
-    [fetchCandidates, fetchFeed],
+    [fetchCandidates, fetchFeed, fetchOverdueFeed],
   );
 
   const createManualQueue = useCallback(
@@ -344,17 +414,21 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
 
   return {
     feedItems,
+    overdueFeedItems,
     keptFeedItems,
     candidateItems,
     activities,
     stats,
     feedMeta,
+    overdueFeedMeta,
     keptFeedMeta,
     candidateMeta,
     activityMeta,
     activityTotalPages,
     feedFilters,
     setFeedFilters,
+    overdueFeedFilters,
+    setOverdueFeedFilters,
     keptFeedFilters,
     setKeptFeedFilters,
     candidateFilters,
@@ -362,22 +436,30 @@ export function useBlastActivity(mode: "blast" | "superadmin", initialFeedStatus
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isOverdueFeedLoading,
     isKeptFeedLoading,
     isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
     feedError,
+    overdueFeedError,
     keptFeedError,
     candidateError,
     activitiesError,
-    resetFeedFilters: () => setFeedFilters(createInitialFeedFilters(initialFeedStatus)),
+    resetFeedFilters: () =>
+      setFeedFilters(
+        createInitialFeedFilters(initialFeedStatus, "available", initialFeedStatus === "unblasted" ? "on_time" : "all"),
+      ),
+    resetOverdueFeedFilters: () => setOverdueFeedFilters(createInitialFeedFilters("unblasted", "available", "overdue")),
     resetKeptFeedFilters: () => setKeptFeedFilters(createInitialFeedFilters("unblasted", "kept")),
     refetchFeed: fetchFeed,
+    refetchOverdueFeed: fetchOverdueFeed,
     refetchKeptFeed: fetchKeptFeed,
     refetchCandidates: fetchCandidates,
     refetchActivities: fetchActivities,
     create,
     keep,
+    releaseKeep,
     remove,
     updateMetrics,
     decide,

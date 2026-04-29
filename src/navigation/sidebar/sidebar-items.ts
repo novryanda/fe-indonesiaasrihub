@@ -18,6 +18,7 @@ import {
   Settings2,
   SquareCheck,
   SquarePlus,
+  Trophy,
   UserRound,
   Users,
 } from "lucide-react";
@@ -103,6 +104,12 @@ export const sidebarItems: NavGroup[] = [
         roles: ["blast"],
       },
       {
+        title: "Ranking Blast",
+        url: "/blast/ranking",
+        icon: Trophy,
+        roles: ["blast"],
+      },
+      {
         title: "Blast Ulang",
         url: "/blast/ulang",
         icon: Repeat,
@@ -180,6 +187,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Monitoring Blast",
         url: "/dashboard/blast",
         icon: Radio,
+        roles: ["superadmin"],
+      },
+      {
+        title: "Ranking Blast",
+        url: "/blast/ranking",
+        icon: Trophy,
         roles: ["superadmin"],
       },
     ],

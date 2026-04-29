@@ -24,6 +24,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,11 +214,13 @@ export function BlastActivityView({
   const { session, isAuthorized, isPending } = useRoleGuard([...allowedRoles]);
   const {
     feedItems,
+    overdueFeedItems,
     keptFeedItems,
     candidateItems,
     activities,
     stats,
     feedMeta,
+    overdueFeedMeta,
     keptFeedMeta,
     candidateMeta,
     candidateFilters,
@@ -214,23 +228,29 @@ export function BlastActivityView({
     activityMeta,
     feedFilters,
     setFeedFilters,
+    overdueFeedFilters,
+    setOverdueFeedFilters,
     keptFeedFilters,
     setKeptFeedFilters,
     activityFilters,
     setActivityFilters,
     isFeedLoading,
+    isOverdueFeedLoading,
     isKeptFeedLoading,
     isCandidatesLoading,
     isActivitiesLoading,
     isSubmitting,
     candidateError,
     feedError,
+    overdueFeedError,
     keptFeedError,
     activitiesError,
     resetFeedFilters,
+    resetOverdueFeedFilters,
     resetKeptFeedFilters,
     create,
     keep,
+    releaseKeep,
     remove,
     updateMetrics,
     decide,
@@ -377,6 +397,14 @@ export function BlastActivityView({
     }));
   };
 
+  const handleToggleOverdueSubmitSort = () => {
+    setOverdueFeedFilters((previous) => ({
+      ...previous,
+      sort_direction: previous.sort_direction === "asc" ? "desc" : "asc",
+      page: 1,
+    }));
+  };
+
   const handleSelectReference = (item: BlastFeedItem) => {
     if (!isRepeatMode && item.kept_by?.id !== currentUserId) {
       toast.error("Antrian ini harus di-keep oleh Anda sebelum bisa disubmit.");
@@ -407,6 +435,18 @@ export function BlastActivityView({
       toast.success(result.message);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal keep antrian blast");
+    }
+  };
+
+  const handleReleaseKeepReference = async (item: BlastFeedItem) => {
+    try {
+      const result = await releaseKeep(item.id);
+      toast.success(result.message);
+      if (selectedReference?.id === item.id) {
+        setSelectedReference(null);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal menghapus keep antrian blast");
     }
   };
 
@@ -668,6 +708,12 @@ export function BlastActivityView({
     Boolean(feedFilters.date_from?.trim()) ||
     Boolean(feedFilters.date_to?.trim()) ||
     Boolean(feedFilters.search.trim());
+  const hasOverdueFeedFilters =
+    overdueFeedFilters.platform !== "all" ||
+    overdueFeedFilters.social_account_id !== "all" ||
+    Boolean(overdueFeedFilters.date_from?.trim()) ||
+    Boolean(overdueFeedFilters.date_to?.trim()) ||
+    Boolean(overdueFeedFilters.search.trim());
   const activityLoadingLabel = activityFilters.search.trim()
     ? "Mencari aktivitas blast..."
     : hasActivityFilters
@@ -688,6 +734,13 @@ export function BlastActivityView({
 
     return Math.max(1, Math.ceil(feedMeta.total / feedMeta.limit));
   }, [feedMeta]);
+  const overdueFeedTotalPages = useMemo(() => {
+    if (!overdueFeedMeta) {
+      return 1;
+    }
+
+    return Math.max(1, Math.ceil(overdueFeedMeta.total / overdueFeedMeta.limit));
+  }, [overdueFeedMeta]);
   const keptFeedTotalPages = useMemo(() => {
     if (!keptFeedMeta) {
       return 1;
@@ -1049,6 +1102,233 @@ export function BlastActivityView({
           {!isRepeatMode ? (
             <Card>
               <CardHeader>
+                <CardTitle>Antrian Terlewat</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 lg:grid-cols-[160px_220px_150px_150px_minmax(0,1fr)_auto]">
+                  <Select
+                    value={overdueFeedFilters.platform}
+                    onValueChange={(value) =>
+                      setOverdueFeedFilters((previous) => ({
+                        ...previous,
+                        platform: value as typeof previous.platform,
+                        page: 1,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Platform</SelectItem>
+                      {["instagram", "tiktok", "youtube", "facebook", "x"].map((platform) => (
+                        <SelectItem key={platform} value={platform}>
+                          {formatPlatformLabel(platform as never)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={overdueFeedFilters.social_account_id}
+                    onValueChange={(value) =>
+                      setOverdueFeedFilters((previous) => ({
+                        ...previous,
+                        social_account_id: value,
+                        page: 1,
+                      }))
+                    }
+                    disabled={isSocialAccountsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Akun Sosmed" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Akun Sosmed</SelectItem>
+                      {sortedSocialAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.username} • {account.wilayah_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Input
+                    aria-label="Tanggal submit terlewat dari"
+                    title="Tanggal submit dari"
+                    type="date"
+                    value={overdueFeedFilters.date_from ?? ""}
+                    onChange={(event) =>
+                      setOverdueFeedFilters((previous) => ({
+                        ...previous,
+                        date_from: event.target.value,
+                        page: 1,
+                      }))
+                    }
+                  />
+
+                  <Input
+                    aria-label="Tanggal submit terlewat sampai"
+                    title="Tanggal submit sampai"
+                    type="date"
+                    value={overdueFeedFilters.date_to ?? ""}
+                    onChange={(event) =>
+                      setOverdueFeedFilters((previous) => ({
+                        ...previous,
+                        date_to: event.target.value,
+                        page: 1,
+                      }))
+                    }
+                  />
+
+                  <div className="relative">
+                    <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      placeholder="Cari judul, topik, akun, atau wilayah target"
+                      value={overdueFeedFilters.search}
+                      onChange={(event) =>
+                        setOverdueFeedFilters((previous) => ({
+                          ...previous,
+                          search: event.target.value,
+                          page: 1,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <Button variant="outline" onClick={() => resetOverdueFeedFilters()} disabled={!hasOverdueFeedFilters}>
+                    Reset Filter
+                  </Button>
+                </div>
+
+                {overdueFeedError ? (
+                  <div className="text-destructive text-sm">{overdueFeedError}</div>
+                ) : isOverdueFeedLoading ? (
+                  <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                    <Spinner />
+                    <span>Memuat antrian terlewat...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[16rem]">Referensi</TableHead>
+                            <TableHead className="w-56 min-w-[12rem] max-w-56">Akun Sosmed</TableHead>
+                            <TableHead className="min-w-[8rem]">Platform</TableHead>
+                            <TableHead className="min-w-[9rem]">Status</TableHead>
+                            <TableHead className="min-w-[9rem]">
+                              <div className="flex items-center gap-1">
+                                <span>Status Submit</span>
+                                <HeaderSortButton
+                                  direction={overdueFeedFilters.sort_direction}
+                                  onToggle={handleToggleOverdueSubmitSort}
+                                />
+                              </div>
+                            </TableHead>
+                            <TableHead className="min-w-[10rem]">Tanggal Submit</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {overdueFeedItems.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                Tidak ada antrian terlewat yang masih tersedia.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            overdueFeedItems.map((item) => {
+                              const isActive = selectedReference?.id === item.id;
+                              const keptById = item.kept_by?.id;
+                              const isKeptByOther = Boolean(keptById && keptById !== currentUserId);
+
+                              return (
+                                <TableRow key={item.id} data-state={isActive ? "selected" : undefined}>
+                                  <TableCell className="align-top">
+                                    <div className="space-y-1">
+                                      <button
+                                        type="button"
+                                        className="max-w-full cursor-copy text-left font-medium text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        title="Klik untuk copy link referensi"
+                                        onClick={() => void handleCopyReferenceLink(item)}
+                                      >
+                                        <span className="line-clamp-1">{item.title}</span>
+                                      </button>
+                                      <p className="text-muted-foreground text-xs">
+                                        {item.target_wilayah.nama}
+                                        {item.submission_code ? ` • ${item.submission_code}` : ""}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="max-w-56 align-top">
+                                    <SocialAccountSummary
+                                      username={item.social_account?.username}
+                                      profileName={item.social_account?.profile_name}
+                                      fallback={item.target_wilayah.nama}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <PlatformIcon platform={item.platform} />
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <div className="flex flex-col gap-2">
+                                      <Badge variant="secondary">Belum Di-blast</Badge>
+                                      <Badge variant="outline">{item.blast_count} aktivitas</Badge>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <SubmissionStatusBadge days={item.submission_delay_days} />
+                                  </TableCell>
+                                  <TableCell className="align-top text-sm">
+                                    {item.submitted_at ? formatDateTime(item.submitted_at) : "-"}
+                                  </TableCell>
+                                  <TableCell className="align-top">
+                                    <div className="flex justify-end gap-2">
+                                      <Button asChild variant="ghost" size="icon-sm" aria-label="Buka postingan">
+                                        <Link href={item.post_url} target="_blank" rel="noreferrer">
+                                          <ExternalLink className="size-4" />
+                                        </Link>
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={isActive ? "default" : "outline"}
+                                        size="sm"
+                                        disabled={isSubmitting || isKeptByOther}
+                                        onClick={() => void handleKeepReference(item)}
+                                      >
+                                        {isActive ? "Dipilih" : isKeptByOther ? "Sudah Dikeep" : "Keep"}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <TablePagination
+                      summary={`Halaman ${overdueFeedFilters.page} dari ${overdueFeedTotalPages}${overdueFeedMeta ? ` (${overdueFeedMeta.total} total terlewat)` : ""}`}
+                      page={overdueFeedFilters.page}
+                      totalPages={overdueFeedTotalPages}
+                      disabled={isOverdueFeedLoading}
+                      onPageChange={(nextPage) =>
+                        setOverdueFeedFilters((previous) => ({ ...previous, page: nextPage }))
+                      }
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {!isRepeatMode ? (
+            <Card>
+              <CardHeader>
                 <CardTitle>Daftar Keep</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1173,6 +1453,40 @@ export function BlastActivityView({
                                       >
                                         {isActive ? "Dipilih" : isMine ? "Kerjakan" : "Dikeep User Lain"}
                                       </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            disabled={!isMine || isSubmitting}
+                                            aria-label="Hapus keep antrian blast"
+                                          >
+                                            <Trash2 className="size-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogMedia className="bg-destructive/10 text-destructive">
+                                              <Trash2 className="size-7" />
+                                            </AlertDialogMedia>
+                                            <AlertDialogTitle>Hapus keep antrian?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Antrian ini akan kembali tersedia dan bisa di-keep oleh user blast lain.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              variant="destructive"
+                                              disabled={isSubmitting}
+                                              onClick={() => void handleReleaseKeepReference(item)}
+                                            >
+                                              Hapus Keep
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                   </TableCell>
                                 </TableRow>

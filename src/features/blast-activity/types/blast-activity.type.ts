@@ -4,6 +4,7 @@ export type BlastReferenceStatus = "all" | "unblasted" | "blasted";
 export type BlastAssignmentStatus = "pending" | "completed" | "cancelled";
 export type BlastSortDirection = "asc" | "desc";
 export type BlastFeedScope = "available" | "kept" | "all";
+export type BlastFeedTimeliness = "all" | "on_time" | "overdue";
 
 export interface BlastAssignmentUser {
   id: string;
@@ -166,6 +167,7 @@ export interface BlastFeedFilters {
   social_account_id: "all" | string;
   status: BlastReferenceStatus;
   scope: BlastFeedScope;
+  timeliness: BlastFeedTimeliness;
   sort_direction: BlastSortDirection;
   date_from?: string;
   date_to?: string;
@@ -230,6 +232,12 @@ export interface KeepBlastAssignmentResult {
   message: string;
 }
 
+export interface ReleaseBlastAssignmentKeepResult {
+  id: string;
+  released_from: BlastAssignmentUser | null;
+  message: string;
+}
+
 export interface DeleteBlastActivityResult {
   id: string;
   blast_assignment_id: string | null;
@@ -290,6 +298,46 @@ export interface UpdateBlastActivityMetricsResult {
   shares: number;
   reposts: number;
   message: string;
+}
+
+export interface BlastRankingFilters {
+  platform: "all" | ContentPlatform;
+  social_account_id: "all" | string;
+  date_from?: string;
+  date_to?: string;
+  search: string;
+  blast_user_id: "all" | string;
+  page: number;
+  limit: number;
+}
+
+export interface BlastRankingItem {
+  rank: number;
+  user: BlastAssignmentUser;
+  total_postingan: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+  total_shares: number;
+  total_reposts: number;
+  last_activity_at: string | null;
+}
+
+export interface BlastRankingStats {
+  total_users: number;
+  total_postingan: number;
+  total_views: number;
+  top_user: {
+    id: string;
+    name: string;
+    total_postingan: number;
+  } | null;
+}
+
+export interface BlastRankingData {
+  stats: BlastRankingStats;
+  ranking: BlastRankingItem[];
+  activities: BlastActivityItem[];
 }
 
 export type BlastMeta = PaginatedMeta;

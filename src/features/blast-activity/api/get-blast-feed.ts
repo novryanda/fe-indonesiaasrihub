@@ -10,6 +10,7 @@ export async function getBlastFeed(filters: BlastFeedFilters) {
       social_account_id: filters.social_account_id === "all" ? undefined : filters.social_account_id,
       status: filters.status === "all" ? undefined : filters.status,
       scope: filters.scope,
+      timeliness: filters.timeliness,
       sort_direction: filters.sort_direction,
       date_from: filters.date_from || undefined,
       date_to: filters.date_to || undefined,
