@@ -28,6 +28,24 @@ const nullablePhoneNumber = z.preprocess(
     .nullable()
     .optional(),
 );
+const additionalPhoneNumber = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    return normalizeIndonesianPhoneNumber(value);
+  },
+  z
+    .string()
+    .min(11, "Nomor HP minimal 8 digit")
+    .max(25, "Nomor HP maksimal 22 digit")
+    .regex(/^\+62[0-9]+$/, "Format nomor HP tidak valid"),
+);
+const additionalPhoneNumbers = z
+  .array(additionalPhoneNumber)
+  .max(10, "Nomor HP tambahan maksimal 10 nomor")
+  .transform((values) => Array.from(new Set(values)));
 
 const nullableWilayahId = z.preprocess((value) => {
   if (typeof value !== "string") {
@@ -44,6 +62,7 @@ export const createUserSchema = z
     username: usernameSchema,
     email: z.string().trim().email("Format email tidak valid"),
     phone_number: nullablePhoneNumber,
+    additional_phone_numbers: additionalPhoneNumbers,
     role: userRoleSchema,
     wilayah_id: nullableWilayahId,
     password: z.string().min(8, "Password minimal 8 karakter").max(128, "Password maksimal 128 karakter"),
@@ -63,6 +82,7 @@ export const updateUserSchema = z
     name: z.string().trim().min(3, "Nama minimal 3 karakter").max(120, "Nama maksimal 120 karakter"),
     username: usernameSchema,
     phone_number: nullablePhoneNumber,
+    additional_phone_numbers: additionalPhoneNumbers,
     role: userRoleSchema,
     wilayah_id: nullableWilayahId,
     status: userStatusSchema,

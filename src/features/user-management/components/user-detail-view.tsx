@@ -87,6 +87,22 @@ function formatTimeAgo(value: string | null) {
   return `${diffDays} hari lalu`;
 }
 
+function PhoneNumberList({ phoneNumbers }: { phoneNumbers: string[] }) {
+  if (phoneNumbers.length === 0) {
+    return <p className="text-muted-foreground text-sm">Belum tersedia</p>;
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {phoneNumbers.map((phoneNumber, index) => (
+        <Badge key={phoneNumber} variant={index === 0 ? "secondary" : "outline"}>
+          {phoneNumber}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function getStatusClassName(status: UserDetailData["user"]["status"]) {
   return status === "aktif"
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -232,7 +248,7 @@ export function UserDetailView({ id }: { id: string }) {
                     <Phone className="mt-0.5 size-4 text-emerald-700" />
                     <div className="min-w-0">
                       <p className="font-medium">Nomor HP</p>
-                      <p className="text-muted-foreground text-sm">{data.user.phone_number ?? "Belum tersedia"}</p>
+                      <PhoneNumberList phoneNumbers={data.user.phone_numbers} />
                     </div>
                   </div>
                   <div className="flex items-start gap-3 rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-sm">
@@ -289,7 +305,7 @@ export function UserDetailView({ id }: { id: string }) {
               </div>
               <div className="rounded-2xl border bg-background p-4">
                 <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Nomor HP</p>
-                <p className="mt-2 font-medium">{data.user.phone_number ?? "Belum tersedia"}</p>
+                <PhoneNumberList phoneNumbers={data.user.phone_numbers} />
               </div>
               <div className="rounded-2xl border bg-background p-4">
                 <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Wilayah</p>

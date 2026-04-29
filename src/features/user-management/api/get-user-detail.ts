@@ -11,6 +11,8 @@ export async function getUserDetail(userId: string) {
       display_username: string | null;
       email: string;
       phone_number: string | null;
+      additional_phone_numbers?: string[];
+      phone_numbers?: string[];
       image: string | null;
       role: UserDetailData["user"]["role"];
       wilayah_id: string | null;
@@ -39,6 +41,11 @@ export async function getUserDetail(userId: string) {
     data: {
       user: {
         ...response.data.user,
+        additional_phone_numbers: response.data.user.additional_phone_numbers ?? [],
+        phone_numbers: response.data.user.phone_numbers ?? [
+          response.data.user.phone_number,
+          ...(response.data.user.additional_phone_numbers ?? []),
+        ].filter((phoneNumber): phoneNumber is string => Boolean(phoneNumber)),
         regional: response.data.user.wilayah?.nama ?? null,
       },
       summary: response.data.summary,

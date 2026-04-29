@@ -42,6 +42,16 @@ function normalizeUsername(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizePhoneNumbers(values: string[] | undefined) {
+  return Array.from(
+    new Set(
+      (values ?? [])
+        .map((value) => normalizeIndonesianPhoneNumber(value))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}
+
 function UserManagementContent({ accessToken, actorRole }: UserManagementContentProps) {
   const router = useRouter();
   const { users, stats, meta, isLoading, isInitialLoading, isSearching, error, filters, setFilters, refetch } =
@@ -88,6 +98,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
       username: normalizeUsername(payload.username),
       email: payload.email.trim().toLowerCase(),
       phone_number: normalizeIndonesianPhoneNumber(payload.phone_number),
+      additional_phone_numbers: normalizePhoneNumbers(payload.additional_phone_numbers),
       role: payload.role,
       wilayah_id: payload.wilayah_id ?? null,
       password: payload.password,
@@ -111,6 +122,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
       name: payload.name.trim(),
       username: normalizeUsername(payload.username),
       phone_number: normalizeIndonesianPhoneNumber(payload.phone_number),
+      additional_phone_numbers: normalizePhoneNumbers(payload.additional_phone_numbers),
       role: payload.role,
       wilayah_id: payload.wilayah_id ?? null,
       status: payload.status,
@@ -133,6 +145,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
         name: deactivatingUser.name,
         username: deactivatingUser.username ?? undefined,
         phone_number: deactivatingUser.phone_number,
+        additional_phone_numbers: deactivatingUser.additional_phone_numbers,
         role: deactivatingUser.role,
         wilayah_id: deactivatingUser.wilayah_id,
         status: "nonaktif",
@@ -171,6 +184,7 @@ function UserManagementContent({ accessToken, actorRole }: UserManagementContent
         name: reactivatingUser.name,
         username: reactivatingUser.username ?? undefined,
         phone_number: reactivatingUser.phone_number,
+        additional_phone_numbers: reactivatingUser.additional_phone_numbers,
         role: reactivatingUser.role,
         wilayah_id: reactivatingUser.wilayah_id,
         status: "aktif",

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Plus, Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,13 +46,36 @@ type FormDraft = {
   username: string;
   email: string;
   phone_number: string;
+  additional_phone_numbers: AdditionalPhoneDraft[];
   role: UserItem["role"];
   wilayah_id: string;
   password: string;
   status: UserItem["status"];
 };
 
+type AdditionalPhoneDraft = {
+  id: string;
+  value: string;
+};
+
 type FormErrorState = Partial<Record<keyof FormDraft, string>>;
+
+let additionalPhoneDraftSequence = 0;
+
+function createAdditionalPhoneDraft(value = "", index = 0): AdditionalPhoneDraft {
+  return {
+    id: `phone-${index}-${value || "empty"}`,
+    value,
+  };
+}
+
+function createNewAdditionalPhoneDraft(): AdditionalPhoneDraft {
+  additionalPhoneDraftSequence += 1;
+  return {
+    id: `new-phone-${additionalPhoneDraftSequence}`,
+    value: "",
+  };
+}
 
 function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], user?: UserItem | null): FormDraft {
   if (mode === "edit" && user) {
@@ -59,6 +84,9 @@ function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], us
       username: user.username ?? "",
       email: user.email,
       phone_number: user.phone_number ?? "",
+      additional_phone_numbers: (user.additional_phone_numbers ?? []).map((phoneNumber, index) =>
+        createAdditionalPhoneDraft(phoneNumber, index),
+      ),
       role: user.role,
       wilayah_id: user.wilayah_id ?? "",
       password: "",
@@ -71,6 +99,7 @@ function createInitialDraft(mode: FormMode, allowedRoles: UserItem["role"][], us
     username: "",
     email: "",
     phone_number: "",
+    additional_phone_numbers: [],
     role: allowedRoles[0] ?? "wcc",
     wilayah_id: "",
     password: "",
@@ -171,6 +200,37 @@ export function UserFormDialog({
     }
   };
 
+  const handleAdditionalPhoneChange = (index: number, value: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      additional_phone_numbers: previous.additional_phone_numbers.map((phoneNumber, phoneIndex) =>
+        phoneIndex === index ? { ...phoneNumber, value } : phoneNumber,
+      ),
+    }));
+
+    if (errors.additional_phone_numbers) {
+      setErrors((previous) => {
+        const next = { ...previous };
+        delete next.additional_phone_numbers;
+        return next;
+      });
+    }
+  };
+
+  const handleAddAdditionalPhone = () => {
+    setDraft((previous) => ({
+      ...previous,
+      additional_phone_numbers: [...previous.additional_phone_numbers, createNewAdditionalPhoneDraft()],
+    }));
+  };
+
+  const handleRemoveAdditionalPhone = (index: number) => {
+    setDraft((previous) => ({
+      ...previous,
+      additional_phone_numbers: previous.additional_phone_numbers.filter((_, phoneIndex) => phoneIndex !== index),
+    }));
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -181,6 +241,9 @@ export function UserFormDialog({
             username: draft.username,
             email: draft.email,
             phone_number: draft.phone_number,
+            additional_phone_numbers: draft.additional_phone_numbers
+              .map((phoneNumber) => phoneNumber.value)
+              .filter((phoneNumber) => phoneNumber.trim()),
             role: draft.role,
             wilayah_id: draft.wilayah_id,
             password: draft.password,
@@ -189,6 +252,9 @@ export function UserFormDialog({
             name: draft.name,
             username: draft.username,
             phone_number: draft.phone_number,
+            additional_phone_numbers: draft.additional_phone_numbers
+              .map((phoneNumber) => phoneNumber.value)
+              .filter((phoneNumber) => phoneNumber.trim()),
             role: draft.role,
             wilayah_id: draft.wilayah_id,
             status: draft.status,
@@ -255,7 +321,7 @@ export function UserFormDialog({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="user-phone-number">Nomor HP</Label>
+            <Label htmlFor="user-phone-number">Nomor HP utama</Label>
             <Input
               id="user-phone-number"
               value={draft.phone_number}
@@ -266,6 +332,46 @@ export function UserFormDialog({
               placeholder="+6281234567890"
             />
             {errors.phone_number && <p className="text-destructive text-xs">{errors.phone_number}</p>}
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label>Nomor HP tambahan</Label>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddAdditionalPhone}>
+                <Plus className="size-4" />
+                Tambah
+              </Button>
+            </div>
+            {draft.additional_phone_numbers.length > 0 ? (
+              <div className="grid gap-2">
+                {draft.additional_phone_numbers.map((phoneNumber, index) => (
+                  <div key={phoneNumber.id} className="flex gap-2">
+                    <Input
+                      value={phoneNumber.value}
+                      onChange={(event) => handleAdditionalPhoneChange(index, event.target.value)}
+                      onBlur={(event) =>
+                        handleAdditionalPhoneChange(index, normalizeIndonesianPhoneNumber(event.target.value) ?? "")
+                      }
+                      placeholder="+6281234567890"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label="Hapus nomor HP tambahan"
+                      onClick={() => handleRemoveAdditionalPhone(index)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-xs">Opsional, kosongkan jika user hanya punya satu nomor.</p>
+            )}
+            {errors.additional_phone_numbers && (
+              <p className="text-destructive text-xs">{errors.additional_phone_numbers}</p>
+            )}
           </div>
 
           <div className="grid gap-2">

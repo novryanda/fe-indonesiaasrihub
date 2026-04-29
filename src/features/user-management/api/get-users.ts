@@ -12,6 +12,8 @@ export async function getUsers(query: ListUsersQuery, _accessToken?: string, sig
         username?: string | null;
         email: string;
         phone_number: string | null;
+        additional_phone_numbers?: string[];
+        phone_numbers?: string[];
         role: ListUsersData["users"][number]["role"];
         wilayah_id: string | null;
         wilayah: {
@@ -50,6 +52,11 @@ export async function getUsers(query: ListUsersQuery, _accessToken?: string, sig
         username: user.username ?? null,
         email: user.email,
         phone_number: user.phone_number,
+        additional_phone_numbers: user.additional_phone_numbers ?? [],
+        phone_numbers: user.phone_numbers ?? [
+          user.phone_number,
+          ...(user.additional_phone_numbers ?? []),
+        ].filter((phoneNumber): phoneNumber is string => Boolean(phoneNumber)),
         role: user.role,
         wilayah_id: user.wilayah_id,
         regional: user.wilayah?.nama ?? null,

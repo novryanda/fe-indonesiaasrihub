@@ -8,6 +8,8 @@ export interface UserItem {
   username: string | null;
   email: string;
   phone_number: string | null;
+  additional_phone_numbers: string[];
+  phone_numbers: string[];
   role: UserRole;
   wilayah_id: string | null;
   regional: string | null;
@@ -98,6 +100,7 @@ export interface CreateUserPayload {
   username: string;
   email: string;
   phone_number?: string | null;
+  additional_phone_numbers?: string[];
   role: UserRole;
   wilayah_id?: string | null;
   password: string;
@@ -109,6 +112,8 @@ export interface CreateUserResult {
   username: string;
   email: string;
   phone_number: string | null;
+  additional_phone_numbers: string[];
+  phone_numbers: string[];
   role: UserRole;
   wilayah_id: string | null;
   regional: string | null;
@@ -119,6 +124,7 @@ export interface UpdateUserPayload {
   name?: string;
   username?: string;
   phone_number?: string | null;
+  additional_phone_numbers?: string[];
   role?: UserRole;
   wilayah_id?: string | null;
   status?: UserStatus;
@@ -129,6 +135,8 @@ export interface UpdateUserResult {
   name: string;
   username: string | null;
   phone_number: string | null;
+  additional_phone_numbers: string[];
+  phone_numbers: string[];
   role: UserRole;
   wilayah_id: string | null;
   regional: string | null;

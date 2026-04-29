@@ -5,7 +5,7 @@ import { UserCheck, UserX } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import type { UserItem } from "../types/user-management.type";
@@ -56,6 +56,17 @@ function formatDate(value: string | null) {
   }
 
   return date.toLocaleString("id-ID");
+}
+
+function formatPhoneNumbers(phoneNumbers: string[]) {
+  if (phoneNumbers.length === 0) {
+    return "-";
+  }
+
+  const [primaryPhoneNumber, ...additionalPhoneNumbers] = phoneNumbers;
+  return additionalPhoneNumbers.length > 0
+    ? `${primaryPhoneNumber} +${additionalPhoneNumbers.length}`
+    : primaryPhoneNumber;
 }
 
 export function UsersTable({
@@ -112,7 +123,7 @@ export function UsersTable({
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.username ?? "-"}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone_number ?? "-"}</TableCell>
+                  <TableCell>{formatPhoneNumbers(user.phone_numbers)}</TableCell>
                   <TableCell>{toRoleLabel(user.role)}</TableCell>
                   <TableCell>{user.regional ?? "-"}</TableCell>
                   <TableCell>
