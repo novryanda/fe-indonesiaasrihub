@@ -394,6 +394,8 @@ export interface BlastRankingItem {
 export interface BlastRankingStats {
   total_users: number;
   total_postingan: number;
+  total_bank_konten: number;
+  total_manual: number;
   total_views: number;
   top_user: {
     id: string;

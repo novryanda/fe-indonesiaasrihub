@@ -22,7 +22,13 @@ import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
 import { getBlastFeed } from "../api/get-blast-feed";
 import { getBlastRanking } from "../api/get-blast-ranking";
-import type { BlastActivityItem, BlastFeedFilters, BlastFeedItem, BlastMeta } from "../types/blast-activity.type";
+import type {
+  BlastActivityItem,
+  BlastFeedFilters,
+  BlastFeedItem,
+  BlastMeta,
+  BlastRankingStats,
+} from "../types/blast-activity.type";
 
 const INITIAL_FILTERS: BlastFeedFilters = {
   platform: "all",
@@ -326,6 +332,7 @@ export function BlastLogView() {
   const [filters, setFilters] = useState<BlastFeedFilters>(INITIAL_FILTERS);
   const [items, setItems] = useState<BlastFeedItem[]>([]);
   const [meta, setMeta] = useState<BlastMeta | null>(null);
+  const [blastStats, setBlastStats] = useState<BlastRankingStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [exporting, setExporting] = useState<ExportMode | null>(null);
@@ -342,13 +349,26 @@ export function BlastLogView() {
       setError(null);
 
       try {
-        const response = await getBlastFeed(filters);
+        const [feedResponse, rankingResponse] = await Promise.all([
+          getBlastFeed(filters),
+          getBlastRanking({
+            platform: filters.platform,
+            social_account_id: filters.social_account_id,
+            date_from: filters.date_from,
+            date_to: filters.date_to,
+            search: filters.search,
+            blast_user_id: "all",
+            page: 1,
+            limit: 1,
+          }),
+        ]);
         if (!isActive) {
           return;
         }
 
-        setItems(response.data);
-        setMeta(response.meta ?? null);
+        setItems(feedResponse.data);
+        setMeta(feedResponse.meta ?? null);
+        setBlastStats(rankingResponse.data.stats);
       } catch (errorValue) {
         if (!isActive) {
           return;
@@ -372,11 +392,11 @@ export function BlastLogView() {
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
   const stats = useMemo(
     () => ({
-      total_posting: meta?.total ?? 0,
-      total_blast: items.reduce((total, item) => total + item.blast_count, 0),
-      latest: items[0]?.last_blasted_at ?? null,
+      bank_content: blastStats?.total_bank_konten ?? 0,
+      manual: blastStats?.total_manual ?? 0,
+      total: blastStats?.total_postingan ?? 0,
     }),
-    [items, meta],
+    [blastStats],
   );
   const hasFilters =
     filters.platform !== "all" ||
@@ -502,20 +522,20 @@ export function BlastLogView() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="space-y-2 py-5">
-            <p className="text-muted-foreground text-sm">Postingan Diblast</p>
-            <p className="font-semibold text-2xl">{formatNumber(stats.total_posting)}</p>
+            <p className="text-muted-foreground text-sm">Dari Bank Konten</p>
+            <p className="font-semibold text-2xl">{formatNumber(stats.bank_content)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="space-y-2 py-5">
-            <p className="text-muted-foreground text-sm">Total Aktivitas di Halaman Ini</p>
-            <p className="font-semibold text-2xl">{formatNumber(stats.total_blast)}</p>
+            <p className="text-muted-foreground text-sm">Manual</p>
+            <p className="font-semibold text-2xl">{formatNumber(stats.manual)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="space-y-2 py-5">
-            <p className="text-muted-foreground text-sm">Blast Terakhir</p>
-            <p className="font-semibold text-lg">{formatDateTime(stats.latest)}</p>
+            <p className="text-muted-foreground text-sm">Total Postingan Diblast</p>
+            <p className="font-semibold text-2xl">{formatNumber(stats.total)}</p>
           </CardContent>
         </Card>
       </div>
