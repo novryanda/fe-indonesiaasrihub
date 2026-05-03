@@ -107,7 +107,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Log Blast",
         url: "/blast/log",
         icon: ScrollText,
-        roles: ["blast",],
+        roles: ["blast"],
       },
       {
         title: "Ranking Blast",
@@ -322,6 +322,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Log Blast",
         url: "/blast/log",
         icon: ScrollText,
+        roles: ["sysadmin"],
+      },
+      {
+        title: "Ranking Blast",
+        url: "/blast/ranking",
+        icon: Trophy,
         roles: ["sysadmin"],
       },
     ],

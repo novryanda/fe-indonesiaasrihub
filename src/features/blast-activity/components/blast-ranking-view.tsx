@@ -168,7 +168,7 @@ function ActivityReferenceCell({ item }: { item: BlastActivityItem }) {
 }
 
 export function BlastRankingView() {
-  const { isAuthorized, isPending } = useRoleGuard(["blast", "superadmin"]);
+  const { isAuthorized, isPending } = useRoleGuard(["blast", "superadmin", "sysadmin"]);
   const [filters, setFilters] = useState<BlastRankingFilters>(INITIAL_FILTERS);
   const [data, setData] = useState<BlastRankingData | null>(null);
   const [meta, setMeta] = useState<BlastMeta | null>(null);

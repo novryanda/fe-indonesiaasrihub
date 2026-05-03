@@ -36,6 +36,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
   ],
   sysadmin: [
     "/blast/log",
+    "/blast/ranking",
     "/system/whatsapp-automation",
     "/system/whatsapp-gateway",
     "/system/jadwal-scrapping",
