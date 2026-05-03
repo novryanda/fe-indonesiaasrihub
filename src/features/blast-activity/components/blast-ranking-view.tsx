@@ -283,18 +283,50 @@ export function BlastRankingView() {
   return (
     <div className="space-y-6">
       <Card className="app-bg-hero app-border-soft">
-        <CardContent className="space-y-4 px-6 py-8 md:px-8">
-          <Badge
-            variant="outline"
-            className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
-          >
-            Blast / Ranking User
-          </Badge>
-          <div className="space-y-2">
-            <h1 className="font-semibold text-3xl tracking-tight">Ranking Blast</h1>
-            <p className="max-w-3xl text-muted-foreground text-sm leading-6">
-              Peringkat user blast berdasarkan jumlah postingan yang berhasil mereka submit.
-            </p>
+        <CardContent className="px-6 py-8 md:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-4">
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-200 bg-background/75 px-3 py-1 text-emerald-700 dark:bg-card/75"
+              >
+                Blast / Ranking User
+              </Badge>
+              <div className="space-y-2">
+                <h1 className="font-semibold text-3xl tracking-tight">Ranking Blast</h1>
+                <p className="max-w-3xl text-muted-foreground text-sm leading-6">
+                  Peringkat user blast berdasarkan jumlah postingan yang berhasil mereka submit.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
+              <Input
+                aria-label="Tanggal blast dari"
+                type="date"
+                value={filters.date_from ?? ""}
+                onChange={(event) =>
+                  setFilters((previous) => ({
+                    ...previous,
+                    date_from: event.target.value,
+                    page: 1,
+                  }))
+                }
+              />
+
+              <Input
+                aria-label="Tanggal blast sampai"
+                type="date"
+                value={filters.date_to ?? ""}
+                onChange={(event) =>
+                  setFilters((previous) => ({
+                    ...previous,
+                    date_to: event.target.value,
+                    page: 1,
+                  }))
+                }
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -363,7 +395,7 @@ export function BlastRankingView() {
 
           <Card>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 xl:grid-cols-[160px_220px_170px_170px_220px_minmax(0,1fr)_auto]">
+              <div className="grid gap-3 xl:grid-cols-[160px_220px_220px_minmax(0,1fr)_auto]">
                 <Select
                   value={filters.platform}
                   onValueChange={(value) =>
@@ -410,32 +442,6 @@ export function BlastRankingView() {
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Input
-                  aria-label="Tanggal blast dari"
-                  type="date"
-                  value={filters.date_from ?? ""}
-                  onChange={(event) =>
-                    setFilters((previous) => ({
-                      ...previous,
-                      date_from: event.target.value,
-                      page: 1,
-                    }))
-                  }
-                />
-
-                <Input
-                  aria-label="Tanggal blast sampai"
-                  type="date"
-                  value={filters.date_to ?? ""}
-                  onChange={(event) =>
-                    setFilters((previous) => ({
-                      ...previous,
-                      date_to: event.target.value,
-                      page: 1,
-                    }))
-                  }
-                />
 
                 <Select
                   value={filters.blast_user_id}
