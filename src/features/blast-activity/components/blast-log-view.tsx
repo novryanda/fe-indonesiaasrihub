@@ -144,7 +144,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastFeedFilters) {
           <td>${escapeHtml(row.judul)}</td>
           <td>${escapeHtml(row.akun_sosmed)}</td>
           <td>${escapeHtml(row.platform)}</td>
-          <td>${escapeHtml(row.post_url)}</td>
+          <td><a href="${escapeHtml(row.post_url)}">${escapeHtml(row.post_url)}</a></td>
           <td style="mso-number-format:'0';">${escapeHtml(row.views)}</td>
           <td style="mso-number-format:'0';">${escapeHtml(row.likes)}</td>
           <td style="mso-number-format:'0';">${escapeHtml(row.comments)}</td>
@@ -176,6 +176,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastFeedFilters) {
           table { border-collapse: collapse; }
           th, td { border: 1px solid #b7c0cc; padding: 6px; vertical-align: top; }
           th { background: #e8f3ee; font-weight: bold; }
+          a { color: #047857; text-decoration: underline; }
           .meta th { background: #d9eadf; text-align: left; }
         </style>
       </head>
@@ -237,6 +238,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastFeedFilters)
           <td>${escapeHtml(row.judul)}</td>
           <td>${escapeHtml(row.akun_sosmed)}</td>
           <td>${escapeHtml(row.platform)}</td>
+          <td><a href="${escapeHtml(row.post_url)}" target="_blank" rel="noreferrer">Buka Postingan</a></td>
           <td class="number">${escapeHtml(row.views)}</td>
           <td class="number">${escapeHtml(row.likes)}</td>
           <td class="number">${escapeHtml(row.comments)}</td>
@@ -264,6 +266,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastFeedFilters)
           table { width: 100%; border-collapse: collapse; font-size: 10px; }
           th, td { border: 1px solid #d1d5db; padding: 6px; vertical-align: top; }
           th { background: #f3f4f6; text-align: left; }
+          a { color: #047857; text-decoration: underline; }
           .number { text-align: right; }
           @page { size: landscape; margin: 12mm; }
         </style>
@@ -291,6 +294,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastFeedFilters)
               <th>Judul</th>
               <th>Akun</th>
               <th>Platform</th>
+              <th>Link Postingan</th>
               <th>Views</th>
               <th>Likes</th>
               <th>Comments</th>
