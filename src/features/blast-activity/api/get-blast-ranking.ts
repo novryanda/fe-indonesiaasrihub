@@ -8,6 +8,8 @@ export async function getBlastRanking(filters: BlastRankingFilters) {
     params: {
       platform: filters.platform === "all" ? undefined : filters.platform,
       social_account_id: filters.social_account_id === "all" ? undefined : filters.social_account_id,
+      source: filters.source === "all" ? undefined : filters.source,
+      sort_direction: filters.sort_direction,
       date_from: filters.date_from?.trim() || undefined,
       date_to: filters.date_to?.trim() || undefined,
       search: filters.search.trim() || undefined,

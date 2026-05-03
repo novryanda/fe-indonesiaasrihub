@@ -20,26 +20,25 @@ import { formatDateTime, formatNumber, formatPlatformLabel } from "@/features/co
 import { ApiError } from "@/shared/api/api-client";
 import { useRoleGuard } from "@/shared/hooks/use-role-guard";
 
-import { getBlastFeed } from "../api/get-blast-feed";
 import { getBlastRanking } from "../api/get-blast-ranking";
 import type {
   BlastActivityItem,
-  BlastFeedFilters,
-  BlastFeedItem,
   BlastMeta,
+  BlastRankingFilters,
   BlastRankingStats,
 } from "../types/blast-activity.type";
 
-const INITIAL_FILTERS: BlastFeedFilters = {
+type BlastLogFilters = BlastRankingFilters;
+
+const INITIAL_FILTERS: BlastLogFilters = {
   platform: "all",
   social_account_id: "all",
-  status: "blasted",
-  scope: "all",
-  timeliness: "all",
+  source: "all",
   sort_direction: "desc",
   date_from: "",
   date_to: "",
   search: "",
+  blast_user_id: "all",
   page: 1,
   limit: 20,
 };
@@ -83,7 +82,7 @@ function LastBlastSortButton({ direction, onToggle }: { direction: "asc" | "desc
   );
 }
 
-function getReportPeriodLabel(filters: BlastFeedFilters) {
+function getReportPeriodLabel(filters: BlastLogFilters) {
   if (filters.date_from && filters.date_to) {
     return `${filters.date_from} s.d. ${filters.date_to}`;
   }
@@ -137,7 +136,7 @@ function downloadTextFile(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-function buildExcelReport(rows: BlastReportRow[], filters: BlastFeedFilters) {
+function buildExcelReport(rows: BlastReportRow[], filters: BlastLogFilters) {
   const reportRows = rows
     .map(
       (row, index) => `
@@ -220,7 +219,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastFeedFilters) {
   `;
 }
 
-function buildPrintableReport(rows: BlastReportRow[], filters: BlastFeedFilters) {
+function buildPrintableReport(rows: BlastReportRow[], filters: BlastLogFilters) {
   const totals = rows.reduce(
     (summary, row) => ({
       views: summary.views + row.views,
@@ -315,13 +314,25 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastFeedFilters)
   `;
 }
 
-function ReferenceCell({ item }: { item: BlastFeedItem }) {
+function getActivitySource(item: BlastActivityItem) {
+  return item.blast_assignment?.content.topic === "Blast Manual" || !item.blast_assignment ? "Manual" : "Bank Konten";
+}
+
+function ReferenceCell({ item }: { item: BlastActivityItem }) {
+  const content = item.blast_assignment?.content;
+  const targetWilayah = item.blast_assignment?.target_wilayah ?? item.blast_user.wilayah;
+
   return (
     <div className="max-w-md space-y-1">
-      <p className="line-clamp-1 font-medium text-sm">{item.title}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="line-clamp-1 font-medium text-sm">{content?.title ?? item.caption ?? "Blast manual"}</p>
+        <Badge variant="outline" className="rounded-full px-2 py-0 text-[11px]">
+          {getActivitySource(item)}
+        </Badge>
+      </div>
       <p className="text-muted-foreground text-xs">
-        {item.submission_code ? `${item.submission_code} • ` : ""}
-        {item.target_wilayah.nama}
+        {content?.submission_code ? `${content.submission_code} • ` : ""}
+        {targetWilayah?.nama ?? "-"}
       </p>
     </div>
   );
@@ -329,8 +340,8 @@ function ReferenceCell({ item }: { item: BlastFeedItem }) {
 
 export function BlastLogView() {
   const { isAuthorized, isPending } = useRoleGuard(["blast", "sysadmin"]);
-  const [filters, setFilters] = useState<BlastFeedFilters>(INITIAL_FILTERS);
-  const [items, setItems] = useState<BlastFeedItem[]>([]);
+  const [filters, setFilters] = useState<BlastLogFilters>(INITIAL_FILTERS);
+  const [items, setItems] = useState<BlastActivityItem[]>([]);
   const [meta, setMeta] = useState<BlastMeta | null>(null);
   const [blastStats, setBlastStats] = useState<BlastRankingStats | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -349,26 +360,14 @@ export function BlastLogView() {
       setError(null);
 
       try {
-        const [feedResponse, rankingResponse] = await Promise.all([
-          getBlastFeed(filters),
-          getBlastRanking({
-            platform: filters.platform,
-            social_account_id: filters.social_account_id,
-            date_from: filters.date_from,
-            date_to: filters.date_to,
-            search: filters.search,
-            blast_user_id: "all",
-            page: 1,
-            limit: 1,
-          }),
-        ]);
+        const response = await getBlastRanking(filters);
         if (!isActive) {
           return;
         }
 
-        setItems(feedResponse.data);
-        setMeta(feedResponse.meta ?? null);
-        setBlastStats(rankingResponse.data.stats);
+        setItems(response.data.activities);
+        setMeta(response.meta ?? null);
+        setBlastStats(response.data.stats);
       } catch (errorValue) {
         if (!isActive) {
           return;
@@ -400,6 +399,7 @@ export function BlastLogView() {
   );
   const hasFilters =
     filters.platform !== "all" ||
+    filters.source !== "all" ||
     Boolean(filters.search.trim()) ||
     Boolean(filters.date_from?.trim()) ||
     Boolean(filters.date_to?.trim());
@@ -417,6 +417,8 @@ export function BlastLogView() {
       const response = await getBlastRanking({
         platform: filters.platform,
         social_account_id: filters.social_account_id,
+        source: filters.source,
+        sort_direction: filters.sort_direction,
         date_from: filters.date_from,
         date_to: filters.date_to,
         search: filters.search,
@@ -542,7 +544,7 @@ export function BlastLogView() {
 
       <Card>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 xl:grid-cols-[180px_170px_170px_minmax(240px,1fr)_auto] xl:items-end">
+          <div className="grid gap-3 xl:grid-cols-[180px_170px_170px_170px_minmax(240px,1fr)_auto] xl:items-end">
             <div className="space-y-1">
               <label htmlFor="blast-log-platform" className="text-muted-foreground text-xs">
                 Platform
@@ -567,6 +569,31 @@ export function BlastLogView() {
                       {formatPlatformLabel(platform as never)}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="blast-log-source" className="text-muted-foreground text-xs">
+                Sumber Blast
+              </label>
+              <Select
+                value={filters.source ?? "all"}
+                onValueChange={(value) =>
+                  setFilters((previous) => ({
+                    ...previous,
+                    source: value as typeof previous.source,
+                    page: 1,
+                  }))
+                }
+              >
+                <SelectTrigger id="blast-log-source">
+                  <SelectValue placeholder="Semua Sumber" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Sumber</SelectItem>
+                  <SelectItem value="bank_content">Bank Konten</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -665,7 +692,7 @@ export function BlastLogView() {
                     <TableHead>User Blast Terakhir</TableHead>
                     <TableHead>
                       <LastBlastSortButton
-                        direction={filters.sort_direction}
+                        direction={filters.sort_direction ?? "desc"}
                         onToggle={() =>
                           setFilters((previous) => ({
                             ...previous,
@@ -705,16 +732,18 @@ export function BlastLogView() {
                         <TableCell className="align-top">
                           <Badge variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700">
                             <Repeat2 className="size-3" />
-                            {formatNumber(item.blast_count)}x
+                            {formatNumber(item.blast_assignment?.blast_count ?? 1)}x
                           </Badge>
                         </TableCell>
                         <TableCell className="align-top">
                           <div className="space-y-1">
-                            <p className="font-medium text-sm">{item.completed_by?.name ?? "-"}</p>
-                            <p className="text-muted-foreground text-xs">{item.completed_by?.wilayah?.nama ?? "-"}</p>
+                            <p className="font-medium text-sm">{item.blast_user.name}</p>
+                            <p className="text-muted-foreground text-xs">{item.blast_user.wilayah?.nama ?? "-"}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="align-top text-sm">{formatDateTime(item.last_blasted_at)}</TableCell>
+                        <TableCell className="align-top text-sm">
+                          {formatDateTime(item.posted_at ?? item.created_at)}
+                        </TableCell>
                         <TableCell className="text-right align-top">
                           <div className="flex justify-end gap-1">
                             <Button asChild variant="ghost" size="icon-sm" aria-label="Buka postingan">
@@ -722,9 +751,11 @@ export function BlastLogView() {
                                 <ExternalLink className="size-4" />
                               </Link>
                             </Button>
-                            <Button asChild size="sm" variant="outline">
-                              <Link href={`/blast/log/${item.id}`}>Detail</Link>
-                            </Button>
+                            {item.blast_assignment ? (
+                              <Button asChild size="sm" variant="outline">
+                                <Link href={`/blast/log/${item.blast_assignment.id}`}>Detail</Link>
+                              </Button>
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>

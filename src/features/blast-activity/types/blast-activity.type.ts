@@ -5,6 +5,7 @@ export type BlastAssignmentStatus = "pending" | "completed" | "cancelled";
 export type BlastSortDirection = "asc" | "desc";
 export type BlastFeedScope = "available" | "kept" | "all";
 export type BlastFeedTimeliness = "all" | "on_time" | "overdue";
+export type BlastSourceFilter = "all" | "bank_content" | "manual";
 
 export interface BlastAssignmentUser {
   id: string;
@@ -371,6 +372,8 @@ export interface UpdateBlastActivityMetricsResult {
 export interface BlastRankingFilters {
   platform: "all" | ContentPlatform;
   social_account_id: "all" | string;
+  source?: BlastSourceFilter;
+  sort_direction?: BlastSortDirection;
   date_from?: string;
   date_to?: string;
   search: string;
