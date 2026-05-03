@@ -55,7 +55,7 @@ interface BlastReportRow {
   judul: string;
   akun_sosmed: string;
   platform: string;
-  sumber_blast: string;
+  jenis_input: string;
   post_url: string;
   views: number;
   likes: number;
@@ -108,7 +108,7 @@ function buildReportRows(activities: BlastActivityItem[]): BlastReportRow[] {
     judul: activity.blast_assignment?.content.title ?? activity.caption ?? "-",
     akun_sosmed: activity.social_account?.username ?? "-",
     platform: formatPlatformLabel(activity.platform),
-    sumber_blast: getActivitySource(activity),
+    jenis_input: getActivitySource(activity),
     post_url: activity.post_url,
     views: activity.views,
     likes: activity.likes,
@@ -151,7 +151,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastLogFilters) {
           <td>${escapeHtml(row.judul)}</td>
           <td>${escapeHtml(row.akun_sosmed)}</td>
           <td>${escapeHtml(row.platform)}</td>
-          <td>${escapeHtml(row.sumber_blast)}</td>
+          <td>${escapeHtml(row.jenis_input)}</td>
           <td><a href="${escapeHtml(row.post_url)}">${escapeHtml(row.post_url)}</a></td>
           <td style="mso-number-format:'0';">${escapeHtml(row.views)}</td>
           <td style="mso-number-format:'0';">${escapeHtml(row.likes)}</td>
@@ -193,7 +193,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastLogFilters) {
           <tr><th colspan="16">Laporan Log Blast</th></tr>
           <tr><td>Periode</td><td colspan="15">${escapeHtml(getReportPeriodLabel(filters))}</td></tr>
           <tr><td>Platform</td><td colspan="15">${escapeHtml(filters.platform === "all" ? "Semua Platform" : formatPlatformLabel(filters.platform))}</td></tr>
-          <tr><td>Sumber Blast</td><td colspan="15">${escapeHtml(getSourceFilterLabel(filters.source ?? "all"))}</td></tr>
+          <tr><td>Jenis Input</td><td colspan="15">${escapeHtml(getSourceFilterLabel(filters.source ?? "all"))}</td></tr>
         </table>
         <br />
         <table>
@@ -207,7 +207,7 @@ function buildExcelReport(rows: BlastReportRow[], filters: BlastLogFilters) {
               <th>Judul</th>
               <th>Akun Sosmed</th>
               <th>Platform</th>
-              <th>Sumber Blast</th>
+              <th>Jenis Input</th>
               <th>Post URL</th>
               <th>Views</th>
               <th>Likes</th>
@@ -248,7 +248,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastLogFilters) 
           <td>${escapeHtml(row.judul)}</td>
           <td>${escapeHtml(row.akun_sosmed)}</td>
           <td>${escapeHtml(row.platform)}</td>
-          <td>${escapeHtml(row.sumber_blast)}</td>
+          <td>${escapeHtml(row.jenis_input)}</td>
           <td><a href="${escapeHtml(row.post_url)}" target="_blank" rel="noreferrer">Buka Postingan</a></td>
           <td class="number">${escapeHtml(row.views)}</td>
           <td class="number">${escapeHtml(row.likes)}</td>
@@ -286,7 +286,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastLogFilters) 
         <h1>Laporan Log Blast</h1>
         <p>Periode: ${escapeHtml(getReportPeriodLabel(filters))}</p>
         <p>Platform: ${escapeHtml(filters.platform === "all" ? "Semua Platform" : formatPlatformLabel(filters.platform))}</p>
-        <p>Sumber Blast: ${escapeHtml(getSourceFilterLabel(filters.source ?? "all"))}</p>
+        <p>Jenis Input: ${escapeHtml(getSourceFilterLabel(filters.source ?? "all"))}</p>
         <div class="summary">
           <div><span>Aktivitas</span><strong>${escapeHtml(rows.length)}</strong></div>
           <div><span>Views</span><strong>${escapeHtml(formatNumber(totals.views))}</strong></div>
@@ -306,7 +306,7 @@ function buildPrintableReport(rows: BlastReportRow[], filters: BlastLogFilters) 
               <th>Judul</th>
               <th>Akun</th>
               <th>Platform</th>
-              <th>Sumber Blast</th>
+              <th>Jenis Input</th>
               <th>Link Postingan</th>
               <th>Views</th>
               <th>Likes</th>
@@ -335,6 +335,14 @@ function getSourceFilterLabel(source: BlastLogFilters["source"]) {
 }
 
 function getActivitySource(item: BlastActivityItem) {
+  if (item.source === "bank_content") {
+    return "Bank Konten";
+  }
+
+  if (item.source === "manual") {
+    return "Manual";
+  }
+
   return item.blast_assignment?.content.topic === "Blast Manual" || !item.blast_assignment ? "Manual" : "Bank Konten";
 }
 

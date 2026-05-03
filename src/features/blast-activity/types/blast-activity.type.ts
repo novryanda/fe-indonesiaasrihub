@@ -162,6 +162,7 @@ export interface BlastCandidateItem {
 
 export interface BlastActivityItem {
   id: string;
+  source?: BlastSourceFilter;
   platform: ContentPlatform;
   post_url: string;
   proof_drive_link: string | null;
