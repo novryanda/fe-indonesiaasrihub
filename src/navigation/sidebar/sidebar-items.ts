@@ -104,6 +104,12 @@ export const sidebarItems: NavGroup[] = [
         roles: ["blast"],
       },
       {
+        title: "Log Blast",
+        url: "/blast/log",
+        icon: ScrollText,
+        roles: ["blast",],
+      },
+      {
         title: "Ranking Blast",
         url: "/blast/ranking",
         icon: Trophy,
@@ -304,6 +310,18 @@ export const sidebarItems: NavGroup[] = [
         title: "Konfigurasi Sistem",
         url: "/system/konfigurasi",
         icon: Settings2,
+        roles: ["sysadmin"],
+      },
+    ],
+  },
+  {
+    id: 10,
+    label: "Laporan",
+    items: [
+      {
+        title: "Log Blast",
+        url: "/blast/log",
+        icon: ScrollText,
         roles: ["sysadmin"],
       },
     ],

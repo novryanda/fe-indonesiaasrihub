@@ -58,6 +58,74 @@ export interface BlastFeedItem {
   };
 }
 
+export interface BlastLogDetailData {
+  id: string;
+  status: BlastAssignmentStatus;
+  platform: ContentPlatform;
+  blast_count: number;
+  first_blasted_at: string | null;
+  last_blasted_at: string | null;
+  requested_note: string | null;
+  requested_by: BlastAssignmentUser;
+  kept_at: string | null;
+  kept_by: BlastAssignmentUser | null;
+  completed_by: BlastAssignmentUser | null;
+  target_wilayah: {
+    id: string;
+    nama: string;
+    kode: string;
+    level: string;
+  };
+  reference: {
+    posting_proof_link_id: string;
+    post_url: string;
+    posted_at: string | null;
+    caption: string | null;
+    validated_at: string | null;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    reposts: number;
+    social_account: {
+      id: string;
+      username: string;
+      profile_name: string;
+      profile_url: string;
+    } | null;
+    posting_proof: {
+      id: string;
+      submitted_at: string | null;
+      deadline_at: string | null;
+      pic: BlastAssignmentUser;
+    };
+    content: {
+      id: string;
+      submission_code: string | null;
+      title: string;
+      topic: string;
+      drive_link: string;
+      platforms: ContentPlatform[];
+    };
+  };
+  history: Array<{
+    id: string;
+    sequence: number;
+    blasted_at: string;
+    submitted_at: string;
+    proof_drive_link: string | null;
+    post_url: string;
+    caption: string | null;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    reposts: number;
+    notes: string | null;
+    blast_user: BlastAssignmentUser;
+  }>;
+}
+
 export interface BlastCandidateItem {
   id: string;
   platform: ContentPlatform;

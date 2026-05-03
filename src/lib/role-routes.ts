@@ -35,6 +35,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/analitik/laporan-monitoring-tugas",
   ],
   sysadmin: [
+    "/blast/log",
     "/system/whatsapp-automation",
     "/system/whatsapp-gateway",
     "/system/jadwal-scrapping",
@@ -67,7 +68,7 @@ const ROLE_ALLOWED_ROUTE_PREFIXES: Record<UserRole, string[]> = {
     "/akun/akun-sosmed",
     "/akun/notifikasi",
   ],
-  blast: ["/blast/aktivitas", "/blast/manual", "/blast/ulang", "/blast/ranking"],
+  blast: ["/blast/aktivitas", "/blast/log", "/blast/manual", "/blast/ulang", "/blast/ranking"],
 };
 
 function normalizePathname(pathname: string) {
