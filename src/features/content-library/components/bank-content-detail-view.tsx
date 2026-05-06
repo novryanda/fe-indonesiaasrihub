@@ -126,6 +126,7 @@ export function BankContentDetailView() {
     "qcc_wcc",
     "wcc",
     "pic_sosmed",
+    "blast",
     "superadmin",
     "supervisi",
   ]);

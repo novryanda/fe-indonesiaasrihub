@@ -54,7 +54,7 @@ export interface NavGroup {
 }
 
 const CONTENT_CREATOR_ROLES: UserRole[] = ["wcc"];
-const FIELD_TEAM_ROLES: UserRole[] = ["wcc", "pic_sosmed"];
+const FIELD_TEAM_ROLES: UserRole[] = ["wcc", "pic_sosmed", "blast"];
 
 export const sidebarItems: NavGroup[] = [
   {
